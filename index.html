@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>AI Studio Pro – Forensics & Multi-Provider</title>
+  <title>AI Studio Pro – All In One</title>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     body { background:#0d1117; color:#e6edf3; font-family:-apple-system, system-ui, sans-serif; height:100vh; display:flex; flex-direction:column; }
@@ -64,6 +64,10 @@
   <input type="password" id="key-input" class="ctrl" placeholder="API Key..." style="flex:2;">
   <button class="btn-main" id="save-key-btn">Save Key</button>
   <div id="custom-url-wrap"><input type="text" id="custom-url" class="ctrl" placeholder="https://api.example.com/v1"></div>
+
+  <!-- SEARCH BAR (Now visible and working) -->
+  <input type="text" id="model-search" placeholder="🔍 Filter models..." style="background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:6px 10px; color:white; width:100%; display:none;">
+
   <select id="model-select" class="ctrl" style="flex:2;">
     <option value="">— Select Model —</option>
   </select>
@@ -242,66 +246,79 @@
     allModels = [];
     renderModelDropdown();
     document.getElementById('load-more-btn').style.display = 'none';
+    document.getElementById('model-search').style.display = 'none';
   });
   document.getElementById('custom-url').addEventListener('input', function() {
     if (currentProvider === 'custom') baseUrl = this.value;
   });
 
-  // ===== MODEL LOADING (Pagination) =====
+  // ===== MODEL LOADING (Pagination + Top 10) =====
   async function loadModels(reset = true) {
-  if (reset) { page = 1; allModels = []; hasMore = true; }
-  if (!hasMore && !reset) return;
-  const btn = document.getElementById('load-models-btn');
-  btn.disabled = true;
-  try {
-    let url;
-    if (currentProvider === 'featherless') {
-      url = PROXY + encodeURIComponent(`${baseUrl}/models?page=${page}&per_page=100`);
-    } else if (currentProvider === 'venice') {
-      // Venice requires separate fetching for different model types
-      // Fetch text, image, and video models separately
-      const types = ['text', 'image', 'video'];
-      let allVeniceModels = [];
-      for (const t of types) {
-        const typeUrl = PROXY + encodeURIComponent(`${baseUrl}/models?type=${t}`);
-        const resp = await fetch(typeUrl, { headers: { 'Authorization': `Bearer ${apiKey}` } });
-        if (resp.ok) {
-          const data = await resp.json();
-          const models = data.data || [];
-          // Add a type label to each model
-          models.forEach(m => { m._type = t; });
-          allVeniceModels.push(...models);
+    if (reset) { page = 1; allModels = []; hasMore = true; }
+    if (!hasMore && !reset) return;
+    const btn = document.getElementById('load-models-btn');
+    btn.disabled = true;
+    try {
+      if (currentProvider === 'featherless') {
+        const url = PROXY + encodeURIComponent(`${baseUrl}/models?page=${page}&per_page=100`);
+        const resp = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+        if (!resp.ok) throw new Error('Failed to fetch');
+        const data = await resp.json();
+        const newModels = data.data || [];
+        if (reset) allModels = [];
+        allModels.push(...newModels);
+        hasMore = newModels.length === 100;
+        document.getElementById('model-search').style.display = 'block';
+        
+        // Prepend Top 10 Featherless models
+        if (reset) {
+          const top10 = [
+            { id: 'huihui-ai/Llama-3.3-70B-Instruct-abliterated', name: 'Llama 3.3 70B Abliterated (Top)' },
+            { id: 'cognitivecomputations/dolphin-2.9-llama3-70b', name: 'Dolphin 2.9 Llama3 70B' },
+            { id: 'Qwen/Qwen2.5-72B-Instruct', name: 'Qwen 2.5 72B' },
+            { id: 'deepseek-ai/DeepSeek-V2.5-1210', name: 'DeepSeek V2.5' },
+            { id: 'meta-llama/Meta-Llama-3.1-405B-Instruct', name: 'Llama 3.1 405B' },
+            { id: 'Qwen/Qwen2.5-14B-Instruct', name: 'Qwen 2.5 14B' },
+            { id: 'NousResearch/Hermes-2-Pro-Llama-3-8B', name: 'Hermes 2 Pro Llama 3 8B' },
+            { id: 'huihui-ai/Mistral-Small-24B-Instruct-2501-abliterated', name: 'Mistral Small 24B Abliterated' },
+            { id: 'cognitivecomputations/dolphin-2.9.1-mistral-7b', name: 'Dolphin 2.9.1 Mistral 7B' },
+            { id: 'meta-llama/Meta-Llama-3.3-70B-Instruct', name: 'Llama 3.3 70B (Standard)' }
+          ];
+          allModels = [...top10, ...allModels];
         }
+      } else if (currentProvider === 'venice') {
+        const types = ['text', 'image', 'video'];
+        let allVeniceModels = [];
+        for (const t of types) {
+          const typeUrl = PROXY + encodeURIComponent(`${baseUrl}/models?type=${t}`);
+          const resp = await fetch(typeUrl, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+          if (resp.ok) {
+            const data = await resp.json();
+            const models = data.data || [];
+            models.forEach(m => { m._type = t; });
+            allVeniceModels.push(...models);
+          }
+        }
+        allModels = reset ? allVeniceModels : [...allModels, ...allVeniceModels];
+        hasMore = false;
+        document.getElementById('model-search').style.display = 'none';
+      } else {
+        allModels = [{ id: 'default', name: 'Default Model' }];
+        document.getElementById('model-search').style.display = 'none';
       }
-      allModels = reset ? allVeniceModels : [...allModels, ...allVeniceModels];
-      hasMore = false; // Venice pagination is simpler, no "more" needed here
-      document.getElementById('load-more-btn').style.display = 'none';
       renderModelDropdown();
+      document.getElementById('load-more-btn').style.display = hasMore ? 'inline-block' : 'none';
       toast(reset ? `Loaded ${allModels.length} models` : `Added more models`);
-      return;
-    } else {
-      url = PROXY + encodeURIComponent(`${baseUrl}/models?page=${page}`);
+    } catch (e) {
+      toast('Error loading models: ' + e.message);
+      if (allModels.length === 0) {
+        allModels = [{ id: 'llama-3.3-70b', name: 'Llama 3.3 70B (Fallback)' }];
+        renderModelDropdown();
+      }
+    } finally {
+      btn.disabled = false;
     }
-    const resp = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
-    if (!resp.ok) throw new Error('Failed to fetch');
-    const data = await resp.json();
-    const newModels = data.data || [];
-    if (reset) allModels = [];
-    allModels.push(...newModels);
-    hasMore = newModels.length > 0 && (data.pagination?.has_more !== false);
-    renderModelDropdown();
-    document.getElementById('load-more-btn').style.display = hasMore ? 'inline-block' : 'none';
-    toast(reset ? `Loaded ${allModels.length} models` : `Added ${newModels.length} more`);
-  } catch (e) {
-    toast('Error loading models: ' + e.message);
-    if (allModels.length === 0) {
-      allModels = [{ id: 'llama-3.3-70b', name: 'Llama 3.3 70B (Fallback)', _type: 'text' }];
-      renderModelDropdown();
-    }
-  } finally {
-    btn.disabled = false;
   }
-}
 
   function renderModelDropdown() {
     const select = document.getElementById('model-select');
@@ -309,17 +326,38 @@
     allModels.forEach(m => {
       const opt = document.createElement('option');
       opt.value = m.id;
-      opt.textContent = m.name || m.id;
+      let typeLabel = '';
+      if (m._type) typeLabel = ` [${m._type}]`;
+      opt.textContent = (m.name || m.id) + typeLabel;
       select.appendChild(opt);
     });
-    if (allModels.length === 1) select.selectedIndex = 1;
   }
 
   document.getElementById('load-models-btn').addEventListener('click', () => loadModels(true));
   document.getElementById('load-more-btn').addEventListener('click', () => { page++; loadModels(false); });
   document.getElementById('model-select').addEventListener('change', (e) => { currentModel = e.target.value; });
 
-  // ===== CHAT (with file chunking) =====
+  // ===== SEARCH BAR (No Lag) =====
+  let searchTimeout;
+  document.getElementById('model-search').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      const term = this.value.toLowerCase();
+      const select = document.getElementById('model-select');
+      const filtered = allModels.filter(m => 
+        (m.name || m.id).toLowerCase().includes(term)
+      );
+      select.innerHTML = '<option value="">— Select Model —</option>';
+      filtered.forEach(m => {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = (m.name || m.id) + (m._type ? ` [${m._type}]` : '');
+        select.appendChild(opt);
+      });
+    }, 150);
+  });
+
+  // ===== CHAT =====
   document.getElementById('send-btn').addEventListener('click', sendChat);
   document.getElementById('chat-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
@@ -432,6 +470,16 @@
   document.getElementById('img-gen-btn').addEventListener('click', async () => {
     const prompt = document.getElementById('img-prompt').value.trim();
     if (!prompt) { toast('Enter a prompt'); return; }
+    if (!apiKey) { toast('Save API key first'); return; }
+    if (!currentModel) { toast('Select a model'); return; }
+
+    // Safety: Ensure it's an image model
+    const selectedModel = allModels.find(m => m.id === currentModel);
+    if (selectedModel && selectedModel._type && selectedModel._type !== 'image') {
+      toast(`❌ ${currentModel} is a ${selectedModel._type} model. Select an IMAGE model.`);
+      return;
+    }
+
     const size = document.getElementById('img-size').value;
     const [w, h] = size.split('x').map(Number);
     const res = document.getElementById('img-result');
@@ -440,7 +488,7 @@
       let data;
       if (currentProvider === 'venice') {
         data = await callAPI('image/generate', {
-          model: currentModel || 'flux-2-max',
+          model: currentModel,
           prompt: prompt,
           width: w, height: h,
           format: 'webp'
@@ -450,7 +498,7 @@
         else throw new Error('No image');
       } else {
         data = await callAPI('images/generations', {
-          model: currentModel || 'dall-e-3',
+          model: currentModel,
           prompt: prompt,
           n: 1,
           size: '1024x1024'
@@ -463,50 +511,107 @@
   });
 
   // ===== IMAGE EDIT =====
-  document.getElementById('img-gen-btn').addEventListener('click', async () => {
-  const prompt = document.getElementById('img-prompt').value.trim();
-  if (!prompt) { toast('Enter a prompt'); return; }
-  if (!apiKey) { toast('Save API key first'); return; }
-  if (!currentModel) { toast('Select a model'); return; }
-
-  // ✅ Safety check: Ensure selected model is an image model
-  const selectedModel = allModels.find(m => m.id === currentModel);
-  if (selectedModel && selectedModel._type && selectedModel._type !== 'image') {
-    toast(`❌ ${currentModel} is a ${selectedModel._type} model. Please select an IMAGE model.`);
-    return;
-  }
-
-  const size = document.getElementById('img-size').value;
-  const [w, h] = size.split('x').map(Number);
-  const res = document.getElementById('img-result');
-  res.innerHTML = '⏳ Generating...';
-  try {
-    let data;
-    if (currentProvider === 'venice') {
-      data = await callAPI('image/generate', {
-        model: currentModel,
+  document.getElementById('edit-upload').addEventListener('click', () => document.getElementById('edit-file-input').click());
+  document.getElementById('edit-file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      editFileBase64 = ev.target.result.split(',')[1];
+      const box = document.getElementById('edit-upload');
+      box.innerHTML = `<img src="data:image/png;base64,${editFileBase64}">`;
+      box.classList.add('has-img');
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('edit-btn').addEventListener('click', async () => {
+    if (!editFileBase64) { toast('Upload an image first'); return; }
+    const prompt = document.getElementById('edit-prompt').value.trim();
+    if (!prompt) { toast('Describe the change'); return; }
+    const res = document.getElementById('edit-result');
+    res.innerHTML = '⏳ Editing...';
+    try {
+      const data = await callAPI('image/edit', {
+        model: currentModel || 'lustify-sdxl',
         prompt: prompt,
-        width: w, height: h,
-        format: 'webp'
+        image: editFileBase64
       });
       const b64 = data.images?.[0];
       if (b64) res.innerHTML = `<img src="data:image/webp;base64,${b64}" style="max-width:100%; border-radius:8px;">`;
       else throw new Error('No image');
-    } else {
-      data = await callAPI('images/generations', {
-        model: currentModel,
+    } catch (e) { res.innerHTML = `<div style="color:#f87171;">${e.message}</div>`; }
+  });
+
+  // ===== IMAGE COMBINE =====
+  let combineCount = 0;
+  document.querySelectorAll('#combine-upload-area .upload-box').forEach((box, index) => {
+    box.addEventListener('click', () => {
+      const input = document.getElementById('combine-file-input');
+      input.dataset.target = index;
+      input.click();
+    });
+  });
+  document.getElementById('combine-file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const target = parseInt(e.target.dataset.target);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const b64 = ev.target.result.split(',')[1];
+      combineFilesBase64[target] = b64;
+      const box = document.querySelectorAll('#combine-upload-area .upload-box')[target];
+      box.innerHTML = `<img src="data:image/png;base64,${b64}">`;
+      box.classList.add('has-img');
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('combine-btn').addEventListener('click', async () => {
+    const images = combineFilesBase64.filter(Boolean);
+    if (images.length < 2) { toast('Upload at least 2 images'); return; }
+    const prompt = document.getElementById('combine-prompt').value.trim();
+    if (!prompt) { toast('Describe how to combine them'); return; }
+    const res = document.getElementById('combine-result');
+    res.innerHTML = '⏳ Combining...';
+    try {
+      const data = await callAPI('image/combine', {
+        model: currentModel || 'lustify-sdxl',
         prompt: prompt,
-        n: 1,
-        size: '1024x1024'
+        images: images
       });
-      const url = data.data?.[0]?.url;
-      if (url) res.innerHTML = `<img src="${url}" style="max-width:100%; border-radius:8px;">`;
+      const b64 = data.images?.[0];
+      if (b64) res.innerHTML = `<img src="data:image/webp;base64,${b64}" style="max-width:100%; border-radius:8px;">`;
       else throw new Error('No image');
-    }
-  } catch (e) {
-    res.innerHTML = `<div style="color:#f87171;">${e.message}</div>`;
-  }
-});
+    } catch (e) { res.innerHTML = `<div style="color:#f87171;">${e.message}</div>`; }
+  });
+
+  // ===== VIDEO GENERATION =====
+  document.getElementById('vid-gen-btn').addEventListener('click', async () => {
+    const prompt = document.getElementById('vid-prompt').value.trim();
+    if (!prompt) { toast('Enter a prompt'); return; }
+    if (currentProvider !== 'venice') { toast('Video works best with Venice.ai'); return; }
+    const res = document.getElementById('vid-result');
+    res.innerHTML = '⏳ Generating video (1-2 min)...';
+    try {
+      const data = await callAPI('video/generate', {
+        model: currentModel || 'kling-v3',
+        prompt: prompt,
+        aspect_ratio: '16:9',
+        duration: 5
+      });
+      let url = data.video_url;
+      if (!url && data.video_id) {
+        res.innerHTML += '<div style="color:#fbbf24;">🔄 Polling...</div>';
+        for (let i=0; i<10; i++) {
+          await new Promise(r => setTimeout(r, 5000));
+          const status = await callAPI('video/status', { video_id: data.video_id });
+          if (status.status === 'completed' && status.video_url) { url = status.video_url; break; }
+          if (status.status === 'failed') throw new Error('Video failed');
+        }
+      }
+      if (url) res.innerHTML = `<video controls src="${url}" style="max-width:100%; max-height:400px; border-radius:8px;"></video>`;
+      else throw new Error('Video not ready');
+    } catch (e) { res.innerHTML = `<div style="color:#f87171;">${e.message}</div>`; }
+  });
 
   // ===== TABS =====
   document.querySelectorAll('.tab-btn').forEach(btn => {
