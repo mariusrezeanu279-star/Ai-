@@ -3,343 +3,565 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>AI Studio – Full</title>
+  <title>AI Studio Pro – Forensics & Multi-Provider</title>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     body { background:#0d1117; color:#e6edf3; font-family:-apple-system, system-ui, sans-serif; height:100vh; display:flex; flex-direction:column; }
-    #header { padding:12px; background:#161b22; border-bottom:1px solid #30363d; display:flex; align-items:center; gap:10px; }
-    #header h1 { font-size:18px; }
-    #chat-box { flex:1; overflow-y:auto; padding:12px; display:flex; flex-direction:column; gap:8px; }
-    .msg { max-width:85%; padding:8px 14px; border-radius:16px; line-height:1.4; word-break:break-word; }
+    #header { padding:10px; background:#161b22; border-bottom:1px solid #30363d; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; }
+    #header h1 { font-size:18px; font-weight:bold; }
+    #status { font-size:12px; color:#8b949e; }
+
+    #settings-panel { background:#161b22; border-bottom:1px solid #30363d; padding:8px 12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; flex-shrink:0; }
+    .ctrl { background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:6px 10px; color:white; flex:1; min-width:80px; }
+    .btn-main { background:#7c3aed; border:none; border-radius:6px; padding:6px 14px; color:white; cursor:pointer; font-weight:bold; }
+    .btn-main:disabled { opacity:0.5; }
+    .btn-secondary { background:#30363d; border:none; border-radius:6px; padding:6px 12px; color:white; cursor:pointer; }
+    #custom-url-wrap { display:none; flex:2; }
+
+    .tab-bar { display:flex; border-bottom:1px solid #30363d; background:#0d1117; flex-shrink:0; overflow-x:auto; }
+    .tab-btn { flex:1; text-align:center; padding:8px; background:#161b22; border:none; border-bottom:2px solid transparent; color:#8b949e; cursor:pointer; min-width:70px; }
+    .tab-btn.active { border-bottom-color:#7c3aed; color:white; background:#0d1117; }
+
+    .tab-panel { display:none; flex:1; flex-direction:column; overflow:hidden; }
+    .tab-panel.active { display:flex; }
+
+    #chat-box { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:6px; }
+    .msg { max-width:85%; padding:8px 12px; border-radius:12px; word-break:break-word; }
     .msg.user { align-self:flex-end; background:#7c3aed; border-bottom-right-radius:4px; }
-    .msg.bot { align-self:flex-start; background:#21262d; border-bottom-left-radius:4px; }
-    .msg.thinking { opacity:0.6; }
-    .msg.error { background:#2a1217; border:1px solid #f87171; color:#f87171; }
-    #input-area { display:flex; gap:8px; padding:10px; background:#161b22; border-top:1px solid #30363d; }
-    textarea { flex:1; background:#0d1117; border:1px solid #30363d; border-radius:20px; padding:10px 14px; color:white; resize:none; font-size:14px; height:44px; }
-    button { background:#7c3aed; border:none; border-radius:20px; padding:0 18px; color:white; font-weight:bold; cursor:pointer; }
-    button:disabled { opacity:0.5; }
-    #toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#161b22; padding:8px 20px; border-radius:40px; border:1px solid #30363d; opacity:0; transition:0.2s; }
+    .msg.ai { align-self:flex-start; background:#21262d; border-bottom-left-radius:4px; }
+    .msg.ai.thinking { opacity:0.6; }
+    .msg.ai.error { background:#2a1217; border:1px solid #f87171; color:#f87171; }
+
+    .input-area { display:flex; gap:8px; padding:8px; border-top:1px solid #30363d; background:#161b22; flex-shrink:0; align-items:center; }
+    .input-area textarea { flex:1; background:#0d1117; border:1px solid #30363d; border-radius:20px; padding:8px 12px; resize:none; height:40px; color:white; font-size:14px; }
+    .file-btn { background:#30363d; padding:8px; border-radius:20px; cursor:pointer; display:flex; align-items:center; }
+
+    .panel-grid { display:flex; flex-direction:column; gap:12px; padding:12px; flex:1; overflow-y:auto; }
+    .card { background:#161b22; border-radius:12px; padding:16px; border:1px solid #30363d; }
+    .upload-box { border:2px dashed #30363d; border-radius:8px; padding:20px; text-align:center; color:#8b949e; cursor:pointer; }
+    .upload-box.has-img { border-color:#7c3aed; padding:0; }
+    .upload-box img { max-width:100%; max-height:200px; border-radius:6px; display:block; margin:auto; }
+    .row { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+
+    #toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#161b22; padding:8px 20px; border-radius:40px; border:1px solid #30363d; opacity:0; transition:0.3s; z-index:999; white-space:nowrap; }
     #toast.show { opacity:1; }
-    @keyframes spin { to { transform:rotate(360deg); } }
-    .spin { animation:spin 0.8s linear infinite; display:inline-block; }
-    .tab-bar { display:flex; gap:0; border-bottom:1px solid #30363d; }
-    .tab { flex:1; text-align:center; padding:10px; background:#161b22; cursor:pointer; border-bottom:2px solid transparent; }
-    .tab.active { border-bottom-color:#7c3aed; background:#0d1117; }
-    .panel { display:none; flex:1; flex-direction:column; overflow:hidden; }
-    .panel.active { display:flex; }
-    #settings-panel { padding:16px; background:#0d1117; border-bottom:1px solid #30363d; display:flex; flex-direction:column; gap:8px; }
-    .setting-row { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
-    .ctrl { background:#21262d; border:1px solid #30363d; border-radius:8px; padding:6px 10px; color:white; }
-    #image-panel, #video-panel { padding:16px; gap:12px; overflow-y:auto; }
-    input, select, textarea { background:#0d1117; border:1px solid #30363d; border-radius:8px; padding:8px 12px; color:white; width:100%; }
+    #chunk-status { font-size:11px; color:#8b949e; align-self:center; }
   </style>
 </head>
 <body>
 
 <div id="header">
-  <button class="sidebar-btn" id="menuBtn">☰</button>
-  <h1>✨ AI Studio</h1>
-  <div style="margin-left:auto; font-size:11px; color:#8b949e;" id="status">Ready</div>
+  <h1>🛸 AI Pro</h1>
+  <span id="status">🔑 No Key</span>
 </div>
 
-<!-- SETTINGS -->
 <div id="settings-panel">
-  <div class="setting-row">
-    <span style="font-size:12px; font-weight:bold; min-width:60px;">Provider</span>
-    <select id="provider-select" class="ctrl" style="flex:1;">
-      <option value="featherless" data-url="https://api.featherless.ai/v1">Featherless.ai</option>
-      <option value="venice" data-url="https://api.venice.ai/api/v1">Venice.ai</option>
-      <option value="custom" data-url="">Custom URL</option>
-    </select>
-  </div>
-  <div class="setting-row">
-    <span style="font-size:12px; font-weight:bold; min-width:60px;">API Key</span>
-    <input type="password" id="api-key-input" class="ctrl" placeholder="Enter your API key..." style="flex:1;">
-  </div>
-  <div id="custom-url-wrap" style="display:none;">
-    <input type="text" id="custom-url" class="ctrl" placeholder="https://your-api.com/v1" style="width:100%;">
-  </div>
-  <div style="display:flex; gap:8px; flex-wrap:wrap;">
-    <button id="load-models-btn" style="font-size:12px; padding:4px 12px;">📥 Load Models</button>
-    <select id="model-select" class="ctrl" style="flex:1; min-width:140px;">
-      <option value="">— select a model —</option>
-    </select>
-  </div>
+  <select id="provider-select" class="ctrl" style="flex:1.5;">
+    <option value="featherless" data-url="https://api.featherless.ai/v1">Featherless.ai</option>
+    <option value="venice" data-url="https://api.venice.ai/api/v1">Venice.ai</option>
+    <option value="custom" data-url="">Custom URL</option>
+  </select>
+  <input type="password" id="key-input" class="ctrl" placeholder="API Key..." style="flex:2;">
+  <button class="btn-main" id="save-key-btn">Save Key</button>
+  <div id="custom-url-wrap"><input type="text" id="custom-url" class="ctrl" placeholder="https://api.example.com/v1"></div>
+  <select id="model-select" class="ctrl" style="flex:2;">
+    <option value="">— Select Model —</option>
+  </select>
+  <button class="btn-secondary" id="load-models-btn">📥 Models</button>
+  <button class="btn-secondary" id="load-more-btn" style="display:none;">➕ More</button>
 </div>
 
-<!-- TABS -->
 <div class="tab-bar">
-  <div class="tab active" data-tab="chat">💬 Chat</div>
-  <div class="tab" data-tab="image">🎨 Image</div>
-  <div class="tab" data-tab="video">🎬 Video</div>
+  <button class="tab-btn active" data-tab="chat">💬 Chat</button>
+  <button class="tab-btn" data-tab="image">🎨 Image</button>
+  <button class="tab-btn" data-tab="edit">✏️ Edit</button>
+  <button class="tab-btn" data-tab="combine">🧩 Combine</button>
+  <button class="tab-btn" data-tab="video">🎬 Video</button>
 </div>
 
-<!-- CHAT -->
-<div id="chat-panel" class="panel active">
+<!-- CHAT TAB (with Forensic Upload) -->
+<div id="chat-tab" class="tab-panel active">
   <div id="chat-box">
-    <div style="text-align:center; color:#8b949e; padding:20px;">Select provider, add API key, load models, pick one, and chat.</div>
+    <div style="text-align:center; color:#8b949e; padding:20px;">Add API key, load models, and start chatting.</div>
   </div>
-  <div id="input-area">
-    <textarea id="chat-input" placeholder="Message..."></textarea>
-    <button id="send-btn">Send</button>
+  <div id="forensic-controls" style="padding:4px 8px; background:#0d1117; border-top:1px solid #30363d; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+    <input type="file" id="forensic-file" accept="*/*" style="flex:1; min-width:100px; background:#161b22; border:1px solid #30363d; border-radius:6px; padding:4px; color:#e6edf3;">
+    <button class="btn-main" id="chunk-btn" style="font-size:12px; padding:4px 12px;">📤 Send File (Auto-Chunk)</button>
+    <span id="chunk-status">No file</span>
+  </div>
+  <div class="input-area">
+    <textarea id="chat-input" placeholder="Ask about the file..."></textarea>
+    <button class="btn-main" id="send-btn">Send</button>
   </div>
 </div>
 
-<!-- IMAGE -->
-<div id="image-panel" class="panel">
-  <input id="img-prompt" placeholder="Describe the image..." style="min-height:60px;">
-  <div style="display:flex; gap:10px;">
-    <select id="img-size" style="flex:1;">
-      <option value="1024x1024">1024x1024</option>
-      <option value="1536x1024">1536x1024 (16:9)</option>
-      <option value="1024x1536">1024x1536 (9:16)</option>
-    </select>
-    <button id="img-gen-btn" style="white-space:nowrap;">Generate</button>
+<!-- IMAGE GENERATE -->
+<div id="image-tab" class="tab-panel">
+  <div class="panel-grid">
+    <div class="card">
+      <textarea id="img-prompt" placeholder="Describe the image..." style="width:100%; min-height:60px;"></textarea>
+      <div class="row">
+        <select id="img-size" style="flex:1;">
+          <option value="1024x1024">1024x1024</option>
+          <option value="1536x1024">1536x1024 (16:9)</option>
+          <option value="1024x1536">1024x1536 (9:16)</option>
+        </select>
+        <button class="btn-main" id="img-gen-btn">Generate</button>
+      </div>
+    </div>
+    <div id="img-result" class="card" style="min-height:150px; text-align:center; color:#8b949e; display:flex; align-items:center; justify-content:center;">
+      Image appears here
+    </div>
   </div>
-  <div id="img-result" style="min-height:200px; background:#0d1117; border-radius:12px; border:1px dashed #30363d; display:flex; align-items:center; justify-content:center; color:#8b949e;">Image will appear here</div>
+</div>
+
+<!-- IMAGE EDIT -->
+<div id="edit-tab" class="tab-panel">
+  <div class="panel-grid">
+    <div class="card">
+      <div class="upload-box" id="edit-upload">Upload Image to Edit</div>
+      <input type="file" id="edit-file-input" style="display:none;">
+      <textarea id="edit-prompt" placeholder="Describe the change (e.g., 'Make it look like a cartoon')" style="width:100%; min-height:60px; margin-top:10px;"></textarea>
+      <button class="btn-main" id="edit-btn" style="margin-top:8px;">Edit Image</button>
+    </div>
+    <div id="edit-result" class="card" style="min-height:150px; text-align:center; color:#8b949e; display:flex; align-items:center; justify-content:center;">
+      Edited Image appears here
+    </div>
+  </div>
+</div>
+
+<!-- IMAGE COMBINE -->
+<div id="combine-tab" class="tab-panel">
+  <div class="panel-grid">
+    <div class="card">
+      <p style="margin-bottom:8px;">Add up to 3 images</p>
+      <div class="row" id="combine-upload-area">
+        <div class="upload-box" id="combine-upload1">Image 1</div>
+        <div class="upload-box" id="combine-upload2">Image 2</div>
+        <div class="upload-box" id="combine-upload3">Image 3</div>
+      </div>
+      <input type="file" id="combine-file-input" style="display:none;">
+      <textarea id="combine-prompt" placeholder="Describe how they should combine..." style="width:100%; min-height:60px; margin-top:10px;"></textarea>
+      <button class="btn-main" id="combine-btn" style="margin-top:8px;">Combine Images</button>
+    </div>
+    <div id="combine-result" class="card" style="min-height:150px; text-align:center; color:#8b949e; display:flex; align-items:center; justify-content:center;">
+      Combined Image appears here
+    </div>
+  </div>
 </div>
 
 <!-- VIDEO -->
-<div id="video-panel" class="panel">
-  <input id="vid-prompt" placeholder="Describe the video..." style="min-height:60px;">
-  <button id="vid-gen-btn">Generate Video (1-2 min)</button>
-  <div id="vid-result" style="min-height:200px; background:#0d1117; border-radius:12px; border:1px dashed #30363d; display:flex; align-items:center; justify-content:center; color:#8b949e;">Video will appear here</div>
+<div id="video-tab" class="tab-panel">
+  <div class="panel-grid">
+    <div class="card">
+      <textarea id="vid-prompt" placeholder="Describe the video..." style="width:100%; min-height:60px;"></textarea>
+      <button class="btn-main" id="vid-gen-btn">Generate Video (1-2 min)</button>
+    </div>
+    <div id="vid-result" class="card" style="min-height:150px; text-align:center; color:#8b949e; display:flex; align-items:center; justify-content:center;">
+      Video appears here
+    </div>
+  </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
   // ===== STATE =====
-  let apiKey = '';
+  let apiKey = localStorage.getItem('api_key') || '';
   let baseUrl = 'https://api.featherless.ai/v1';
   let currentProvider = 'featherless';
-  let allModels = [];
-  let chatHistory = [];
   let currentModel = '';
+  let allModels = [];
+  let page = 1;
+  let hasMore = true;
+  let chatHistory = [];
+
+  // Forensic state
+  let fileChunks = [];
+  let currentChunkIndex = 0;
+  let isChunking = false;
+  let fileName = '';
+
+  // Edit state
+  let editFileBase64 = null;
+  let combineFilesBase64 = [];
 
   // ===== PROXY =====
   const PROXY = 'https://corsproxy.io/?';
 
-  // ===== DOM REFS =====
-  const toastDiv = document.getElementById('toast');
-  function toast(msg) { toastDiv.textContent=msg; toastDiv.classList.add('show'); setTimeout(()=>toastDiv.classList.remove('show'),3000); }
-  function setStatus(s) { document.getElementById('status').textContent = s; }
+  // ===== TOAST =====
+  function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 3000);
+  }
 
-  // ===== API CALL =====
+  // ===== API CALLER =====
   async function callAPI(endpoint, body) {
-    const targetUrl = baseUrl.endsWith('/') ? baseUrl.slice(0,-1) : baseUrl;
+    const targetUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
     const fullUrl = PROXY + encodeURIComponent(`${targetUrl}/${endpoint}`);
     const res = await fetch(fullUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: JSON.stringify(body)
     });
-    if (!res.ok) throw new Error(await res.text());
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(errText);
+    }
     return res.json();
   }
 
-  // ===== LOAD MODELS =====
-  async function loadModels() {
-    const btn = document.getElementById('load-models-btn');
-    btn.disabled = true; btn.innerHTML = '<span class="spin">⟳</span>';
-    const select = document.getElementById('model-select');
-    select.innerHTML = '<option value="">Loading...</option>';
-    try {
-      let data;
-      if (currentProvider === 'featherless') {
-        const resp = await fetch(PROXY + encodeURIComponent(`${baseUrl}/models?per_page=100`), {
-          headers: { 'Authorization': `Bearer ${apiKey}` }
-        });
-        if (!resp.ok) throw new Error('Featherless load failed');
-        data = await resp.json();
-        allModels = (data.data || []).map(m => ({ id: m.id, name: m.name || m.id }));
-      } else if (currentProvider === 'venice') {
-        const resp = await fetch(PROXY + encodeURIComponent(`${baseUrl}/models`), {
-          headers: { 'Authorization': `Bearer ${apiKey}` }
-        });
-        if (!resp.ok) throw new Error('Venice load failed');
-        data = await resp.json();
-        allModels = (data.data || []).map(m => ({ id: m.id, name: m.model_spec?.name || m.id }));
-      } else {
-        // Custom provider — use defaults
-        allModels = [{ id: 'default', name: 'Default Model' }];
-      }
-      renderModels();
-      toast(`✅ ${allModels.length} models loaded`);
-    } catch(e) {
-      toast(`❌ ${e.message}`);
-      allModels = [];
-      renderModels();
-    } finally {
-      btn.disabled = false; btn.innerHTML = '📥 Load Models';
+  // ===== KEY SAVING (Persistent) =====
+  document.getElementById('save-key-btn').addEventListener('click', () => {
+    const input = document.getElementById('key-input');
+    apiKey = input.value.trim();
+    if (apiKey) {
+      localStorage.setItem('api_key', apiKey);
+      document.getElementById('status').textContent = '✅ Key Saved';
+      toast('Key saved permanently!');
+      input.value = '';
+      loadModels(true);
+    } else {
+      toast('Enter a valid key');
     }
+  });
+
+  if (apiKey) {
+    document.getElementById('status').textContent = '✅ Key Saved';
+    document.getElementById('key-input').placeholder = 'Key already saved';
   }
 
-  function renderModels() {
-    const select = document.getElementById('model-select');
-    select.innerHTML = '<option value="">— select a model —</option>';
-    allModels.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m.id;
-      opt.textContent = m.name;
-      select.appendChild(opt);
-    });
-    if (allModels.length === 1) select.selectedIndex = 1;
-  }
-
-  // ===== SETTINGS UI =====
+  // ===== PROVIDER SWITCH =====
   document.getElementById('provider-select').addEventListener('change', function() {
     currentProvider = this.value;
     const opt = this.options[this.selectedIndex];
     baseUrl = currentProvider === 'custom' ? document.getElementById('custom-url').value : opt.dataset.url;
     document.getElementById('custom-url-wrap').style.display = currentProvider === 'custom' ? 'block' : 'none';
     allModels = [];
-    renderModels();
-  });
-  document.getElementById('api-key-input').addEventListener('input', function() {
-    apiKey = this.value.trim();
-    setStatus(apiKey ? '✅ Key set' : '🔑 No key');
-    allModels = [];
-    renderModels();
+    renderModelDropdown();
+    document.getElementById('load-more-btn').style.display = 'none';
   });
   document.getElementById('custom-url').addEventListener('input', function() {
     if (currentProvider === 'custom') baseUrl = this.value;
   });
-  document.getElementById('load-models-btn').addEventListener('click', loadModels);
-  document.getElementById('model-select').addEventListener('change', function() {
-    currentModel = this.value;
+
+  // ===== MODEL LOADING (Pagination) =====
+  async function loadModels(reset = true) {
+    if (reset) { page = 1; allModels = []; hasMore = true; }
+    if (!hasMore && !reset) return;
+    const btn = document.getElementById('load-models-btn');
+    btn.disabled = true;
+    try {
+      let url;
+      if (currentProvider === 'featherless') {
+        url = PROXY + encodeURIComponent(`${baseUrl}/models?page=${page}&per_page=100`);
+      } else if (currentProvider === 'venice') {
+        url = PROXY + encodeURIComponent(`${baseUrl}/models?page=${page}`);
+      } else {
+        // Custom provider: just use defaults
+        allModels = [{ id: 'default', name: 'Default Model' }];
+        renderModelDropdown();
+        toast('Using default model for custom provider');
+        return;
+      }
+      const resp = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+      if (!resp.ok) throw new Error('Failed to fetch');
+      const data = await resp.json();
+      const newModels = data.data || [];
+      if (reset) allModels = [];
+      allModels.push(...newModels);
+      hasMore = newModels.length > 0 && (data.pagination?.has_more !== false);
+      renderModelDropdown();
+      document.getElementById('load-more-btn').style.display = hasMore ? 'inline-block' : 'none';
+      toast(reset ? `Loaded ${allModels.length} models` : `Added ${newModels.length} more`);
+    } catch (e) {
+      toast('Error loading models: ' + e.message);
+      if (allModels.length === 0) {
+        allModels = [{ id: 'llama-3.3-70b', name: 'Llama 3.3 70B (Fallback)' }];
+        renderModelDropdown();
+      }
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function renderModelDropdown() {
+    const select = document.getElementById('model-select');
+    select.innerHTML = '<option value="">— Select Model —</option>';
+    allModels.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.id;
+      opt.textContent = m.name || m.id;
+      select.appendChild(opt);
+    });
+    if (allModels.length === 1) select.selectedIndex = 1;
+  }
+
+  document.getElementById('load-models-btn').addEventListener('click', () => loadModels(true));
+  document.getElementById('load-more-btn').addEventListener('click', () => { page++; loadModels(false); });
+  document.getElementById('model-select').addEventListener('change', (e) => { currentModel = e.target.value; });
+
+  // ===== CHAT (with file chunking) =====
+  document.getElementById('send-btn').addEventListener('click', sendChat);
+  document.getElementById('chat-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
   });
 
-  // ===== CHAT =====
+  function addMessage(role, text, className = '') {
+    const box = document.getElementById('chat-box');
+    const div = document.createElement('div');
+    div.className = `msg ${role} ${className}`;
+    div.textContent = text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    return div;
+  }
+
   async function sendChat() {
     const input = document.getElementById('chat-input');
     const text = input.value.trim();
-    if (!text) return;
-    if (!apiKey) { toast('Add an API key first'); return; }
-    if (!currentModel) { toast('Select a model first'); return; }
+    if (!text) { toast('Type a message'); return; }
+    if (!apiKey) { toast('Save API key first'); return; }
+    if (!currentModel) { toast('Select a model'); return; }
     input.value = '';
-    const box = document.getElementById('chat-box');
-    const userDiv = document.createElement('div');
-    userDiv.className = 'msg user'; userDiv.textContent = text;
-    box.appendChild(userDiv);
-    chatHistory.push({role:'user', content:text});
-    const botDiv = document.createElement('div');
-    botDiv.className = 'msg bot thinking'; botDiv.textContent = '⏳ Thinking...';
-    box.appendChild(botDiv);
-    box.scrollTop = box.scrollHeight;
+    addMessage('user', text);
+    chatHistory.push({ role: 'user', content: text });
+    const botDiv = addMessage('ai', '⏳ Thinking...', 'thinking');
     try {
       const data = await callAPI('chat/completions', {
         model: currentModel,
-        messages: [{role:'system',content:'You are a helpful AI.'}, ...chatHistory.slice(-10)],
+        messages: [{ role: 'system', content: 'You are a helpful AI.' }, ...chatHistory.slice(-20)],
         max_tokens: 800
       });
       const reply = data.choices[0].message.content;
-      botDiv.className = 'msg bot'; botDiv.textContent = reply;
-      chatHistory.push({role:'assistant', content:reply});
-    } catch(e) {
-      botDiv.className = 'msg error'; botDiv.textContent = '❌ '+e.message;
+      botDiv.textContent = reply;
+      botDiv.classList.remove('thinking');
+      chatHistory.push({ role: 'assistant', content: reply });
+    } catch (e) {
+      botDiv.textContent = 'Error: ' + e.message;
+      botDiv.className = 'msg ai error';
     }
-    box.scrollTop = box.scrollHeight;
   }
 
-  // ===== IMAGE (Supports Venice & Featherless) =====
-  async function genImage() {
+  // ===== FORENSIC FILE UPLOAD + CHUNKING =====
+  document.getElementById('forensic-file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    fileName = file.name;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      const rawText = ev.target.result;
+      const chunkSize = 4000;
+      fileChunks = [];
+      for (let i = 0; i < rawText.length; i += chunkSize) {
+        fileChunks.push(rawText.substring(i, i + chunkSize));
+      }
+      document.getElementById('chunk-status').textContent = `📄 Loaded: ${fileName} (${fileChunks.length} chunks)`;
+      toast(`Loaded ${fileName} – ${fileChunks.length} chunks`);
+    };
+    reader.onerror = function() {
+      toast('Error reading file');
+    };
+    reader.readAsText(file);
+  });
+
+  document.getElementById('chunk-btn').addEventListener('click', async function() {
+    if (fileChunks.length === 0) { toast('Upload a file first'); return; }
+    if (isChunking) return;
+    if (!apiKey) { toast('Save API key first'); return; }
+    if (!currentModel) { toast('Select a model'); return; }
+    isChunking = true;
+    const btn = this;
+    btn.textContent = '⏳ Processing...';
+    btn.disabled = true;
+
+    const box = document.getElementById('chat-box');
+    const systemMsg = `You are analyzing the file "${fileName}". It is split into ${fileChunks.length} chunks. Answer questions about each chunk.`;
+
+    for (let i = currentChunkIndex; i < fileChunks.length; i++) {
+      const chunk = fileChunks[i];
+      addMessage('user', `[Chunk ${i+1}/${fileChunks.length}] (Content follows)`);
+      const botDiv = addMessage('ai', `⏳ Processing chunk ${i+1}...`, 'thinking');
+      try {
+        const messages = [
+          { role: 'system', content: systemMsg },
+          { role: 'user', content: `Here is chunk ${i+1}: \n${chunk}` }
+        ];
+        const data = await callAPI('chat/completions', {
+          model: currentModel,
+          messages: messages,
+          max_tokens: 4000
+        });
+        const reply = data.choices[0].message.content;
+        botDiv.textContent = reply;
+        botDiv.classList.remove('thinking');
+      } catch (e) {
+        botDiv.textContent = 'Error on chunk ' + (i+1) + ': ' + e.message;
+        botDiv.className = 'msg ai error';
+      }
+      currentChunkIndex = i + 1;
+      box.scrollTop = box.scrollHeight;
+      await new Promise(r => setTimeout(r, 1000)); // Avoid rate limits
+    }
+
+    isChunking = false;
+    btn.textContent = '📤 Send File (Auto-Chunk)';
+    btn.disabled = false;
+    toast('✅ All chunks processed!');
+  });
+
+  // ===== IMAGE GENERATION =====
+  document.getElementById('img-gen-btn').addEventListener('click', async () => {
     const prompt = document.getElementById('img-prompt').value.trim();
     if (!prompt) { toast('Enter a prompt'); return; }
-    if (!apiKey) { toast('Add an API key'); return; }
-    if (!currentModel) { toast('Select an image model'); return; }
-    const btn = document.getElementById('img-gen-btn');
-    btn.disabled = true; btn.textContent = '⏳';
     const size = document.getElementById('img-size').value;
     const [w, h] = size.split('x').map(Number);
-    const resDiv = document.getElementById('img-result');
-    resDiv.innerHTML = '⏳ Generating...';
+    const res = document.getElementById('img-result');
+    res.innerHTML = '⏳ Generating...';
     try {
       let data;
       if (currentProvider === 'venice') {
         data = await callAPI('image/generate', {
-          model: currentModel,
+          model: currentModel || 'flux-2-max',
           prompt: prompt,
           width: w, height: h,
           format: 'webp'
         });
         const b64 = data.images?.[0];
-        if (b64) resDiv.innerHTML = `<img src="data:image/webp;base64,${b64}" style="max-width:100%; max-height:400px; border-radius:8px;">`;
+        if (b64) res.innerHTML = `<img src="data:image/webp;base64,${b64}" style="max-width:100%; border-radius:8px;">`;
         else throw new Error('No image');
       } else {
         data = await callAPI('images/generations', {
-          model: currentModel,
+          model: currentModel || 'dall-e-3',
           prompt: prompt,
           n: 1,
-          size: size
+          size: '1024x1024'
         });
         const url = data.data?.[0]?.url;
-        if (url) resDiv.innerHTML = `<img src="${url}" style="max-width:100%; max-height:400px; border-radius:8px;">`;
+        if (url) res.innerHTML = `<img src="${url}" style="max-width:100%; border-radius:8px;">`;
         else throw new Error('No image');
       }
-      toast('✅ Image generated');
-    } catch(e) { resDiv.innerHTML = `<div style="color:#f87171;">❌ ${e.message}</div>`; }
-    finally { btn.disabled = false; btn.textContent = 'Generate'; }
-  }
+    } catch (e) { res.innerHTML = `<div style="color:#f87171;">${e.message}</div>`; }
+  });
 
-  // ===== VIDEO (Venice only) =====
-  async function genVideo() {
+  // ===== IMAGE EDIT =====
+  document.getElementById('edit-upload').addEventListener('click', () => document.getElementById('edit-file-input').click());
+  document.getElementById('edit-file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      editFileBase64 = ev.target.result.split(',')[1];
+      const box = document.getElementById('edit-upload');
+      box.innerHTML = `<img src="data:image/png;base64,${editFileBase64}">`;
+      box.classList.add('has-img');
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('edit-btn').addEventListener('click', async () => {
+    if (!editFileBase64) { toast('Upload an image first'); return; }
+    const prompt = document.getElementById('edit-prompt').value.trim();
+    if (!prompt) { toast('Describe the change'); return; }
+    const res = document.getElementById('edit-result');
+    res.innerHTML = '⏳ Editing...';
+    try {
+      const data = await callAPI('image/edit', {
+        model: currentModel || 'lustify-sdxl',
+        prompt: prompt,
+        image: editFileBase64
+      });
+      const b64 = data.images?.[0];
+      if (b64) res.innerHTML = `<img src="data:image/webp;base64,${b64}" style="max-width:100%; border-radius:8px;">`;
+      else throw new Error('No image');
+    } catch (e) { res.innerHTML = `<div style="color:#f87171;">${e.message}</div>`; }
+  });
+
+  // ===== IMAGE COMBINE =====
+  let combineCount = 0;
+  document.querySelectorAll('#combine-upload-area .upload-box').forEach((box, index) => {
+    box.addEventListener('click', () => {
+      const input = document.getElementById('combine-file-input');
+      input.dataset.target = index;
+      input.click();
+    });
+  });
+  document.getElementById('combine-file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const target = parseInt(e.target.dataset.target);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const b64 = ev.target.result.split(',')[1];
+      combineFilesBase64[target] = b64;
+      const box = document.querySelectorAll('#combine-upload-area .upload-box')[target];
+      box.innerHTML = `<img src="data:image/png;base64,${b64}">`;
+      box.classList.add('has-img');
+    };
+    reader.readAsDataURL(file);
+  });
+  document.getElementById('combine-btn').addEventListener('click', async () => {
+    const images = combineFilesBase64.filter(Boolean);
+    if (images.length < 2) { toast('Upload at least 2 images'); return; }
+    const prompt = document.getElementById('combine-prompt').value.trim();
+    if (!prompt) { toast('Describe how to combine them'); return; }
+    const res = document.getElementById('combine-result');
+    res.innerHTML = '⏳ Combining...';
+    try {
+      const data = await callAPI('image/combine', {
+        model: currentModel || 'lustify-sdxl',
+        prompt: prompt,
+        images: images
+      });
+      const b64 = data.images?.[0];
+      if (b64) res.innerHTML = `<img src="data:image/webp;base64,${b64}" style="max-width:100%; border-radius:8px;">`;
+      else throw new Error('No image');
+    } catch (e) { res.innerHTML = `<div style="color:#f87171;">${e.message}</div>`; }
+  });
+
+  // ===== VIDEO GENERATION =====
+  document.getElementById('vid-gen-btn').addEventListener('click', async () => {
     const prompt = document.getElementById('vid-prompt').value.trim();
     if (!prompt) { toast('Enter a prompt'); return; }
-    if (!apiKey) { toast('Add an API key'); return; }
-    if (currentProvider !== 'venice') { toast('Video works only with Venice.ai'); return; }
-    if (!currentModel) { toast('Select a video model (e.g., kling-v3)'); return; }
-    const btn = document.getElementById('vid-gen-btn');
-    btn.disabled = true; btn.textContent = '⏳';
-    const resDiv = document.getElementById('vid-result');
-    resDiv.innerHTML = '⏳ Generating video (1-2 min)...';
+    if (currentProvider !== 'venice') { toast('Video works best with Venice.ai'); return; }
+    const res = document.getElementById('vid-result');
+    res.innerHTML = '⏳ Generating video (1-2 min)...';
     try {
       const data = await callAPI('video/generate', {
-        model: currentModel,
+        model: currentModel || 'kling-v3',
         prompt: prompt,
         aspect_ratio: '16:9',
         duration: 5
       });
-      let vidUrl = data.video_url;
-      if (!vidUrl && data.video_id) {
-        resDiv.innerHTML += '<div style="color:#fbbf24;">🔄 Polling...</div>';
+      let url = data.video_url;
+      if (!url && data.video_id) {
+        res.innerHTML += '<div style="color:#fbbf24;">🔄 Polling...</div>';
         for (let i=0; i<10; i++) {
-          await new Promise(r=>setTimeout(r,5000));
+          await new Promise(r => setTimeout(r, 5000));
           const status = await callAPI('video/status', { video_id: data.video_id });
-          if (status.status === 'completed' && status.video_url) { vidUrl = status.video_url; break; }
+          if (status.status === 'completed' && status.video_url) { url = status.video_url; break; }
           if (status.status === 'failed') throw new Error('Video failed');
         }
       }
-      if (vidUrl) resDiv.innerHTML = `<video controls src="${vidUrl}" style="max-width:100%; max-height:400px; border-radius:8px;"></video>`;
+      if (url) res.innerHTML = `<video controls src="${url}" style="max-width:100%; max-height:400px; border-radius:8px;"></video>`;
       else throw new Error('Video not ready');
-    } catch(e) { resDiv.innerHTML = `<div style="color:#f87171;">❌ ${e.message}</div>`; }
-    finally { btn.disabled = false; btn.textContent = 'Generate Video'; }
-  }
+    } catch (e) { res.innerHTML = `<div style="color:#f87171;">${e.message}</div>`; }
+  });
 
-  // ===== EVENTS =====
-  document.getElementById('send-btn').addEventListener('click', sendChat);
-  document.getElementById('chat-input').addEventListener('keydown', e => { if(e.key==='Enter'&&!e.shiftKey) { e.preventDefault(); sendChat(); } });
-  document.getElementById('img-gen-btn').addEventListener('click', genImage);
-  document.getElementById('vid-gen-btn').addEventListener('click', genVideo);
-
-  // Tabs
-  document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById(tab.dataset.tab+'-panel').classList.add('active');
+  // ===== TABS =====
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(`${btn.dataset.tab}-tab`).classList.add('active');
     });
   });
 
-  // Menu button (just info)
-  document.getElementById('menuBtn').addEventListener('click', () => toast('📌 Use tabs for chat, image, video'));
-
   // ===== INIT =====
-  document.getElementById('custom-url-wrap').style.display = 'none';
-  setStatus('🔑 Add API key');
-  toast('💡 Add key → Load Models → Select model → Chat/Image/Video');
+  if (apiKey) loadModels(true);
+  toast('💡 Add key → Load Models → Start');
 </script>
 </body>
 </html>
