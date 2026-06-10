@@ -249,43 +249,59 @@
 
   // ===== MODEL LOADING (Pagination) =====
   async function loadModels(reset = true) {
-    if (reset) { page = 1; allModels = []; hasMore = true; }
-    if (!hasMore && !reset) return;
-    const btn = document.getElementById('load-models-btn');
-    btn.disabled = true;
-    try {
-      let url;
-      if (currentProvider === 'featherless') {
-        url = PROXY + encodeURIComponent(`${baseUrl}/models?page=${page}&per_page=100`);
-      } else if (currentProvider === 'venice') {
-        url = PROXY + encodeURIComponent(`${baseUrl}/models?page=${page}`);
-      } else {
-        // Custom provider: just use defaults
-        allModels = [{ id: 'default', name: 'Default Model' }];
-        renderModelDropdown();
-        toast('Using default model for custom provider');
-        return;
+  if (reset) { page = 1; allModels = []; hasMore = true; }
+  if (!hasMore && !reset) return;
+  const btn = document.getElementById('load-models-btn');
+  btn.disabled = true;
+  try {
+    let url;
+    if (currentProvider === 'featherless') {
+      url = PROXY + encodeURIComponent(`${baseUrl}/models?page=${page}&per_page=100`);
+    } else if (currentProvider === 'venice') {
+      // Venice requires separate fetching for different model types
+      // Fetch text, image, and video models separately
+      const types = ['text', 'image', 'video'];
+      let allVeniceModels = [];
+      for (const t of types) {
+        const typeUrl = PROXY + encodeURIComponent(`${baseUrl}/models?type=${t}`);
+        const resp = await fetch(typeUrl, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+        if (resp.ok) {
+          const data = await resp.json();
+          const models = data.data || [];
+          // Add a type label to each model
+          models.forEach(m => { m._type = t; });
+          allVeniceModels.push(...models);
+        }
       }
-      const resp = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
-      if (!resp.ok) throw new Error('Failed to fetch');
-      const data = await resp.json();
-      const newModels = data.data || [];
-      if (reset) allModels = [];
-      allModels.push(...newModels);
-      hasMore = newModels.length > 0 && (data.pagination?.has_more !== false);
+      allModels = reset ? allVeniceModels : [...allModels, ...allVeniceModels];
+      hasMore = false; // Venice pagination is simpler, no "more" needed here
+      document.getElementById('load-more-btn').style.display = 'none';
       renderModelDropdown();
-      document.getElementById('load-more-btn').style.display = hasMore ? 'inline-block' : 'none';
-      toast(reset ? `Loaded ${allModels.length} models` : `Added ${newModels.length} more`);
-    } catch (e) {
-      toast('Error loading models: ' + e.message);
-      if (allModels.length === 0) {
-        allModels = [{ id: 'llama-3.3-70b', name: 'Llama 3.3 70B (Fallback)' }];
-        renderModelDropdown();
-      }
-    } finally {
-      btn.disabled = false;
+      toast(reset ? `Loaded ${allModels.length} models` : `Added more models`);
+      return;
+    } else {
+      url = PROXY + encodeURIComponent(`${baseUrl}/models?page=${page}`);
     }
+    const resp = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+    if (!resp.ok) throw new Error('Failed to fetch');
+    const data = await resp.json();
+    const newModels = data.data || [];
+    if (reset) allModels = [];
+    allModels.push(...newModels);
+    hasMore = newModels.length > 0 && (data.pagination?.has_more !== false);
+    renderModelDropdown();
+    document.getElementById('load-more-btn').style.display = hasMore ? 'inline-block' : 'none';
+    toast(reset ? `Loaded ${allModels.length} models` : `Added ${newModels.length} more`);
+  } catch (e) {
+    toast('Error loading models: ' + e.message);
+    if (allModels.length === 0) {
+      allModels = [{ id: 'llama-3.3-70b', name: 'Llama 3.3 70B (Fallback)', _type: 'text' }];
+      renderModelDropdown();
+    }
+  } finally {
+    btn.disabled = false;
   }
+}
 
   function renderModelDropdown() {
     const select = document.getElementById('model-select');
@@ -447,107 +463,50 @@
   });
 
   // ===== IMAGE EDIT =====
-  document.getElementById('edit-upload').addEventListener('click', () => document.getElementById('edit-file-input').click());
-  document.getElementById('edit-file-input').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      editFileBase64 = ev.target.result.split(',')[1];
-      const box = document.getElementById('edit-upload');
-      box.innerHTML = `<img src="data:image/png;base64,${editFileBase64}">`;
-      box.classList.add('has-img');
-    };
-    reader.readAsDataURL(file);
-  });
-  document.getElementById('edit-btn').addEventListener('click', async () => {
-    if (!editFileBase64) { toast('Upload an image first'); return; }
-    const prompt = document.getElementById('edit-prompt').value.trim();
-    if (!prompt) { toast('Describe the change'); return; }
-    const res = document.getElementById('edit-result');
-    res.innerHTML = '⏳ Editing...';
-    try {
-      const data = await callAPI('image/edit', {
-        model: currentModel || 'lustify-sdxl',
+  document.getElementById('img-gen-btn').addEventListener('click', async () => {
+  const prompt = document.getElementById('img-prompt').value.trim();
+  if (!prompt) { toast('Enter a prompt'); return; }
+  if (!apiKey) { toast('Save API key first'); return; }
+  if (!currentModel) { toast('Select a model'); return; }
+
+  // ✅ Safety check: Ensure selected model is an image model
+  const selectedModel = allModels.find(m => m.id === currentModel);
+  if (selectedModel && selectedModel._type && selectedModel._type !== 'image') {
+    toast(`❌ ${currentModel} is a ${selectedModel._type} model. Please select an IMAGE model.`);
+    return;
+  }
+
+  const size = document.getElementById('img-size').value;
+  const [w, h] = size.split('x').map(Number);
+  const res = document.getElementById('img-result');
+  res.innerHTML = '⏳ Generating...';
+  try {
+    let data;
+    if (currentProvider === 'venice') {
+      data = await callAPI('image/generate', {
+        model: currentModel,
         prompt: prompt,
-        image: editFileBase64
+        width: w, height: h,
+        format: 'webp'
       });
       const b64 = data.images?.[0];
       if (b64) res.innerHTML = `<img src="data:image/webp;base64,${b64}" style="max-width:100%; border-radius:8px;">`;
       else throw new Error('No image');
-    } catch (e) { res.innerHTML = `<div style="color:#f87171;">${e.message}</div>`; }
-  });
-
-  // ===== IMAGE COMBINE =====
-  let combineCount = 0;
-  document.querySelectorAll('#combine-upload-area .upload-box').forEach((box, index) => {
-    box.addEventListener('click', () => {
-      const input = document.getElementById('combine-file-input');
-      input.dataset.target = index;
-      input.click();
-    });
-  });
-  document.getElementById('combine-file-input').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const target = parseInt(e.target.dataset.target);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const b64 = ev.target.result.split(',')[1];
-      combineFilesBase64[target] = b64;
-      const box = document.querySelectorAll('#combine-upload-area .upload-box')[target];
-      box.innerHTML = `<img src="data:image/png;base64,${b64}">`;
-      box.classList.add('has-img');
-    };
-    reader.readAsDataURL(file);
-  });
-  document.getElementById('combine-btn').addEventListener('click', async () => {
-    const images = combineFilesBase64.filter(Boolean);
-    if (images.length < 2) { toast('Upload at least 2 images'); return; }
-    const prompt = document.getElementById('combine-prompt').value.trim();
-    if (!prompt) { toast('Describe how to combine them'); return; }
-    const res = document.getElementById('combine-result');
-    res.innerHTML = '⏳ Combining...';
-    try {
-      const data = await callAPI('image/combine', {
-        model: currentModel || 'lustify-sdxl',
+    } else {
+      data = await callAPI('images/generations', {
+        model: currentModel,
         prompt: prompt,
-        images: images
+        n: 1,
+        size: '1024x1024'
       });
-      const b64 = data.images?.[0];
-      if (b64) res.innerHTML = `<img src="data:image/webp;base64,${b64}" style="max-width:100%; border-radius:8px;">`;
+      const url = data.data?.[0]?.url;
+      if (url) res.innerHTML = `<img src="${url}" style="max-width:100%; border-radius:8px;">`;
       else throw new Error('No image');
-    } catch (e) { res.innerHTML = `<div style="color:#f87171;">${e.message}</div>`; }
-  });
-
-  // ===== VIDEO GENERATION =====
-  document.getElementById('vid-gen-btn').addEventListener('click', async () => {
-    const prompt = document.getElementById('vid-prompt').value.trim();
-    if (!prompt) { toast('Enter a prompt'); return; }
-    if (currentProvider !== 'venice') { toast('Video works best with Venice.ai'); return; }
-    const res = document.getElementById('vid-result');
-    res.innerHTML = '⏳ Generating video (1-2 min)...';
-    try {
-      const data = await callAPI('video/generate', {
-        model: currentModel || 'kling-v3',
-        prompt: prompt,
-        aspect_ratio: '16:9',
-        duration: 5
-      });
-      let url = data.video_url;
-      if (!url && data.video_id) {
-        res.innerHTML += '<div style="color:#fbbf24;">🔄 Polling...</div>';
-        for (let i=0; i<10; i++) {
-          await new Promise(r => setTimeout(r, 5000));
-          const status = await callAPI('video/status', { video_id: data.video_id });
-          if (status.status === 'completed' && status.video_url) { url = status.video_url; break; }
-          if (status.status === 'failed') throw new Error('Video failed');
-        }
-      }
-      if (url) res.innerHTML = `<video controls src="${url}" style="max-width:100%; max-height:400px; border-radius:8px;"></video>`;
-      else throw new Error('Video not ready');
-    } catch (e) { res.innerHTML = `<div style="color:#f87171;">${e.message}</div>`; }
-  });
+    }
+  } catch (e) {
+    res.innerHTML = `<div style="color:#f87171;">${e.message}</div>`;
+  }
+});
 
   // ===== TABS =====
   document.querySelectorAll('.tab-btn').forEach(btn => {
