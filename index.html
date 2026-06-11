@@ -1,690 +1,1373 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>AI Pro - Full Studio</title>
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:#0d1117; color:#e6edf3; font-family:-apple-system, system-ui, sans-serif; height:100vh; display:flex; flex-direction:column; }
-    #header { padding:10px; background:#161b22; border-bottom:1px solid #30363d; display:flex; justify-content:space-between; align-items:center; flex-shrink:0; }
-    #header h1 { font-size:18px; font-weight:bold; }
-    #status { font-size:12px; color:#8b949e; }
-    #settings-panel { background:#161b22; border-bottom:1px solid #30363d; padding:8px 12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; flex-shrink:0; }
-    .ctrl { background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:6px 10px; color:white; flex:1; min-width:80px; }
-    .btn-main { background:#7c3aed; border:none; border-radius:6px; padding:6px 14px; color:white; cursor:pointer; font-weight:bold; }
-    .btn-main:disabled { opacity:0.5; }
-    .btn-secondary { background:#30363d; border:none; border-radius:6px; padding:6px 12px; color:white; cursor:pointer; }
-    #custom-url-wrap { display:none; flex:2; }
-    .tab-bar { display:flex; border-bottom:1px solid #30363d; background:#0d1117; flex-shrink:0; overflow-x:auto; }
-    .tab-btn { flex:1; text-align:center; padding:8px; background:#161b22; border:none; border-bottom:2px solid transparent; color:#8b949e; cursor:pointer; min-width:70px; }
-    .tab-btn.active { border-bottom-color:#7c3aed; color:white; background:#0d1117; }
-    .tab-panel { display:none; flex:1; flex-direction:column; overflow:hidden; }
-    .tab-panel.active { display:flex; }
-    #chat-box { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:6px; }
-    .msg { max-width:85%; padding:8px 12px; border-radius:12px; word-break:break-word; }
-    .msg.user { align-self:flex-end; background:#7c3aed; border-bottom-right-radius:4px; }
-    .msg.ai { align-self:flex-start; background:#21262d; border-bottom-left-radius:4px; }
-    .msg.ai.thinking { opacity:0.6; }
-    .msg.ai.error { background:#2a1217; border:1px solid #f87171; color:#f87171; }
-    .input-area { display:flex; gap:8px; padding:8px; border-top:1px solid #30363d; background:#161b22; flex-shrink:0; align-items:center; }
-    .input-area textarea { flex:1; background:#0d1117; border:1px solid #30363d; border-radius:20px; padding:8px 12px; resize:none; height:40px; color:white; font-size:14px; }
-    #toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#161b22; padding:8px 20px; border-radius:40px; border:1px solid #30363d; opacity:0; transition:0.3s; z-index:999; white-space:nowrap; }
-    #toast.show { opacity:1; }
-    .panel-grid { display:flex; flex-direction:column; gap:12px; padding:12px; flex:1; overflow-y:auto; }
-    .card { background:#161b22; border-radius:12px; padding:16px; border:1px solid #30363d; }
-    .upload-box { border:2px dashed #30363d; border-radius:8px; padding:20px; text-align:center; color:#8b949e; cursor:pointer; }
-    .upload-box.has-img { border-color:#7c3aed; padding:0; }
-    .upload-box img { max-width:100%; max-height:200px; border-radius:6px; display:block; margin:auto; }
-    .row { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>AI Pro – Full Studio</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0d1117;
+            color: #e6edf3;
+            font-family: -apple-system, system-ui, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header */
+        #header {
+            padding: 10px 14px;
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        #header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+        #header h1 span {
+            color: #7c3aed;
+        }
+        #status {
+            font-size: 12px;
+            color: #8b949e;
+        }
+        #status.ok {
+            color: #10b981;
+        }
+
+        /* Settings panel */
+        #settings-panel {
+            background: #161b22;
+            border-bottom: 1px solid #30363d;
+            padding: 8px 12px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .ctrl {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 6px 10px;
+            color: #e6edf3;
+            font-size: 13px;
+            flex: 1 1 60px;
+            min-width: 50px;
+        }
+        .ctrl:focus {
+            outline: none;
+            border-color: #7c3aed;
+        }
+        .btn-main {
+            background: #7c3aed;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 14px;
+            color: #fff;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        .btn-main:active {
+            transform: scale(0.96);
+        }
+        .btn-main:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .btn-secondary {
+            background: #30363d;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            color: #e6edf3;
+            cursor: pointer;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .btn-secondary:active {
+            transform: scale(0.96);
+        }
+        #custom-url-wrap {
+            display: none;
+            flex: 2 1 100%;
+        }
+        #model-search {
+            display: none;
+            width: 100%;
+        }
+        #model-select {
+            flex: 2 1 120px;
+        }
+
+        /* Tab bar */
+        .tab-bar {
+            display: flex;
+            border-bottom: 1px solid #30363d;
+            background: #0d1117;
+            flex-shrink: 0;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .tab-bar::-webkit-scrollbar {
+            height: 0;
+        }
+        .tab-btn {
+            flex: 1 0 auto;
+            text-align: center;
+            padding: 10px 8px;
+            background: #161b22;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: #8b949e;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            min-width: 60px;
+            transition: 0.15s;
+        }
+        .tab-btn.active {
+            border-bottom-color: #7c3aed;
+            color: #fff;
+            background: #0d1117;
+        }
+
+        /* Tab panels */
+        .tab-panel {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .tab-panel.active {
+            display: flex;
+        }
+
+        /* Chat */
+        #chat-box {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .msg {
+            max-width: 88%;
+            padding: 8px 14px;
+            border-radius: 14px;
+            word-break: break-word;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .msg.user {
+            align-self: flex-end;
+            background: #7c3aed;
+            border-bottom-right-radius: 4px;
+        }
+        .msg.ai {
+            align-self: flex-start;
+            background: #21262d;
+            border-bottom-left-radius: 4px;
+        }
+        .msg.ai.thinking {
+            opacity: 0.6;
+            font-style: italic;
+        }
+        .msg.ai.error {
+            background: #2a1217;
+            border: 1px solid #f87171;
+            color: #f87171;
+        }
+        .msg .file-tag {
+            display: inline-block;
+            background: #30363d;
+            border-radius: 4px;
+            padding: 2px 8px;
+            font-size: 11px;
+            margin-bottom: 4px;
+            color: #8b949e;
+        }
+        .chat-input-area {
+            display: flex;
+            gap: 6px;
+            padding: 8px;
+            border-top: 1px solid #30363d;
+            background: #161b22;
+            flex-shrink: 0;
+            align-items: center;
+        }
+        .chat-input-area textarea {
+            flex: 1;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 20px;
+            padding: 8px 14px;
+            resize: none;
+            height: 40px;
+            color: #e6edf3;
+            font-size: 14px;
+            line-height: 1.4;
+            font-family: inherit;
+        }
+        .chat-input-area textarea:focus {
+            outline: none;
+            border-color: #7c3aed;
+        }
+        #upload-controls {
+            padding: 4px 8px;
+            background: #0d1117;
+            border-top: 1px solid #30363d;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        #upload-controls input[type="file"] {
+            flex: 1;
+            min-width: 80px;
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 4px 8px;
+            color: #e6edf3;
+            font-size: 12px;
+        }
+        #file-status {
+            font-size: 11px;
+            color: #8b949e;
+            white-space: nowrap;
+        }
+        #stop-btn {
+            background: #ef4444;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 14px;
+            color: #fff;
+            display: none;
+            font-weight: 700;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        #stop-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* Toast */
+        #toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #161b22;
+            padding: 8px 22px;
+            border-radius: 40px;
+            border: 1px solid #30363d;
+            opacity: 0;
+            transition: 0.3s ease;
+            z-index: 999;
+            white-space: nowrap;
+            font-size: 13px;
+            pointer-events: none;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        }
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Panels */
+        .panel-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 12px;
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .card {
+            background: #161b22;
+            border-radius: 12px;
+            padding: 16px;
+            border: 1px solid #30363d;
+        }
+        .card h3 {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: #8b949e;
+        }
+        .upload-box {
+            border: 2px dashed #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            color: #8b949e;
+            cursor: pointer;
+            font-size: 13px;
+            transition: 0.15s;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .upload-box:active {
+            border-color: #7c3aed;
+        }
+        .upload-box.has-img {
+            border-color: #7c3aed;
+            padding: 4px;
+        }
+        .upload-box img {
+            max-width: 100%;
+            max-height: 180px;
+            border-radius: 6px;
+            display: block;
+            margin: auto;
+        }
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .row>* {
+            flex: 1 1 80px;
+        }
+        textarea.panel-input {
+            width: 100%;
+            min-height: 60px;
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: #e6edf3;
+            font-size: 14px;
+            font-family: inherit;
+            resize: vertical;
+        }
+        textarea.panel-input:focus {
+            outline: none;
+            border-color: #7c3aed;
+        }
+        .result-area {
+            min-height: 150px;
+            text-align: center;
+            color: #8b949e;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            font-size: 14px;
+        }
+        .result-area img,
+        .result-area video {
+            max-width: 100%;
+            max-height: 350px;
+            border-radius: 8px;
+        }
+        .result-area .error {
+            color: #f87171;
+        }
+        .result-area .loading {
+            color: #7c3aed;
+            animation: pulse 1.2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.4;
+            }
+        }
+
+        /* Combine upload boxes */
+        #combine-upload-area {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        #combine-upload-area .upload-box {
+            flex: 1 1 80px;
+            min-height: 70px;
+            padding: 12px;
+            font-size: 11px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0d1117;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 4px;
+        }
+
+        /* Mobile tweaks */
+        @media (max-width: 480px) {
+            #header h1 {
+                font-size: 15px;
+            }
+            .tab-btn {
+                font-size: 11px;
+                padding: 8px 4px;
+                min-width: 44px;
+            }
+            .ctrl {
+                font-size: 12px;
+                padding: 4px 8px;
+            }
+            .btn-main,
+            .btn-secondary {
+                font-size: 11px;
+                padding: 4px 10px;
+            }
+            .msg {
+                font-size: 13px;
+                padding: 6px 10px;
+                max-width: 92%;
+            }
+            .chat-input-area textarea {
+                height: 36px;
+                font-size: 13px;
+                padding: 6px 12px;
+            }
+            #toast {
+                font-size: 12px;
+                padding: 6px 16px;
+                bottom: 70px;
+            }
+        }
+    </style>
 </head>
 <body>
 
-<div id="header">
-  <h1>🛸 AI Pro</h1>
-  <span id="status">🔑 No Key</span>
-</div>
+    <!-- ===== HEADER ===== -->
+    <div id="header">
+        <h1>🛸 <span>AI</span> Pro</h1>
+        <span id="status">🔑 No Key</span>
+    </div>
 
-<div id="settings-panel">
-  <select id="provider-select" class="ctrl" style="flex:1.5;">
-    <option value="featherless" data-url="https://api.featherless.ai/v1">Featherless.ai</option>
-    <option value="venice" data-url="https://api.venice.ai/api/v1">Venice.ai</option>
-    <option value="custom" data-url="">Custom URL</option>
-  </select>
-  <input type="password" id="key-input" class="ctrl" placeholder="API Key..." style="flex:2;">
-  <button class="btn-main" id="save-key-btn">Save Key</button>
-  <div id="custom-url-wrap"><input type="text" id="custom-url" class="ctrl" placeholder="https://api.example.com/v1"></div>
-  <input type="text" id="model-search" placeholder="🔍 Filter models..." style="background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:6px 10px; color:white; width:100%; display:none;">
-  <select id="model-select" class="ctrl" style="flex:2;">
-    <option value="">— Select Model —</option>
-  </select>
-  <button class="btn-secondary" id="load-models-btn">📥 Models</button>
-  <button class="btn-secondary" id="load-more-btn" style="display:none;">➕ More</button>
-</div>
-
-<div class="tab-bar">
-  <button class="tab-btn active" data-tab="chat">💬 Chat</button>
-  <button class="tab-btn" data-tab="image">🎨 Image</button>
-  <button class="tab-btn" data-tab="edit">✏️ Edit</button>
-  <button class="tab-btn" data-tab="combine">🧩 Combine</button>
-  <button class="tab-btn" data-tab="video">🎬 Video</button>
-</div>
-
-<!-- CHAT TAB -->
-<div id="chat-tab" class="tab-panel active">
-  <div id="chat-box">
-    <div style="text-align:center; color:#8b949e; padding:20px;">Add API key, load models, and start chatting.</div>
-  </div>
-  <div id="upload-controls" style="padding:4px 8px; background:#0d1117; border-top:1px solid #30363d; display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-    <input type="file" id="vision-file" accept="image/*" style="flex:1; min-width:100px; background:#161b22; border:1px solid #30363d; border-radius:6px; padding:4px; color:#e6edf3;">
-    <span id="file-status">No file</span>
-  </div>
-  <div class="input-area">
-    <textarea id="chat-input" placeholder="Ask about the image..."></textarea>
-    <button class="btn-main" id="send-btn">Send</button>
-    <button id="stop-btn" style="background:#ef4444; border:none; border-radius:6px; padding:6px 14px; color:white; display:none; font-weight:bold;">Stop</button>
-  </div>
-</div>
-
-<!-- IMAGE GENERATE -->
-<div id="image-tab" class="tab-panel">
-  <div class="panel-grid">
-    <div class="card">
-      <textarea id="img-prompt" placeholder="Describe the image..." style="width:100%; min-height:60px;"></textarea>
-      <div class="row">
-        <select id="img-size" style="flex:1;">
-          <option value="1024x1024">1024x1024</option>
-          <option value="1536x1024">1536x1024 (16:9)</option>
-          <option value="1024x1536">1024x1536 (9:16)</option>
+    <!-- ===== SETTINGS ===== -->
+    <div id="settings-panel">
+        <select id="provider-select" class="ctrl" style="flex:1.5;">
+            <option value="featherless" data-url="https://api.featherless.ai/v1">Featherless.ai</option>
+            <option value="venice" data-url="https://api.venice.ai/api/v1">Venice.ai</option>
+            <option value="custom" data-url="">Custom URL</option>
         </select>
-        <button class="btn-main" id="img-gen-btn">Generate</button>
-      </div>
+        <input type="password" id="key-input" class="ctrl" placeholder="API Key..." style="flex:2;" autocomplete="off" />
+        <button class="btn-main" id="save-key-btn">Save Key</button>
+        <div id="custom-url-wrap">
+            <input type="text" id="custom-url" class="ctrl" placeholder="https://api.example.com/v1" />
+        </div>
+        <input type="text" id="model-search" placeholder="🔍 Filter models..." class="ctrl" style="display:none;width:100%;" />
+        <select id="model-select" class="ctrl" style="flex:2;">
+            <option value="">— Select Model —</option>
+        </select>
+        <button class="btn-secondary" id="load-models-btn">📥 Models</button>
+        <button class="btn-secondary" id="load-more-btn" style="display:none;">➕ More</button>
     </div>
-    <div id="img-result" class="card" style="min-height:150px; text-align:center; color:#8b949e; display:flex; align-items:center; justify-content:center;">
-      Image appears here
+
+    <!-- ===== TABS ===== -->
+    <div class="tab-bar">
+        <button class="tab-btn active" data-tab="chat">💬 Chat</button>
+        <button class="tab-btn" data-tab="image">🎨 Image</button>
+        <button class="tab-btn" data-tab="edit">✏️ Edit</button>
+        <button class="tab-btn" data-tab="combine">🧩 Combine</button>
+        <button class="tab-btn" data-tab="video">🎬 Video</button>
     </div>
-  </div>
-</div>
 
-<!-- IMAGE EDIT -->
-<div id="edit-tab" class="tab-panel">
-  <div class="panel-grid">
-    <div class="card">
-      <div class="upload-box" id="edit-upload">Upload Image to Edit</div>
-      <input type="file" id="edit-file-input" style="display:none;">
-      <textarea id="edit-prompt" placeholder="Describe the change (e.g., 'Make it look like a cartoon')" style="width:100%; min-height:60px; margin-top:10px;"></textarea>
-      <button class="btn-main" id="edit-btn" style="margin-top:8px;">Edit Image</button>
+    <!-- ===== CHAT TAB ===== -->
+    <div id="chat-tab" class="tab-panel active">
+        <div id="chat-box">
+            <div style="text-align:center;color:#8b949e;padding:20px;font-size:14px;">
+                💡 Add API key → Load Models → Select a model → Chat
+            </div>
+        </div>
+        <div id="upload-controls">
+            <input type="file" id="vision-file" accept="image/*" />
+            <span id="file-status">No file</span>
+        </div>
+        <div class="chat-input-area">
+            <textarea id="chat-input" placeholder="Message..." rows="1"></textarea>
+            <button class="btn-main" id="send-btn">Send</button>
+            <button id="stop-btn">Stop</button>
+        </div>
     </div>
-    <div id="edit-result" class="card" style="min-height:150px; text-align:center; color:#8b949e; display:flex; align-items:center; justify-content:center;">
-      Edited Image appears here
+
+    <!-- ===== IMAGE GENERATE TAB ===== -->
+    <div id="image-tab" class="tab-panel">
+        <div class="panel-grid">
+            <div class="card">
+                <h3>🎨 Generate Image</h3>
+                <textarea id="img-prompt" class="panel-input" placeholder="Describe the image..."></textarea>
+                <div class="row">
+                    <select id="img-size" class="ctrl">
+                        <option value="1024x1024">1024×1024 (square)</option>
+                        <option value="1536x1024">1536×1024 (16:9)</option>
+                        <option value="1024x1536">1024×1536 (9:16)</option>
+                    </select>
+                    <button class="btn-main" id="img-gen-btn" style="flex:0 0 auto;">Generate</button>
+                </div>
+                <div style="margin-top:6px;font-size:11px;color:#8b949e;">
+                    ℹ️ Venice: select an <strong>[image]</strong> model · Featherless: select a compatible model
+                </div>
+            </div>
+            <div id="img-result" class="card result-area">
+                Image appears here
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<!-- IMAGE COMBINE -->
-<div id="combine-tab" class="tab-panel">
-  <div class="panel-grid">
-    <div class="card">
-      <p style="margin-bottom:8px;">Add up to 3 images</p>
-      <div class="row" id="combine-upload-area">
-        <div class="upload-box" id="combine-upload1">Image 1</div>
-        <div class="upload-box" id="combine-upload2">Image 2</div>
-        <div class="upload-box" id="combine-upload3">Image 3</div>
-      </div>
-      <input type="file" id="combine-file-input" style="display:none;">
-      <textarea id="combine-prompt" placeholder="Describe how they should combine..." style="width:100%; min-height:60px; margin-top:10px;"></textarea>
-      <button class="btn-main" id="combine-btn" style="margin-top:8px;">Combine Images</button>
+    <!-- ===== EDIT TAB ===== -->
+    <div id="edit-tab" class="tab-panel">
+        <div class="panel-grid">
+            <div class="card">
+                <h3>✏️ Edit Image</h3>
+                <div class="upload-box" id="edit-upload">Tap to upload image to edit</div>
+                <input type="file" id="edit-file-input" accept="image/*" style="display:none;" />
+                <textarea id="edit-prompt" class="panel-input" placeholder="Describe the change (e.g. Make it look like a cartoon)" style="margin-top:10px;"></textarea>
+                <button class="btn-main" id="edit-btn" style="margin-top:10px;width:100%;">Edit Image</button>
+                <div style="margin-top:6px;font-size:11px;color:#8b949e;">ℹ️ Works with Venice only — select an <strong>[image]</strong> model</div>
+            </div>
+            <div id="edit-result" class="card result-area">
+                Edited image appears here
+            </div>
+        </div>
     </div>
-    <div id="combine-result" class="card" style="min-height:150px; text-align:center; color:#8b949e; display:flex; align-items:center; justify-content:center;">
-      Combined Image appears here
+
+    <!-- ===== COMBINE TAB ===== -->
+    <div id="combine-tab" class="tab-panel">
+        <div class="panel-grid">
+            <div class="card">
+                <h3>🧩 Combine Images</h3>
+                <p style="margin-bottom:8px;color:#8b949e;font-size:13px;">Upload up to 3 images to combine</p>
+                <div id="combine-upload-area">
+                    <div class="upload-box" id="combine-upload0" style="flex:1;">Image 1</div>
+                    <div class="upload-box" id="combine-upload1" style="flex:1;">Image 2</div>
+                    <div class="upload-box" id="combine-upload2" style="flex:1;">Image 3</div>
+                </div>
+                <input type="file" id="combine-file-input" accept="image/*" style="display:none;" />
+                <textarea id="combine-prompt" class="panel-input" placeholder="Describe how to combine them..." style="margin-top:10px;"></textarea>
+                <button class="btn-main" id="combine-btn" style="margin-top:10px;width:100%;">Combine Images</button>
+                <div style="margin-top:6px;font-size:11px;color:#8b949e;">ℹ️ Works with Venice only — select an <strong>[image]</strong> model</div>
+            </div>
+            <div id="combine-result" class="card result-area">
+                Combined image appears here
+            </div>
+        </div>
     </div>
-  </div>
-</div>
 
-<!-- VIDEO -->
-<div id="video-tab" class="tab-panel">
-  <div class="panel-grid">
-    <div class="card">
-      <textarea id="vid-prompt" placeholder="Describe the video..." style="width:100%; min-height:60px;"></textarea>
-      <button class="btn-main" id="vid-gen-btn">Generate Video (1-2 min)</button>
+    <!-- ===== VIDEO TAB ===== -->
+    <div id="video-tab" class="tab-panel">
+        <div class="panel-grid">
+            <div class="card">
+                <h3>🎬 Generate Video</h3>
+                <p style="font-size:12px;color:#8b949e;margin-bottom:8px;">Venice.ai only — select Venice as provider and a <strong>[video]</strong> model</p>
+                <textarea id="vid-prompt" class="panel-input" placeholder="Describe the video..."></textarea>
+                <button class="btn-main" id="vid-gen-btn" style="margin-top:10px;width:100%;">Generate Video (1–2 min)</button>
+            </div>
+            <div id="vid-result" class="card result-area">
+                Video appears here
+            </div>
+        </div>
     </div>
-    <div id="vid-result" class="card" style="min-height:150px; text-align:center; color:#8b949e; display:flex; align-items:center; justify-content:center;">
-      Video appears here
-    </div>
-  </div>
-</div>
 
-<div id="toast"></div>
+    <!-- ===== TOAST ===== -->
+    <div id="toast"></div>
 
-<script>
-  // ===== STATE =====
-  let apiKey = localStorage.getItem('api_key') || '';
-  let baseUrl = 'https://api.featherless.ai/v1';
-  let currentProvider = 'featherless';
-  let currentModel = '';
-  let allModels = [];
-  let page = 1;
-  let hasMore = true;
-  let chatHistory = [];
-  let uploadedFileBase64 = null;
-  let uploadedFileName = '';
-  let uploadedFileType = '';
+    <!-- ===== JAVASCRIPT ===== -->
+    <script>
+        // ============================================================
+        //  STATE
+        // ============================================================
+        let apiKey = localStorage.getItem('api_key') || '';
+        let baseUrl = 'https://api.featherless.ai/v1';
+        let currentProvider = 'featherless';
+        let currentModel = '';
+        let allModels = [];
+        let page = 1;
+        let hasMore = true;
+        let chatHistory = [];
+        let uploadedFileBase64 = null;
+        let uploadedFileName = '';
+        let uploadedFileType = '';
+        let editFileBase64 = null;
+        let combineFilesBase64 = [null, null, null];
+        let combineTargetIndex = 0;
+        let abortController = null;
+        let isGenerating = false;
 
-  // Edit state
-  let editFileBase64 = null;
-  let combineFilesBase64 = [];
+        const PROXY = 'https://corsproxy.io/?';
 
-  // ===== ABORT CONTROLLER =====
-  let abortController = null;
+        // ============================================================
+        //  TOAST
+        // ============================================================
+        function toast(msg, duration) {
+            duration = duration || 3000;
+            const el = document.getElementById('toast');
+            el.textContent = msg;
+            el.classList.add('show');
+            clearTimeout(el._timer);
+            el._timer = setTimeout(function() { el.classList.remove('show'); }, duration);
+        }
 
-  // ===== PROXY =====
-  const PROXY = 'https://corsproxy.io/?';
+        // ============================================================
+        //  INIT KEY STATUS
+        // ============================================================
+        function updateKeyStatus() {
+            const el = document.getElementById('status');
+            if (apiKey) {
+                el.textContent = '✅ Key Saved';
+                el.className = 'ok';
+                document.getElementById('key-input').placeholder = 'Key already saved';
+            } else {
+                el.textContent = '🔑 No Key';
+                el.className = '';
+                document.getElementById('key-input').placeholder = 'API Key...';
+            }
+        }
+        updateKeyStatus();
 
-  // ===== TOAST =====
-  function toast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3000);
-  }
+        // ============================================================
+        //  SAVE KEY
+        // ============================================================
+        document.getElementById('save-key-btn').addEventListener('click', function() {
+            const val = document.getElementById('key-input').value.trim();
+            if (!val) { toast('Enter a valid key first'); return; }
+            apiKey = val;
+            localStorage.setItem('api_key', apiKey);
+            updateKeyStatus();
+            document.getElementById('key-input').value = '';
+            toast('Key saved!');
+            loadModels(true);
+        });
 
-  // ===== API CALLER =====
-  async function callAPI(endpoint, body, onChunk) {
-    const targetUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
-    const fullUrl = PROXY + encodeURIComponent(`${targetUrl}/${endpoint}`);
-    abortController = new AbortController();
-    document.getElementById('stop-btn').style.display = 'block';
-    try {
-      const res = await fetch(fullUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-        body: JSON.stringify({ ...body, stream: true }),
-        signal: abortController.signal
-      });
-      if (!res.ok) {
-        const errText = await res.text();
-        throw new Error(errText);
-      }
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-        for (const line of lines) {
-          if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+        // ============================================================
+        //  PROVIDER SWITCH
+        // ============================================================
+        document.getElementById('provider-select').addEventListener('change', function() {
+            currentProvider = this.value;
+            const opt = this.options[this.selectedIndex];
+            if (currentProvider === 'custom') {
+                const customUrl = document.getElementById('custom-url').value.trim();
+                if (customUrl) baseUrl = customUrl;
+                document.getElementById('custom-url-wrap').style.display = 'block';
+            } else {
+                baseUrl = opt.getAttribute('data-url');
+                document.getElementById('custom-url-wrap').style.display = 'none';
+            }
+            allModels = [];
+            renderModelDropdown();
+            document.getElementById('load-more-btn').style.display = 'none';
+            document.getElementById('model-search').style.display = 'none';
+            document.getElementById('model-search').value = '';
+            toast('Switched to ' + currentProvider);
+        });
+
+        document.getElementById('custom-url').addEventListener('input', function() {
+            if (currentProvider === 'custom') {
+                const val = this.value.trim();
+                if (val) baseUrl = val;
+            }
+        });
+
+        // ============================================================
+        //  TABS (event delegation)
+        // ============================================================
+        document.querySelector('.tab-bar').addEventListener('click', function(e) {
+            const btn = e.target.closest('.tab-btn');
+            if (!btn) return;
+            document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+            document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+            btn.classList.add('active');
+            const panelId = btn.getAttribute('data-tab') + '-tab';
+            document.getElementById(panelId).classList.add('active');
+            // Auto-resize chat input when switching to chat
+            if (btn.getAttribute('data-tab') === 'chat') {
+                const ta = document.getElementById('chat-input');
+                ta.style.height = 'auto';
+                ta.style.height = ta.scrollHeight + 'px';
+            }
+        });
+
+        // ============================================================
+        //  MODEL LOADING
+        // ============================================================
+        async function loadModels(reset) {
+            if (reset) { page = 1;
+                allModels = [];
+                hasMore = true; }
+            if (!hasMore && !reset) return;
+
+            const btn = document.getElementById('load-models-btn');
+            btn.disabled = true;
+            btn.textContent = 'Loading...';
+
             try {
-              const json = JSON.parse(line.slice(6));
-              const delta = json.choices?.[0]?.delta?.content;
-              if (delta && onChunk) onChunk(delta);
-            } catch (e) {}
-          }
+                if (currentProvider === 'featherless') {
+                    const fetchUrl = PROXY + encodeURIComponent(baseUrl.replace(/\/$/, '') + '/models?page=' + page + '&per_page=100');
+                    const resp = await fetch(fetchUrl, {
+                        headers: { 'Authorization': 'Bearer ' + apiKey }
+                    });
+                    if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                    const data = await resp.json();
+                    let newModels = data.data || [];
+                    if (reset) allModels = [];
+                    allModels = allModels.concat(newModels);
+                    hasMore = newModels.length === 100;
+                    document.getElementById('model-search').style.display = 'block';
+
+                    // Prepend top 10 on reset
+                    if (reset) {
+                        const top10 = [
+                            { id: 'huihui-ai/Llama-3.3-70B-Instruct-abliterated', name: 'Llama 3.3 70B Abliterated (Top)' },
+                            { id: 'cognitivecomputations/dolphin-2.9-llama3-70b', name: 'Dolphin 2.9 Llama3 70B' },
+                            { id: 'Qwen/Qwen2.5-72B-Instruct', name: 'Qwen 2.5 72B (Vision)' },
+                            { id: 'deepseek-ai/DeepSeek-V2.5-1210', name: 'DeepSeek V2.5' },
+                            { id: 'meta-llama/Meta-Llama-3.1-405B-Instruct', name: 'Llama 3.1 405B' },
+                            { id: 'Qwen/Qwen2.5-14B-Instruct', name: 'Qwen 2.5 14B' },
+                            { id: 'NousResearch/Hermes-2-Pro-Llama-3-8B', name: 'Hermes 2 Pro Llama 3 8B' },
+                            { id: 'huihui-ai/Mistral-Small-24B-Instruct-2501-abliterated', name: 'Mistral Small 24B Abliterated' },
+                            { id: 'cognitivecomputations/dolphin-2.9.1-mistral-7b', name: 'Dolphin 2.9.1 Mistral 7B' },
+                            { id: 'meta-llama/Meta-Llama-3.3-70B-Instruct', name: 'Llama 3.3 70B (Standard)' }
+                        ];
+                        // Avoid duplicates: filter out any that already exist by id
+                        const existingIds = new Set(allModels.map(function(m) { return m.id; }));
+                        const toPrepend = top10.filter(function(m) { return !existingIds.has(m.id); });
+                        allModels = toPrepend.concat(allModels);
+                    }
+
+                } else if (currentProvider === 'venice') {
+                    const types = ['text', 'image', 'video'];
+                    let combined = [];
+                    for (let i = 0; i < types.length; i++) {
+                        const t = types[i];
+                        const typeUrl = PROXY + encodeURIComponent(baseUrl.replace(/\/$/, '') + '/models?type=' + t);
+                        const r = await fetch(typeUrl, { headers: { 'Authorization': 'Bearer ' + apiKey } });
+                        if (r.ok) {
+                            const d = await r.json();
+                            const ms = d.data || [];
+                            ms.forEach(function(m) { m._type = t; });
+                            combined = combined.concat(ms);
+                        }
+                    }
+                    allModels = reset ? combined : allModels.concat(combined);
+                    hasMore = false;
+                    document.getElementById('model-search').style.display = 'none';
+                    document.getElementById('model-search').value = '';
+
+                } else {
+                    // Custom
+                    allModels = [{ id: 'default', name: 'Default Model' }];
+                    hasMore = false;
+                    document.getElementById('model-search').style.display = 'none';
+                }
+
+                renderModelDropdown();
+                document.getElementById('load-more-btn').style.display = hasMore ? 'inline-block' : 'none';
+                toast('Loaded ' + allModels.length + ' models');
+
+            } catch (e) {
+                toast('Error loading models: ' + e.message + ' — using fallback');
+                if (allModels.length === 0) {
+                    allModels = [
+                        { id: 'huihui-ai/Llama-3.3-70B-Instruct-abliterated', name: 'Llama 3.3 70B Abliterated' },
+                        { id: 'Qwen/Qwen2.5-72B-Instruct', name: 'Qwen 2.5 72B (Vision)' },
+                        { id: 'cognitivecomputations/dolphin-2.9-llama3-70b', name: 'Dolphin 2.9 70B' }
+                    ];
+                    renderModelDropdown();
+                }
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '📥 Models';
+            }
         }
-      }
-    } catch (e) {
-      if (e.name === 'AbortError') {
-        throw new Error('Stopped by user');
-      } else {
-        throw e;
-      }
-    } finally {
-      abortController = null;
-      document.getElementById('stop-btn').style.display = 'none';
-    }
-  }
 
-  // ===== KEY SAVING =====
-  document.getElementById('save-key-btn').addEventListener('click', () => {
-    const input = document.getElementById('key-input');
-    apiKey = input.value.trim();
-    if (apiKey) {
-      localStorage.setItem('api_key', apiKey);
-      document.getElementById('status').textContent = '✅ Key Saved';
-      document.getElementById('status').style.color = '#10b981';
-      toast('Key saved permanently!');
-      input.value = '';
-      loadModels(true);
-    } else {
-      toast('Enter a valid key');
-    }
-  });
-
-  if (apiKey) {
-    document.getElementById('status').textContent = '✅ Key Saved';
-    document.getElementById('status').style.color = '#10b981';
-    document.getElementById('key-input').placeholder = 'Key already saved';
-  }
-
-  // ===== PROVIDER SWITCH =====
-  document.getElementById('provider-select').addEventListener('change', function() {
-    currentProvider = this.value;
-    const opt = this.options[this.selectedIndex];
-    baseUrl = currentProvider === 'custom' ? document.getElementById('custom-url').value : opt.dataset.url;
-    document.getElementById('custom-url-wrap').style.display = currentProvider === 'custom' ? 'block' : 'none';
-    allModels = [];
-    renderModelDropdown();
-    document.getElementById('load-more-btn').style.display = 'none';
-    document.getElementById('model-search').style.display = 'none';
-  });
-
-  document.getElementById('custom-url').addEventListener('input', function() {
-    if (currentProvider === 'custom') baseUrl = this.value;
-  });
-
-  // ===== MODEL LOADING =====
-  async function loadModels(reset = true) {
-    if (reset) { page = 1; allModels = []; hasMore = true; }
-    if (!hasMore && !reset) return;
-    const btn = document.getElementById('load-models-btn');
-    btn.disabled = true;
-    try {
-      if (currentProvider === 'featherless') {
-        const url = PROXY + encodeURIComponent(`${baseUrl}/models?page=${page}&per_page=100`);
-        const resp = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
-        if (!resp.ok) throw new Error('Failed to fetch');
-        const data = await resp.json();
-        const newModels = data.data || [];
-        if (reset) allModels = [];
-        allModels.push(...newModels);
-        hasMore = newModels.length === 100;
-        document.getElementById('model-search').style.display = 'block';
-        if (reset) {
-          const top10 = [
-            { id: 'huihui-ai/Llama-3.3-70B-Instruct-abliterated', name: 'Llama 3.3 70B Abliterated (Top)' },
-            { id: 'cognitivecomputations/dolphin-2.9-llama3-70b', name: 'Dolphin 2.9 Llama3 70B' },
-            { id: 'Qwen/Qwen2.5-72B-Instruct', name: 'Qwen 2.5 72B (Vision)' },
-            { id: 'deepseek-ai/DeepSeek-V2.5-1210', name: 'DeepSeek V2.5' },
-            { id: 'meta-llama/Meta-Llama-3.1-405B-Instruct', name: 'Llama 3.1 405B' },
-            { id: 'Qwen/Qwen2.5-14B-Instruct', name: 'Qwen 2.5 14B' },
-            { id: 'NousResearch/Hermes-2-Pro-Llama-3-8B', name: 'Hermes 2 Pro Llama 3 8B' },
-            { id: 'huihui-ai/Mistral-Small-24B-Instruct-2501-abliterated', name: 'Mistral Small 24B Abliterated' },
-            { id: 'cognitivecomputations/dolphin-2.9.1-mistral-7b', name: 'Dolphin 2.9.1 Mistral 7B' },
-            { id: 'meta-llama/Meta-Llama-3.3-70B-Instruct', name: 'Llama 3.3 70B (Standard)' }
-          ];
-          allModels = [...top10, ...allModels];
+        function renderModelDropdown() {
+            const select = document.getElementById('model-select');
+            select.innerHTML = '<option value="">— Select Model —</option>';
+            allModels.forEach(function(m) {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                const label = (m.name || m.id) + (m._type ? ' [' + m._type + ']' : '');
+                opt.textContent = label;
+                select.appendChild(opt);
+            });
+            // Restore selection if possible
+            if (currentModel) {
+                const found = Array.from(select.options).some(function(o) { return o.value === currentModel; });
+                if (found) select.value = currentModel;
+            }
         }
-      } else if (currentProvider === 'venice') {
-        const types = ['text', 'image', 'video'];
-        let allVeniceModels = [];
-        for (const t of types) {
-          const typeUrl = PROXY + encodeURIComponent(`${baseUrl}/models?type=${t}`);
-          const resp = await fetch(typeUrl, { headers: { 'Authorization': `Bearer ${apiKey}` } });
-          if (resp.ok) {
-            const data = await resp.json();
-            const models = data.data || [];
-            models.forEach(m => { m._type = t; });
-            allVeniceModels.push(...models);
-          }
-        }
-        allModels = reset ? allVeniceModels : [...allModels, ...allVeniceModels];
-        hasMore = false;
-        document.getElementById('model-search').style.display = 'none';
-      } else {
-        allModels = [{ id: 'default', name: 'Default Model' }];
-        document.getElementById('model-search').style.display = 'none';
-      }
-      renderModelDropdown();
-      document.getElementById('load-more-btn').style.display = hasMore ? 'inline-block' : 'none';
-      toast(reset ? `Loaded ${allModels.length} models` : `Added more models`);
-    } catch (e) {
-      toast('Error loading models: ' + e.message);
-      if (allModels.length === 0) {
-        allModels = [{ id: 'llama-3.3-70b', name: 'Llama 3.3 70B (Fallback)' }];
-        renderModelDropdown();
-      }
-    } finally {
-      btn.disabled = false;
-    }
-  }
 
-  function renderModelDropdown() {
-    const select = document.getElementById('model-select');
-    select.innerHTML = '<option value="">— Select Model —</option>';
-    allModels.forEach(m => {
-      const opt = document.createElement('option');
-      opt.value = m.id;
-      let label = m.name || m.id;
-      if (m._type) label += ` [${m._type}]`;
-      opt.textContent = label;
-      select.appendChild(opt);
-    });
-  }
+        document.getElementById('load-models-btn').addEventListener('click', function() { loadModels(true); });
+        document.getElementById('load-more-btn').addEventListener('click', function() { page++;
+            loadModels(false); });
 
-  document.getElementById('load-models-btn').addEventListener('click', () => loadModels(true));
-  document.getElementById('load-more-btn').addEventListener('click', () => { page++; loadModels(false); });
-  document.getElementById('model-select').addEventListener('change', (e) => { 
-    currentModel = e.target.value;
-    if (currentModel) loadChatHistoryForModel(currentModel);
-  });
-
-  // ===== SEARCH BAR =====
-  let searchTimeout;
-  document.getElementById('model-search').addEventListener('input', function() {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-      const term = this.value.toLowerCase();
-      const select = document.getElementById('model-select');
-      const filtered = allModels.filter(m => 
-        (m.name || m.id).toLowerCase().includes(term)
-      );
-      select.innerHTML = '<option value="">— Select Model —</option>';
-      filtered.forEach(m => {
-        const opt = document.createElement('option');
-        opt.value = m.id;
-        let label = m.name || m.id;
-        if (m._type) label += ` [${m._type}]`;
-        opt.textContent = label;
-        select.appendChild(opt);
-      });
-    }, 150);
-  });
-
-  // ===== PER-MODEL CHAT HISTORY =====
-  function loadChatHistoryForModel(modelId) {
-    const key = `chatHistory_${modelId}`;
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      chatHistory = JSON.parse(saved);
-    } else {
-      chatHistory = [];
-    }
-    renderChatMessages();
-  }
-
-  function saveChatHistoryForModel(modelId) {
-    const key = `chatHistory_${modelId}`;
-    localStorage.setItem(key, JSON.stringify(chatHistory));
-  }
-
-  function renderChatMessages() {
-    const box = document.getElementById('chat-box');
-    box.innerHTML = '';
-    if (chatHistory.length === 0) {
-      box.innerHTML = `<div style="text-align:center; color:#8b949e; padding:20px;">No messages for this model yet.</div>`;
-      return;
-    }
-    chatHistory.forEach((msg, index) => {
-      const div = document.createElement('div');
-      div.className = `msg ${msg.role}`;
-      div.textContent = msg.content;
-      box.appendChild(div);
-    });
-    box.scrollTop = box.scrollHeight;
-  }
-
-  // ===== CHAT WITH VISION =====
-  document.getElementById('send-btn').addEventListener('click', sendChat);
-  document.getElementById('chat-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
-  });
-
-  document.getElementById('stop-btn').addEventListener('click', () => {
-    if (abortController) {
-      abortController.abort();
-      abortController = null;
-      document.getElementById('stop-btn').style.display = 'none';
-      toast('Stopped by user');
-    }
-  });
-
-  document.getElementById('vision-file').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      toast('File too large (max 10MB)');
-      return;
-    }
-    uploadedFileName = file.name;
-    uploadedFileType = file.type;
-    const reader = new FileReader();
-    reader.onload = function(ev) {
-      uploadedFileBase64 = ev.target.result.split(',')[1];
-      document.getElementById('file-status').textContent = `📎 Loaded: ${uploadedFileName}`;
-      toast('File loaded! Ask about it.');
-    };
-    reader.onerror = function() {
-      toast('Error reading file');
-    };
-    reader.readAsDataURL(file);
-  });
-
-  function addMessage(role, text, className = '') {
-    const box = document.getElementById('chat-box');
-    const div = document.createElement('div');
-    div.className = `msg ${role} ${className}`;
-    div.textContent = text;
-    box.appendChild(div);
-    box.scrollTop = box.scrollHeight;
-    return div;
-  }
-
-  async function sendChat() {
-    const input = document.getElementById('chat-input');
-    const text = input.value.trim();
-    if (!text && !uploadedFileBase64) { toast('Type a message or upload a file'); return; }
-    if (!apiKey) { toast('Save API key first'); return; }
-    if (!currentModel) { toast('Select a model'); return; }
-    input.value = '';
-
-    let userMessage = text || 'Analyze this file.';
-    let userContent = [{ type: 'text', text: userMessage }];
-    if (uploadedFileBase64 && uploadedFileType.startsWith('image/')) {
-      userContent.push({
-        type: 'image_url',
-        image_url: { url: `data:${uploadedFileType};base64,${uploadedFileBase64}` }
-      });
-    } else if (uploadedFileBase64 && uploadedFileType.startsWith('video/')) {
-      userContent.push({
-        type: 'text',
-        text: `\n[Video file: ${uploadedFileName}] The video is encoded in Base64. Please analyze it.`
-      });
-    }
-
-    addMessage('user', uploadedFileName ? `📎 ${uploadedFileName}\n\n${userMessage}` : userMessage);
-    chatHistory.push({ role: 'user', content: userContent });
-    const botDiv = addMessage('ai', '⏳ Connecting...', 'thinking');
-
-    try {
-      let currentReply = '';
-      const onChunk = (delta) => {
-        currentReply += delta;
-        botDiv.textContent = currentReply;
-        botDiv.classList.remove('thinking');
-        botDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      };
-      const messages = [
-        { role: 'system', content: 'You are a forensic AI. Analyze images/videos and provide detailed insights.' },
-        ...chatHistory.slice(-10).map(m => ({
-          role: m.role,
-          content: Array.isArray(m.content) ? m.content : [{ type: 'text', text: m.content }]
-        }))
-      ];
-      const data = await callAPI('chat/completions', {
-        model: currentModel,
-        messages: messages,
-        max_tokens: 2000
-      }, onChunk);
-      if (!currentReply) {
-        const reply = data.choices[0].message.content;
-        botDiv.textContent = reply;
-        chatHistory.push({ role: 'assistant', content: [{ type: 'text', text: reply }] });
-      } else {
-        chatHistory.push({ role: 'assistant', content: [{ type: 'text', text: currentReply }] });
-      }
-      saveChatHistoryForModel(currentModel);
-    } catch (e) {
-      if (e.message === 'Stopped by user') {
-        botDiv.textContent += ' (stopped)';
-      } else {
-        botDiv.textContent = 'Error: ' + e.message;
-        botDiv.className = 'msg ai error';
-      }
-    }
-    uploadedFileBase64 = null;
-    uploadedFileName = '';
-    document.getElementById('file-status').textContent = 'No file';
-    document.getElementById('stop-btn').style.display = 'none';
-  }
-
-  // ===== IMAGE GENERATION =====
-  document.getElementById('img-gen-btn').addEventListener('click', async () => {
-    const prompt = document.getElementById('img-prompt').value.trim();
-    if (!prompt) { toast('Enter a prompt'); return; }
-    if (!apiKey) { toast('Save API key first'); return; }
-    if (!currentModel) { toast('Select an image model'); return; }
-    const size = document.getElementById('img-size').value;
-    const [w, h] = size.split('x').map(Number);
-    const res = document.getElementById('img-result');
-    res.innerHTML = '⏳ Generating...';
-    try {
-      let data;
-      if (currentProvider === 'venice') {
-        const url = PROXY + encodeURIComponent(`${baseUrl}/image/generate`);
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-          body: JSON.stringify({ model: currentModel, prompt: prompt, width: w, height: h, format: 'webp' })
+        document.getElementById('model-select').addEventListener('change', function(e) {
+            currentModel = e.target.value;
+            if (currentModel) {
+                loadChatHistoryForModel(currentModel);
+                toast('Model selected: ' + currentModel.split('/').pop());
+            }
         });
-        if (!resp.ok) throw new Error(await resp.text());
-        data = await resp.json();
-        const b64 = data.images?.[0];
-        if (b64) res.innerHTML = `<img src="data:image/webp;base64,${b64}" style="max-width:100%; border-radius:8px;">`;
-        else throw new Error('No image');
-      } else {
-        const url = PROXY + encodeURIComponent(`${baseUrl}/images/generations`);
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-          body: JSON.stringify({ model: currentModel, prompt: prompt, n: 1, size: size })
+
+        // ============================================================
+        //  MODEL SEARCH
+        // ============================================================
+        let searchTimeout;
+        document.getElementById('model-search').addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const term = this.value.toLowerCase().trim();
+            searchTimeout = setTimeout(function() {
+                const select = document.getElementById('model-select');
+                let filtered = allModels;
+                if (term) {
+                    filtered = allModels.filter(function(m) {
+                        return (m.name || m.id).toLowerCase().indexOf(term) !== -1;
+                    });
+                }
+                select.innerHTML = '<option value="">— Select Model —</option>';
+                filtered.forEach(function(m) {
+                    const opt = document.createElement('option');
+                    opt.value = m.id;
+                    opt.textContent = (m.name || m.id) + (m._type ? ' [' + m._type + ']' : '');
+                    select.appendChild(opt);
+                });
+                if (currentModel) {
+                    const found = Array.from(select.options).some(function(o) { return o.value === currentModel; });
+                    if (found) select.value = currentModel;
+                }
+            }, 150);
         });
-        if (!resp.ok) throw new Error(await resp.text());
-        data = await resp.json();
-        const url = data.data?.[0]?.url;
-        if (url) res.innerHTML = `<img src="${url}" style="max-width:100%; border-radius:8px;">`;
-        else throw new Error('No image');
-      }
-    } catch (e) { res.innerHTML = `<div style="color:#f87171;">${e.message}</div>`; }
-  });
 
-  // ===== IMAGE EDIT =====
-  document.getElementById('edit-upload').addEventListener('click', () => document.getElementById('edit-file-input').click());
-  document.getElementById('edit-file-input').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      editFileBase64 = ev.target.result.split(',')[1];
-      const box = document.getElementById('edit-upload');
-      box.innerHTML = `<img src="data:image/png;base64,${editFileBase64}">`;
-      box.classList.add('has-img');
-    };
-    reader.readAsDataURL(file);
-  });
-  document.getElementById('edit-btn').addEventListener('click', async () => {
-    if (!editFileBase64) { toast('Upload an image first'); return; }
-    const prompt = document.getElementById('edit-prompt').value.trim();
-    if (!prompt) { toast('Describe the change'); return; }
-    const res = document.getElementById('edit-result');
-    res.innerHTML = '⏳ Editing...';
-    try {
-      const data = await callAPI('image/edit', {
-        model: currentModel || 'lustify-sdxl',
-        prompt: prompt,
-        image: editFileBase64
-      });
-      const b64 = data.images?.[0];
-      if (b64) res.innerHTML = `<img src="data:image/webp;base64,${b64}" style="max-width:100%; border-radius:8px;">`;
-      else throw new Error('No image');
-    } catch (e) { res.innerHTML = `<div style="color:#f87171;">${e.message}</div>`; }
-  });
-
-  // ===== IMAGE COMBINE =====
-  document.querySelectorAll('#combine-upload-area .upload-box').forEach((box, index) => {
-    box.addEventListener('click', () => {
-      const input = document.getElementById('combine-file-input');
-      input.dataset.target = index;
-      input.click();
-    });
-  });
-  document.getElementById('combine-file-input').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const target = parseInt(e.target.dataset.target);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const b64 = ev.target.result.split(',')[1];
-      combineFilesBase64[target] = b64;
-      const box = document.querySelectorAll('#combine-upload-area .upload-box')[target];
-      box.innerHTML = `<img src="data:image/png;base64,${b64}">`;
-      box.classList.add('has-img');
-    };
-    reader.readAsDataURL(file);
-  });
-  document.getElementById('combine-btn').addEventListener('click', async () => {
-    const images = combineFilesBase64.filter(Boolean);
-    if (images.length < 2) { toast('Upload at least 2 images'); return; }
-    const prompt = document.getElementById('combine-prompt').value.trim();
-    if (!prompt) { toast('Describe how to combine them'); return; }
-    const res = document.getElementById('combine-result');
-    res.innerHTML = '⏳ Combining...';
-    try {
-      const data = await callAPI('image/combine', {
-        model: currentModel || 'lustify-sdxl',
-        prompt: prompt,
-        images: images
-      });
-      const b64 = data.images?.[0];
-      if (b64) res.innerHTML = `<img src="data:image/webp;base64,${b64}" style="max-width:100%; border-radius:8px;">`;
-      else throw new Error('No image');
-    } catch (e) { res.innerHTML = `<div style="color:#f87171;">${e.message}</div>`; }
-  });
-
-  // ===== VIDEO GENERATION =====
-  document.getElementById('vid-gen-btn').addEventListener('click', async () => {
-    const prompt = document.getElementById('vid-prompt').value.trim();
-    if (!prompt) { toast('Enter a prompt'); return; }
-    if (currentProvider !== 'venice') { toast('Video works best with Venice.ai'); return; }
-    const res = document.getElementById('vid-result');
-    res.innerHTML = '⏳ Generating video (1-2 min)...';
-    try {
-      const data = await callAPI('video/generate', {
-        model: currentModel || 'kling-v3',
-        prompt: prompt,
-        aspect_ratio: '16:9',
-        duration: 5
-      });
-      let url = data.video_url;
-      if (!url && data.video_id) {
-        res.innerHTML += '<div style="color:#fbbf24;">🔄 Polling...</div>';
-        for (let i=0; i<10; i++) {
-          await new Promise(r => setTimeout(r, 5000));
-          const status = await callAPI('video/status', { video_id: data.video_id });
-          if (status.status === 'completed' && status.video_url) { url = status.video_url; break; }
-          if (status.status === 'failed') throw new Error('Video failed');
+        // ============================================================
+        //  PER-MODEL CHAT HISTORY
+        // ============================================================
+        function loadChatHistoryForModel(modelId) {
+            const key = 'chatHistory_' + modelId;
+            const saved = localStorage.getItem(key);
+            chatHistory = saved ? JSON.parse(saved) : [];
+            renderChatMessages();
         }
-      }
-      if (url) res.innerHTML = `<video controls src="${url}" style="max-width:100%; max-height:400px; border-radius:8px;"></video>`;
-      else throw new Error('Video not ready');
-    } catch (e) { res.innerHTML = `<div style="color:#f87171;">${e.message}</div>`; }
-  });
 
-  // ===== TABS =====
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById(`${btn.dataset.tab}-tab`).classList.add('active');
-    });
-  });
+        function saveChatHistoryForModel(modelId) {
+            localStorage.setItem('chatHistory_' + modelId, JSON.stringify(chatHistory));
+        }
 
-  // ===== INIT =====
-  if (apiKey) loadModels(true);
-  toast('💡 Add key → Load Models → Start');
-</script>
+        function renderChatMessages() {
+            const box = document.getElementById('chat-box');
+            box.innerHTML = '';
+            if (!chatHistory || chatHistory.length === 0) {
+                box.innerHTML = '<div style="text-align:center;color:#8b949e;padding:20px;font-size:14px;">No messages for this model yet.</div>';
+                return;
+            }
+            chatHistory.forEach(function(msg) {
+                const div = document.createElement('div');
+                div.className = 'msg ' + msg.role;
+                let text = '';
+                if (Array.isArray(msg.content)) {
+                    text = msg.content.filter(function(c) { return c.type === 'text'; }).map(function(c) { return c.text; })
+                        .join(' ');
+                } else {
+                    text = msg.content;
+                }
+                div.textContent = text;
+                box.appendChild(div);
+            });
+            box.scrollTop = box.scrollHeight;
+        }
+
+        // ============================================================
+        //  STOP BUTTON
+        // ============================================================
+        document.getElementById('stop-btn').addEventListener('click', function() {
+            if (abortController) {
+                abortController.abort();
+                abortController = null;
+                document.getElementById('stop-btn').style.display = 'none';
+                toast('Stopped');
+            }
+        });
+
+        // ============================================================
+        //  FILE UPLOAD FOR CHAT
+        // ============================================================
+        document.getElementById('vision-file').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 10 * 1024 * 1024) { toast('File too large — max 10MB'); return; }
+            uploadedFileName = file.name;
+            uploadedFileType = file.type;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                uploadedFileBase64 = ev.target.result.split(',')[1];
+                document.getElementById('file-status').textContent = '📎 ' + uploadedFileName;
+                toast('File loaded — ask about it');
+            };
+            reader.onerror = function() { toast('Error reading file'); };
+            reader.readAsDataURL(file);
+        });
+
+        // ============================================================
+        //  SEND CHAT
+        // ============================================================
+        document.getElementById('send-btn').addEventListener('click', sendChat);
+        document.getElementById('chat-input').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault();
+                sendChat(); }
+        });
+        // Auto-resize textarea
+        document.getElementById('chat-input').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+        });
+
+        function addMessage(role, text, cls) {
+            const box = document.getElementById('chat-box');
+            const div = document.createElement('div');
+            div.className = 'msg ' + role + (cls ? ' ' + cls : '');
+            div.textContent = text;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+            return div;
+        }
+
+        async function sendChat() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text && !uploadedFileBase64) { toast('Type a message or upload a file'); return; }
+            if (!apiKey) { toast('Save your API key first'); return; }
+            if (!currentModel) { toast('Select a model first'); return; }
+
+            const userText = text || 'Analyze this file.';
+            const userContent = [{ type: 'text', text: userText }];
+            if (uploadedFileBase64 && uploadedFileType && uploadedFileType.startsWith('image/')) {
+                userContent.push({ type: 'image_url', image_url: { url: 'data:' + uploadedFileType + ';base64,' +
+                            uploadedFileBase64 } });
+            }
+
+            // Clear file after sending
+            const fileStatus = document.getElementById('file-status');
+            const fileName = uploadedFileName;
+
+            let displayText = userText;
+            if (fileName) {
+                displayText = '📎 ' + fileName + '\n\n' + userText;
+            }
+            addMessage('user', displayText);
+
+            chatHistory.push({ role: 'user', content: userContent });
+
+            const botDiv = addMessage('ai', '⏳ Thinking...', 'thinking');
+
+            // Clear file state
+            uploadedFileBase64 = null;
+            uploadedFileName = '';
+            uploadedFileType = '';
+            fileStatus.textContent = 'No file';
+            document.getElementById('vision-file').value = '';
+
+            // Build messages
+            const messages = [{ role: 'system', content: 'You are a helpful AI assistant.' }];
+            const historyCopy = chatHistory.slice(-12);
+            historyCopy.forEach(function(m) {
+                messages.push({
+                    role: m.role,
+                    content: Array.isArray(m.content) ? m.content : [{ type: 'text', text: m.content }]
+                });
+            });
+
+            const targetUrl = baseUrl.replace(/\/$/, '');
+            const fullUrl = PROXY + encodeURIComponent(targetUrl + '/chat/completions');
+
+            abortController = new AbortController();
+            document.getElementById('stop-btn').style.display = 'inline-block';
+
+            try {
+                const res = await fetch(fullUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+                    body: JSON.stringify({ model: currentModel, messages: messages, max_tokens: 2000, stream: true }),
+                    signal: abortController.signal
+                });
+
+                if (!res.ok) {
+                    const errText = await res.text();
+                    throw new Error('HTTP ' + res.status + ': ' + errText.slice(0, 120));
+                }
+
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let reply = '';
+
+                while (true) {
+                    const chunk = await reader.read();
+                    if (chunk.done) break;
+                    buffer += decoder.decode(chunk.value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+                    for (let li = 0; li < lines.length; li++) {
+                        const line = lines[li];
+                        if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                            try {
+                                const json = JSON.parse(line.slice(6));
+                                const delta = json.choices && json.choices[0] && json.choices[0].delta && json.choices[0]
+                                    .delta.content;
+                                if (delta) {
+                                    reply += delta;
+                                    botDiv.textContent = reply;
+                                    botDiv.classList.remove('thinking');
+                                    botDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                                }
+                            } catch (parseErr) { /* ignore */ }
+                        }
+                    }
+                }
+
+                if (!reply) reply = '(no response)';
+                botDiv.textContent = reply;
+                chatHistory.push({ role: 'assistant', content: [{ type: 'text', text: reply }] });
+                saveChatHistoryForModel(currentModel);
+
+            } catch (e) {
+                if (e.name === 'AbortError') {
+                    botDiv.textContent += ' (stopped)';
+                    chatHistory.push({ role: 'assistant', content: [{ type: 'text', text: botDiv.textContent }] });
+                    saveChatHistoryForModel(currentModel);
+                } else {
+                    botDiv.textContent = 'Error: ' + e.message;
+                    botDiv.className = 'msg ai error';
+                }
+            } finally {
+                abortController = null;
+                document.getElementById('stop-btn').style.display = 'none';
+                input.value = '';
+                input.style.height = 'auto';
+            }
+        }
+
+        // ============================================================
+        //  IMAGE GENERATION
+        // ============================================================
+        document.getElementById('img-gen-btn').addEventListener('click', async function() {
+            if (isGenerating) return;
+            const prompt = document.getElementById('img-prompt').value.trim();
+            if (!prompt) { toast('Enter a prompt'); return; }
+            if (!apiKey) { toast('Save API key first'); return; }
+            if (!currentModel) { toast('Select a model'); return; }
+
+            const sizeVal = document.getElementById('img-size').value;
+            const parts = sizeVal.split('x');
+            const w = parseInt(parts[0]);
+            const h = parseInt(parts[1]);
+
+            const resultEl = document.getElementById('img-result');
+            resultEl.innerHTML = '<div class="loading">⏳ Generating...</div>';
+            isGenerating = true;
+
+            try {
+                if (currentProvider === 'venice') {
+                    const genUrl = PROXY + encodeURIComponent(baseUrl.replace(/\/$/, '') + '/image/generate');
+                    const resp = await fetch(genUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+                        body: JSON.stringify({ model: currentModel, prompt: prompt, width: w, height: h,
+                            format: 'webp' })
+                    });
+                    if (!resp.ok) {
+                        const errText = await resp.text();
+                        throw new Error('Venice: ' + (errText.slice(0, 100) || resp.status));
+                    }
+                    const data = await resp.json();
+                    const b64 = data.images && data.images[0];
+                    if (b64) {
+                        resultEl.innerHTML = '<img src="data:image/webp;base64,' + b64 +
+                            '" alt="Generated image" style="max-width:100%;border-radius:8px;">';
+                    } else {
+                        throw new Error('No image returned from Venice');
+                    }
+                } else {
+                    // Featherless / OpenAI-compatible
+                    const genUrl = PROXY + encodeURIComponent(baseUrl.replace(/\/$/, '') + '/images/generations');
+                    const resp = await fetch(genUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+                        body: JSON.stringify({ model: currentModel, prompt: prompt, n: 1, size: sizeVal })
+                    });
+                    if (!resp.ok) {
+                        const errText = await resp.text();
+                        throw new Error('Featherless: ' + (errText.slice(0, 100) || resp.status));
+                    }
+                    const data = await resp.json();
+                    const imgUrl = data.data && data.data[0] && data.data[0].url;
+                    if (imgUrl) {
+                        resultEl.innerHTML = '<img src="' + imgUrl +
+                            '" alt="Generated image" style="max-width:100%;border-radius:8px;" onerror="this.alt=\'Image failed to load\'">';
+                    } else {
+                        throw new Error('No image URL returned');
+                    }
+                }
+                toast('Image generated!');
+            } catch (e) {
+                resultEl.innerHTML = '<div class="error">❌ Error: ' + e.message + '</div>';
+                toast('Generation failed');
+            } finally {
+                isGenerating = false;
+            }
+        });
+
+        // ============================================================
+        //  IMAGE EDIT
+        // ============================================================
+        document.getElementById('edit-upload').addEventListener('click', function() {
+            document.getElementById('edit-file-input').click();
+        });
+        document.getElementById('edit-file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 10 * 1024 * 1024) { toast('File too large — max 10MB'); return; }
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                editFileBase64 = ev.target.result.split(',')[1];
+                const box = document.getElementById('edit-upload');
+                box.innerHTML = '<img src="' + ev.target.result + '" alt="Uploaded image">';
+                box.classList.add('has-img');
+                toast('Image loaded');
+            };
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('edit-btn').addEventListener('click', async function() {
+            if (isGenerating) return;
+            if (!editFileBase64) { toast('Upload an image first'); return; }
+            const prompt = document.getElementById('edit-prompt').value.trim();
+            if (!prompt) { toast('Describe what to change'); return; }
+            if (!apiKey) { toast('Save API key first'); return; }
+            if (currentProvider !== 'venice') { toast('Switch provider to Venice.ai for Edit'); return; }
+
+            const resultEl = document.getElementById('edit-result');
+            resultEl.innerHTML = '<div class="loading">⏳ Editing...</div>';
+            isGenerating = true;
+
+            try {
+                const editUrl = PROXY + encodeURIComponent(baseUrl.replace(/\/$/, '') + '/image/edit');
+                const resp = await fetch(editUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+                    body: JSON.stringify({ model: currentModel, prompt: prompt, image: editFileBase64 })
+                });
+                if (!resp.ok) {
+                    const errText = await resp.text();
+                    throw new Error('Venice: ' + (errText.slice(0, 100) || resp.status));
+                }
+                const data = await resp.json();
+                const b64 = data.images && data.images[0];
+                if (b64) {
+                    resultEl.innerHTML = '<img src="data:image/webp;base64,' + b64 +
+                        '" alt="Edited image" style="max-width:100%;border-radius:8px;">';
+                    toast('Image edited!');
+                } else {
+                    throw new Error('No image returned');
+                }
+            } catch (e) {
+                resultEl.innerHTML = '<div class="error">❌ Error: ' + e.message + '</div>';
+                toast('Edit failed');
+            } finally {
+                isGenerating = false;
+            }
+        });
+
+        // ============================================================
+        //  IMAGE COMBINE
+        // ============================================================
+        document.querySelectorAll('#combine-upload-area .upload-box').forEach(function(box, index) {
+            box.addEventListener('click', function() {
+                combineTargetIndex = index;
+                document.getElementById('combine-file-input').click();
+            });
+        });
+
+        document.getElementById('combine-file-input').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 10 * 1024 * 1024) { toast('File too large — max 10MB'); return; }
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                combineFilesBase64[combineTargetIndex] = ev.target.result.split(',')[1];
+                const boxes = document.querySelectorAll('#combine-upload-area .upload-box');
+                boxes[combineTargetIndex].innerHTML = '<img src="' + ev.target.result + '" alt="Image ' + (
+                    combineTargetIndex + 1) + '">';
+                boxes[combineTargetIndex].classList.add('has-img');
+                toast('Image ' + (combineTargetIndex + 1) + ' loaded');
+            };
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('combine-btn').addEventListener('click', async function() {
+            if (isGenerating) return;
+            const images = combineFilesBase64.filter(function(b) { return b !== null && b !== undefined; });
+            if (images.length < 2) { toast('Upload at least 2 images'); return; }
+            const prompt = document.getElementById('combine-prompt').value.trim();
+            if (!prompt) { toast('Describe how to combine them'); return; }
+            if (!apiKey) { toast('Save API key first'); return; }
+            if (currentProvider !== 'venice') { toast('Switch provider to Venice.ai for Combine'); return; }
+
+            const resultEl = document.getElementById('combine-result');
+            resultEl.innerHTML = '<div class="loading">⏳ Combining...</div>';
+            isGenerating = true;
+
+            try {
+                const combineUrl = PROXY + encodeURIComponent(baseUrl.replace(/\/$/, '') + '/image/combine');
+                const resp = await fetch(combineUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+                    body: JSON.stringify({ model: currentModel, prompt: prompt, images: images })
+                });
+                if (!resp.ok) {
+                    const errText = await resp.text();
+                    throw new Error('Venice: ' + (errText.slice(0, 100) || resp.status));
+                }
+                const data = await resp.json();
+                const b64 = data.images && data.images[0];
+                if (b64) {
+                    resultEl.innerHTML = '<img src="data:image/webp;base64,' + b64 +
+                        '" alt="Combined image" style="max-width:100%;border-radius:8px;">';
+                    toast('Images combined!');
+                } else {
+                    throw new Error('No image returned');
+                }
+            } catch (e) {
+                resultEl.innerHTML = '<div class="error">❌ Error: ' + e.message + '</div>';
+                toast('Combine failed');
+            } finally {
+                isGenerating = false;
+            }
+        });
+
+        // ============================================================
+        //  VIDEO GENERATION
+        // ============================================================
+        document.getElementById('vid-gen-btn').addEventListener('click', async function() {
+            if (isGenerating) return;
+            const prompt = document.getElementById('vid-prompt').value.trim();
+            if (!prompt) { toast('Enter a prompt'); return; }
+            if (!apiKey) { toast('Save API key first'); return; }
+            if (currentProvider !== 'venice') { toast('Switch provider to Venice.ai for video'); return; }
+            if (!currentModel) { toast('Select a video model (e.g. kling-v3)'); return; }
+
+            const resultEl = document.getElementById('vid-result');
+            resultEl.innerHTML = '<div class="loading">⏳ Generating video (1–2 minutes)...</div>';
+            isGenerating = true;
+
+            try {
+                const vidUrl = PROXY + encodeURIComponent(baseUrl.replace(/\/$/, '') + '/video/generate');
+                const resp = await fetch(vidUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+                    body: JSON.stringify({ model: currentModel, prompt: prompt, aspect_ratio: '16:9',
+                        duration: 5 })
+                });
+                if (!resp.ok) {
+                    const errText = await resp.text();
+                    throw new Error('Venice: ' + (errText.slice(0, 100) || resp.status));
+                }
+                const data = await resp.json();
+                let videoUrl = data.video_url;
+                let videoId = data.video_id;
+
+                if (!videoUrl && videoId) {
+                    resultEl.innerHTML = '<div class="loading">⏳ Processing... polling for result</div>';
+                    let found = false;
+                    for (let i = 0; i < 12; i++) {
+                        await new Promise(function(r) { setTimeout(r, 5000); });
+                        const statusUrl = PROXY + encodeURIComponent(baseUrl.replace(/\/$/, '') + '/video/status');
+                        const sr = await fetch(statusUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
+                            body: JSON.stringify({ video_id: videoId })
+                        });
+                        if (!sr.ok) continue;
+                        const sd = await sr.json();
+                        if (sd.status === 'completed' && sd.video_url) {
+                            videoUrl = sd.video_url;
+                            found = true;
+                            break;
+                        }
+                        if (sd.status === 'failed') throw new Error('Video generation failed');
+                    }
+                    if (!found) throw new Error('Video not ready after polling — try again later');
+                }
+
+                if (videoUrl) {
+                    resultEl.innerHTML =
+                        '<video controls src="' + videoUrl +
+                        '" style="max-width:100%;max-height:350px;border-radius:8px;" preload="metadata"></video>';
+                    toast('Video ready!');
+                } else {
+                    throw new Error('No video URL returned');
+                }
+            } catch (e) {
+                resultEl.innerHTML = '<div class="error">❌ Error: ' + e.message + '</div>';
+                toast('Video generation failed');
+            } finally {
+                isGenerating = false;
+            }
+        });
+
+        // ============================================================
+        //  AUTO-LOAD ON START
+        // ============================================================
+        if (apiKey) {
+            loadModels(true);
+            toast('💡 Add key → Load Models → Select model → Chat', 4000);
+        } else {
+            toast('🔑 Enter your API key and save it', 4000);
+        }
+
+        // ============================================================
+        //  KEYBOARD SHORTCUT: Cmd/Ctrl+Enter to send
+        // ============================================================
+        document.addEventListener('keydown', function(e) {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+                const activePanel = document.querySelector('.tab-panel.active');
+                if (activePanel && activePanel.id === 'chat-tab') {
+                    e.preventDefault();
+                    sendChat();
+                }
+            }
+        });
+
+        // ============================================================
+        //  LOG READY
+        // ============================================================
+        console.log('🛸 AI Pro loaded. Provider:', currentProvider, 'Model:', currentModel || '(none)');
+        console.log('ℹ️  Per-model chat history enabled. Select a model to load its conversation.');
+    </script>
+
 </body>
 </html>
