@@ -532,7 +532,7 @@
                     <button class="btn-main" id="img-gen-btn" style="flex:0 0 auto;">Generate</button>
                 </div>
                 <div style="margin-top:6px;font-size:11px;color:#8b949e;">
-                    ℹ️ Venice: select an <strong>[image]</strong> model · Featherless: select a compatible model
+                    ℹ️ Venice: select an <strong>[image]</strong> model &bull; Featherless: select <strong>FLUX</strong> or <strong>SDXL</strong>
                 </div>
             </div>
             <div id="img-result" class="card result-area">
@@ -621,6 +621,15 @@
         let isGenerating = false;
 
         const PROXY = 'https://corsproxy.io/?';
+
+        // ============================================================
+        //  FEATHERLESS IMAGE MODELS (Allowed for /images/generations)
+        // ============================================================
+        const FEATHERLESS_IMAGE_MODELS = [
+            'black-forest-labs/FLUX.1-schnell',
+            'black-forest-labs/FLUX.1-dev',
+            'stabilityai/stable-diffusion-xl-base-1.0'
+        ];
 
         // ============================================================
         //  TOAST
@@ -1072,7 +1081,7 @@
         }
 
         // ============================================================
-        //  IMAGE GENERATION
+        //  IMAGE GENERATION (UPDATED)
         // ============================================================
         document.getElementById('img-gen-btn').addEventListener('click', async function() {
             if (isGenerating) return;
@@ -1080,6 +1089,16 @@
             if (!prompt) { toast('Enter a prompt'); return; }
             if (!apiKey) { toast('Save API key first'); return; }
             if (!currentModel) { toast('Select a model'); return; }
+
+            // -------------------------------
+            // FEATHERLESS SPECIFIC CHECK
+            // -------------------------------
+            if (currentProvider === 'featherless') {
+                if (!FEATHERLESS_IMAGE_MODELS.includes(currentModel)) {
+                    toast('Featherless: Select a FLUX or SDXL model (e.g. black-forest-labs/FLUX.1-schnell)');
+                    return;
+                }
+            }
 
             const sizeVal = document.getElementById('img-size').value;
             const parts = sizeVal.split('x');
@@ -1092,12 +1111,23 @@
 
             try {
                 if (currentProvider === 'venice') {
+                    // ---------------------------------------------
+                    // VENICE: Add cfg_scale and steps for sharpness
+                    // ---------------------------------------------
                     const genUrl = PROXY + encodeURIComponent(baseUrl.replace(/\/$/, '') + '/image/generate');
                     const resp = await fetch(genUrl, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + apiKey },
-                        body: JSON.stringify({ model: currentModel, prompt: prompt, width: w, height: h,
-                            format: 'webp' })
+                        body: JSON.stringify({
+                            model: currentModel,
+                            prompt: prompt,
+                            width: w,
+                            height: h,
+                            format: 'webp',
+                            cfg_scale: 7,           // Fixes blurriness
+                            steps: 30,              // More quality steps
+                            negative_prompt: 'blurry, low quality, distorted, ugly, deformed, bad anatomy'
+                        })
                     });
                     if (!resp.ok) {
                         const errText = await resp.text();
@@ -1112,7 +1142,9 @@
                         throw new Error('No image returned from Venice');
                     }
                 } else {
-                    // Featherless / OpenAI-compatible
+                    // ---------------------------------------------
+                    // FEATHERLESS: Standard OpenAI-style endpoint
+                    // ---------------------------------------------
                     const genUrl = PROXY + encodeURIComponent(baseUrl.replace(/\/$/, '') + '/images/generations');
                     const resp = await fetch(genUrl, {
                         method: 'POST',
@@ -1367,7 +1399,7 @@
         // ============================================================
         console.log('🛸 AI Pro loaded. Provider:', currentProvider, 'Model:', currentModel || '(none)');
         console.log('ℹ️  Per-model chat history enabled. Select a model to load its conversation.');
+        console.log('ℹ️  Featherless image models list:', FEATHERLESS_IMAGE_MODELS);
     </script>
-
 </body>
 </html>
