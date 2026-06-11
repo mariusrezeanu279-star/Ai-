@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>AI Studio – Safe & Fast</title>
+  <title>AI Pro - Fallback</title>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     body { background:#0d1117; color:#e6edf3; font-family:-apple-system, system-ui, sans-serif; height:100vh; display:flex; flex-direction:column; }
@@ -13,11 +13,9 @@
     #settings-panel { background:#161b22; border-bottom:1px solid #30363d; padding:8px 12px; display:flex; flex-wrap:wrap; gap:8px; align-items:center; flex-shrink:0; }
     .ctrl { background:#0d1117; border:1px solid #30363d; border-radius:6px; padding:6px 10px; color:white; flex:1; min-width:80px; }
     .btn-main { background:#7c3aed; border:none; border-radius:6px; padding:6px 14px; color:white; cursor:pointer; font-weight:bold; }
-    .btn-main:disabled { opacity:0.5; }
     .btn-secondary { background:#30363d; border:none; border-radius:6px; padding:6px 12px; color:white; cursor:pointer; }
-    #custom-url-wrap { display:none; flex:2; }
-    .tab-bar { display:flex; border-bottom:1px solid #30363d; background:#0d1117; flex-shrink:0; overflow-x:auto; }
-    .tab-btn { flex:1; text-align:center; padding:8px; background:#161b22; border:none; border-bottom:2px solid transparent; color:#8b949e; cursor:pointer; min-width:70px; }
+    .tab-bar { display:flex; border-bottom:1px solid #30363d; background:#0d1117; flex-shrink:0; }
+    .tab-btn { flex:1; text-align:center; padding:8px; background:#161b22; border:none; border-bottom:2px solid transparent; color:#8b949e; cursor:pointer; }
     .tab-btn.active { border-bottom-color:#7c3aed; color:white; background:#0d1117; }
     .tab-panel { display:none; flex:1; flex-direction:column; overflow:hidden; }
     .tab-panel.active { display:flex; }
@@ -26,11 +24,12 @@
     .msg.user { align-self:flex-end; background:#7c3aed; border-bottom-right-radius:4px; }
     .msg.ai { align-self:flex-start; background:#21262d; border-bottom-left-radius:4px; }
     .msg.ai.thinking { opacity:0.6; }
-    .msg.ai.error { background:#2a1217; border:1px solid #f87171; color:#f87171; }
-    .input-area { display:flex; gap:8px; padding:8px; border-top:1px solid #30363d; background:#161b22; flex-shrink:0; align-items:center; }
-    .input-area textarea { flex:1; background:#0d1117; border:1px solid #30363d; border-radius:20px; padding:8px 12px; resize:none; height:40px; color:white; font-size:14px; }
-    #toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#161b22; padding:8px 20px; border-radius:40px; border:1px solid #30363d; opacity:0; transition:0.3s; z-index:999; white-space:nowrap; }
+    .input-area { display:flex; gap:8px; padding:8px; border-top:1px solid #30363d; background:#161b22; align-items:center; }
+    .input-area textarea { flex:1; background:#0d1117; border:1px solid #30363d; border-radius:20px; padding:8px 12px; resize:none; height:40px; color:white; }
+    #toast { position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#161b22; padding:8px 20px; border-radius:40px; border:1px solid #30363d; opacity:0; transition:0.3s; z-index:999; }
     #toast.show { opacity:1; }
+    .upload-area { padding:8px; border-top:1px solid #30363d; display:flex; gap:8px; align-items:center; background:#0d1117; }
+    .upload-area input[type="file"] { flex:1; background:#161b22; border:1px solid #30363d; border-radius:6px; padding:4px 8px; color:white; }
   </style>
 </head>
 <body>
@@ -41,18 +40,11 @@
 </div>
 
 <div id="settings-panel">
-  <select id="provider-select" class="ctrl" style="flex:1.5;">
-    <option value="featherless" data-url="https://api.featherless.ai/v1">Featherless.ai</option>
-    <option value="venice" data-url="https://api.venice.ai/api/v1">Venice.ai</option>
-    <option value="custom" data-url="">Custom URL</option>
-  </select>
-  <input type="password" id="key-input" class="ctrl" placeholder="API Key..." style="flex:2;">
+  <input type="password" id="key-input" class="ctrl" placeholder="Featherless API Key..." style="flex:2;">
   <button class="btn-main" id="save-key-btn">Save Key</button>
-  <div id="custom-url-wrap"><input type="text" id="custom-url" class="ctrl" placeholder="https://api.example.com/v1"></div>
   <select id="model-select" class="ctrl" style="flex:2;">
     <option value="">— Select Model —</option>
   </select>
-  <button class="btn-secondary" id="load-models-btn">📥 Models</button>
 </div>
 
 <div class="tab-bar">
@@ -66,7 +58,11 @@
 <!-- CHAT TAB -->
 <div id="chat-tab" class="tab-panel active">
   <div id="chat-box">
-    <div style="text-align:center; color:#8b949e; padding:20px;">Add API key, load models, and start chatting.</div>
+    <div style="text-align:center; color:#8b949e; padding:20px;">Add your Featherless key and start chatting.</div>
+  </div>
+  <div class="upload-area">
+    <input type="file" id="file-input" accept="*/*">
+    <button class="btn-secondary" id="upload-btn">📤 Send File</button>
   </div>
   <div class="input-area">
     <textarea id="chat-input" placeholder="Message..."></textarea>
@@ -74,47 +70,24 @@
   </div>
 </div>
 
-<!-- IMAGE GENERATE -->
+<!-- IMAGE TAB -->
 <div id="image-tab" class="tab-panel">
-  <div class="panel-grid">
-    <div class="card">
-      <textarea id="img-prompt" placeholder="Describe the image..." style="width:100%; min-height:60px;"></textarea>
-      <button class="btn-main" id="img-gen-btn">Generate</button>
-    </div>
-    <div id="img-result" class="card" style="min-height:150px; text-align:center; color:#8b949e; display:flex; align-items:center; justify-content:center;">
-      Image appears here
-    </div>
-  </div>
+  <div style="padding:20px; text-align:center; color:#8b949e;">Image generation coming soon.</div>
 </div>
 
-<!-- IMAGE EDIT -->
+<!-- EDIT TAB -->
 <div id="edit-tab" class="tab-panel">
-  <div class="panel-grid">
-    <div class="card">
-      <button class="btn-main" id="edit-btn">Edit Image (Coming Soon)</button>
-    </div>
-  </div>
+  <div style="padding:20px; text-align:center; color:#8b949e;">Edit coming soon.</div>
 </div>
 
-<!-- IMAGE COMBINE -->
+<!-- COMBINE TAB -->
 <div id="combine-tab" class="tab-panel">
-  <div class="panel-grid">
-    <div class="card">
-      <button class="btn-main" id="combine-btn">Combine Images (Coming Soon)</button>
-    </div>
-  </div>
+  <div style="padding:20px; text-align:center; color:#8b949e;">Combine coming soon.</div>
 </div>
 
-<!-- VIDEO -->
+<!-- VIDEO TAB -->
 <div id="video-tab" class="tab-panel">
-  <div class="panel-grid">
-    <div class="card">
-      <button class="btn-main" id="vid-gen-btn">Generate Video (1-2 min)</button>
-    </div>
-    <div id="vid-result" class="card" style="min-height:150px; text-align:center; color:#8b949e; display:flex; align-items:center; justify-content:center;">
-      Video appears here
-    </div>
-  </div>
+  <div style="padding:20px; text-align:center; color:#8b949e;">Video coming soon.</div>
 </div>
 
 <div id="toast"></div>
@@ -122,23 +95,19 @@
 <script>
   // ===== SIMPLE STATE =====
   let apiKey = localStorage.getItem('api_key') || '';
-  let baseUrl = 'https://api.featherless.ai/v1';
-  let currentProvider = 'featherless';
   let currentModel = '';
-  let allModels = [];
   let chatHistory = [];
   let isProcessing = false;
 
-  // ===== PROXY =====
-  const PROXY = 'https://corsproxy.io/?';
+  // ===== HARDCODED MODELS (Guaranteed to work) =====
+  const models = [
+    { id: 'huihui-ai/Llama-3.3-70B-Instruct-abliterated', name: 'Llama 3.3 70B Abliterated' },
+    { id: 'Qwen/Qwen2.5-72B-Instruct', name: 'Qwen 2.5 72B (Vision)' },
+    { id: 'cognitivecomputations/dolphin-2.9-llama3-70b', name: 'Dolphin 2.9 Llama3 70B' }
+  ];
 
   // ===== TOAST =====
-  function toast(msg) {
-    const t = document.getElementById('toast');
-    t.textContent = msg;
-    t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 3000);
-  }
+  function toast(msg) { const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),3000); }
 
   // ===== KEY SAVING =====
   document.getElementById('save-key-btn').addEventListener('click', () => {
@@ -150,7 +119,6 @@
       document.getElementById('status').style.color = '#10b981';
       toast('Key saved!');
       input.value = '';
-      loadModels();
     } else {
       toast('Enter a valid key');
     }
@@ -162,94 +130,28 @@
     document.getElementById('key-input').placeholder = 'Key already saved';
   }
 
-  // ===== PROVIDER SWITCH =====
-  document.getElementById('provider-select').addEventListener('change', function() {
-    currentProvider = this.value;
-    const opt = this.options[this.selectedIndex];
-    baseUrl = currentProvider === 'custom' ? document.getElementById('custom-url').value : opt.dataset.url;
-    document.getElementById('custom-url-wrap').style.display = currentProvider === 'custom' ? 'block' : 'none';
-    allModels = [];
-    renderModelDropdown();
-  });
-
-  // ===== MODEL LOADING =====
-  async function loadModels() {
-    const btn = document.getElementById('load-models-btn');
-    btn.disabled = true;
-    btn.textContent = 'Loading...';
-    const select = document.getElementById('model-select');
-    select.innerHTML = '<option value="">Loading...</option>';
-    try {
-      const fallbackModels = [
-        { id: 'huihui-ai/Llama-3.3-70B-Instruct-abliterated', name: 'Llama 3.3 70B Abliterated (Fallback)' },
-        { id: 'Qwen/Qwen2.5-72B-Instruct', name: 'Qwen 2.5 72B (Fallback)' }
-      ];
-
-      let newModels = [];
-      if (currentProvider === 'featherless') {
-        const url = PROXY + encodeURIComponent(`${baseUrl}/models?per_page=100`);
-        const resp = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
-        if (resp.ok) {
-          const data = await resp.json();
-          newModels = data.data || [];
-        } else {
-          toast('Featherless API error, using fallback models');
-        }
-      } else if (currentProvider === 'venice') {
-        const url = PROXY + encodeURIComponent(`${baseUrl}/models`);
-        const resp = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
-        if (resp.ok) {
-          const data = await resp.json();
-          newModels = data.data || [];
-        } else {
-          toast('Venice API error, using fallback models');
-        }
-      }
-
-      if (newModels.length === 0) {
-        newModels = fallbackModels;
-      }
-
-      allModels = newModels;
-      renderModelDropdown();
-      toast(`Loaded ${allModels.length} models`);
-    } catch (e) {
-      toast('Error loading models, using fallback list');
-      allModels = fallbackModels;
-      renderModelDropdown();
-    } finally {
-      btn.disabled = false;
-      btn.textContent = '📥 Models';
-    }
-  }
-
-  function renderModelDropdown() {
+  // ===== POPULATE MODELS (No API Call) =====
+  function populateModels() {
     const select = document.getElementById('model-select');
     select.innerHTML = '<option value="">— Select Model —</option>';
-    allModels.forEach(m => {
+    models.forEach(m => {
       const opt = document.createElement('option');
       opt.value = m.id;
-      opt.textContent = m.name || m.id;
+      opt.textContent = m.name;
       select.appendChild(opt);
     });
   }
-
-  document.getElementById('load-models-btn').addEventListener('click', loadModels);
+  populateModels();
   document.getElementById('model-select').addEventListener('change', (e) => { currentModel = e.target.value; });
 
-  // ===== TAB SWITCHING (FIXED - Using Event Delegation) =====
+  // ===== TABS (Simple Event Delegation) =====
   document.querySelector('.tab-bar').addEventListener('click', function(e) {
     const btn = e.target.closest('.tab-btn');
     if (!btn) return;
-
-    // Remove active from all tabs and panels
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-
-    // Activate the clicked tab and its panel
     btn.classList.add('active');
-    const panelId = `${btn.dataset.tab}-tab`;
-    document.getElementById(panelId).classList.add('active');
+    document.getElementById(btn.dataset.tab + '-tab').classList.add('active');
   });
 
   // ===== CHAT =====
@@ -274,14 +176,14 @@
     if (!text) { toast('Type a message'); return; }
     if (!apiKey) { toast('Save API key first'); return; }
     if (!currentModel) { toast('Select a model'); return; }
-    if (isProcessing) { toast('Already processing'); return; }
     input.value = '';
     addMessage('user', text);
     chatHistory.push({ role: 'user', content: text });
     const botDiv = addMessage('ai', '⏳ Thinking...', 'thinking');
     isProcessing = true;
     try {
-      const url = PROXY + encodeURIComponent(`${baseUrl}/chat/completions`);
+      const PROXY = 'https://corsproxy.io/?';
+      const url = PROXY + encodeURIComponent('https://api.featherless.ai/v1/chat/completions');
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
@@ -291,7 +193,7 @@
           max_tokens: 800
         })
       });
-      if (!res.ok) { const err = await res.text(); throw new Error(err); }
+      if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       const reply = data.choices[0].message.content;
       botDiv.textContent = reply;
@@ -305,47 +207,19 @@
     }
   }
 
-  // ===== IMAGE GENERATION =====
-  document.getElementById('img-gen-btn').addEventListener('click', async () => {
-    const prompt = document.getElementById('img-prompt').value.trim();
-    if (!prompt) { toast('Enter a prompt'); return; }
-    if (!apiKey) { toast('Save API key first'); return; }
-    if (!currentModel) { toast('Select a model'); return; }
-    const res = document.getElementById('img-result');
-    res.innerHTML = '⏳ Generating...';
-    try {
-      let data;
-      if (currentProvider === 'venice') {
-        const url = PROXY + encodeURIComponent(`${baseUrl}/image/generate`);
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-          body: JSON.stringify({ model: currentModel, prompt: prompt, width: 1024, height: 1024, format: 'webp' })
-        });
-        if (!resp.ok) throw new Error(await resp.text());
-        data = await resp.json();
-        const b64 = data.images?.[0];
-        if (b64) res.innerHTML = `<img src="data:image/webp;base64,${b64}" style="max-width:100%; border-radius:8px;">`;
-        else throw new Error('No image');
-      } else {
-        const url = PROXY + encodeURIComponent(`${baseUrl}/images/generations`);
-        const resp = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-          body: JSON.stringify({ model: currentModel, prompt: prompt, n: 1 })
-        });
-        if (!resp.ok) throw new Error(await resp.text());
-        data = await resp.json();
-        const url = data.data?.[0]?.url;
-        if (url) res.innerHTML = `<img src="${url}" style="max-width:100%; border-radius:8px;">`;
-        else throw new Error('No image');
-      }
-    } catch (e) { res.innerHTML = `<div style="color:#f87171;">${e.message}</div>`; }
+  // ===== FILE UPLOAD =====
+  document.getElementById('upload-btn').addEventListener('click', () => {
+    const fileInput = document.getElementById('file-input');
+    const file = fileInput.files[0];
+    if (!file) { toast('Select a file first'); return; }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target.result;
+      document.getElementById('chat-input').value = `[File: ${file.name}]\n${content}`;
+      toast('File loaded into input!');
+    };
+    reader.readAsText(file);
   });
-
-  // ===== INIT =====
-  if (apiKey) loadModels();
-  toast('💡 Add key → Load Models → Start');
 </script>
 </body>
 </html>
