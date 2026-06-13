@@ -29,9 +29,14 @@
   #save-key-btn{background:var(--purple);color:#fff;border:none;padding:6px 14px;border-radius:var(--radius);font-size:13px;cursor:pointer;white-space:nowrap}
   #save-key-btn:active{background:var(--purple2)}
   #model-row{display:flex;gap:6px;align-items:center;margin-top:6px}
+  #model-search{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:var(--radius);font-size:13px;margin-top:5px}
+  #model-search::placeholder{color:var(--text3)}
   #model-select{flex:1;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:var(--radius);font-size:13px}
   #load-models-btn{background:var(--bg4);border:1px solid var(--border2);color:var(--text2);padding:6px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;white-space:nowrap}
   #load-models-btn:active{background:var(--bg3)}
+  #load-more-btn{background:var(--bg4);border:1px solid var(--purple);color:var(--purple-light);padding:5px 0;border-radius:var(--radius);font-size:12px;cursor:pointer;width:100%;margin-top:4px;display:none}
+  #load-more-btn.show{display:block}
+  #load-more-btn:active{background:var(--bg3)}
   #model-count{font-size:11px;color:var(--text3);margin-top:4px}
 
   /* ── Tabs ── */
@@ -201,8 +206,10 @@ function ensureSqlJs(cb) {
   </div>
   <div id="model-row">
     <select id="model-select"><option value="">— Select model —</option></select>
-    <button id="load-models-btn" onclick="loadModels()">⚡ Load Models</button>
+    <button id="load-models-btn" onclick="loadModels(true)">⚡ Load Models</button>
   </div>
+  <input id="model-search" type="search" placeholder="🔍 Search models…" style="display:none"/>
+  <button id="load-more-btn" onclick="loadModels(false)">⬇ Load More Models</button>
   <div id="model-count"></div>
 </div>
 
@@ -608,43 +615,169 @@ function saveKey() {
 function getKey() { return savedKeys[currentProvider] || ''; }
 
 /* ═══════════════════════════════════════════
-   MODELS
+   MODELS — paginated + top10 + search
 ═══════════════════════════════════════════ */
+const FEATHERLESS_TOP10 = [
+  { id: 'huihui-ai/Llama-3.3-70B-Instruct-abliterated',        name: '⭐ Llama 3.3 70B Abliterated' },
+  { id: 'cognitivecomputations/dolphin-2.9-llama3-70b',         name: '⭐ Dolphin 2.9 Llama3 70B' },
+  { id: 'Qwen/Qwen2.5-72B-Instruct',                            name: '⭐ Qwen 2.5 72B' },
+  { id: 'deepseek-ai/DeepSeek-V2.5-1210',                       name: '⭐ DeepSeek V2.5' },
+  { id: 'meta-llama/Meta-Llama-3.1-405B-Instruct',              name: '⭐ Llama 3.1 405B' },
+  { id: 'Qwen/Qwen2.5-14B-Instruct',                            name: '⭐ Qwen 2.5 14B' },
+  { id: 'NousResearch/Hermes-2-Pro-Llama-3-8B',                 name: '⭐ Hermes 2 Pro Llama 3 8B' },
+  { id: 'huihui-ai/Mistral-Small-24B-Instruct-2501-abliterated', name: '⭐ Mistral Small 24B Abliterated' },
+  { id: 'cognitivecomputations/dolphin-2.9.1-mistral-7b',       name: '⭐ Dolphin 2.9.1 Mistral 7B' },
+  { id: 'meta-llama/Meta-Llama-3.3-70B-Instruct',               name: '⭐ Llama 3.3 70B (Standard)' }
+];
+
+let modelPage = 1;
+let allModels = [];
+let modelHasMore = false;
+let searchTimeout = null;
+
+// Called on provider change — resets to default list only, no API call
 function populateDefaultModels() {
+  modelPage = 1; allModels = []; modelHasMore = false;
+  const searchEl = document.getElementById('model-search');
+  searchEl.style.display = 'none'; searchEl.value = '';
+  document.getElementById('load-more-btn').classList.remove('show');
+
   const sel = document.getElementById('model-select');
   sel.innerHTML = '<option value="">— Select model —</option>';
-  (PROVIDER_DEFAULTS[currentProvider] || []).forEach(m => {
+  const defaults = PROVIDER_DEFAULTS[currentProvider] || [];
+  defaults.forEach(m => {
     const o = document.createElement('option');
-    o.value = m; o.textContent = m;
-    sel.appendChild(o);
+    o.value = m; o.textContent = m; sel.appendChild(o);
   });
-  if (PROVIDER_DEFAULTS[currentProvider]?.length)
-    document.getElementById('model-count').textContent =
-      PROVIDER_DEFAULTS[currentProvider].length + ' default models — tap ⚡ Load More';
+  document.getElementById('model-count').textContent =
+    defaults.length ? defaults.length + ' defaults — tap ⚡ to load all' : '';
 }
 populateDefaultModels();
 
-async function loadModels() {
+// Wire search input (attaches once — safe to call multiple times due to clone trick)
+(function wireSearch() {
+  const el = document.getElementById('model-search');
+  el.addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      const term = this.value.toLowerCase().trim();
+      const filtered = term
+        ? allModels.filter(m => (m.name || m.id).toLowerCase().includes(term))
+        : allModels;
+      renderModelDropdown(filtered);
+    }, 150);
+  });
+})();
+
+function renderModelDropdown(models) {
+  const currentVal = document.getElementById('model-select').value;
+  const sel = document.getElementById('model-select');
+  sel.innerHTML = '<option value="">— ' + models.length + ' models —</option>';
+  models.forEach(m => {
+    const o = document.createElement('option');
+    o.value = m.id;
+    o.textContent = m.name || m.id;
+    if (m._type) o.textContent += ' [' + m._type + ']';
+    sel.appendChild(o);
+  });
+  // Restore selection if still present
+  if (currentVal) sel.value = currentVal;
+}
+
+async function loadModels(reset = true) {
   const key = getKey();
   if (!key) return alert('Save your API key first.');
   const btn = document.getElementById('load-models-btn');
+  const moreBtn = document.getElementById('load-more-btn');
   btn.textContent = 'Loading…'; btn.disabled = true;
+  moreBtn.textContent = '⏳ Loading…'; moreBtn.disabled = true;
+
   try {
-    if (currentProvider === 'anthropic') throw new Error('Anthropic models are fixed — they are already listed.');
-    const url = PROVIDER_BASES[currentProvider] + '/models';
-    const headers = { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' };
-    const r = await fetch(url, { headers });
+    if (currentProvider === 'anthropic') {
+      // Fixed list — no pagination needed
+      allModels = PROVIDER_DEFAULTS.anthropic.map(id => ({ id, name: id }));
+      renderModelDropdown(allModels);
+      document.getElementById('model-count').textContent = allModels.length + ' models';
+      document.getElementById('model-search').style.display = 'block';
+      moreBtn.classList.remove('show');
+      addMsg('system', '✅ Anthropic models listed.');
+      return;
+    }
+
+    if (currentProvider === 'venice') {
+      // Venice — fetch by type separately, no pagination
+      if (reset) allModels = [];
+      const types = ['text', 'image', 'video'];
+      for (const t of types) {
+        try {
+          const r = await fetch('https://api.venice.ai/api/v1/models?type=' + t, {
+            headers: { 'Authorization': 'Bearer ' + key }
+          });
+          if (r.ok) {
+            const d = await r.json();
+            (d.data || []).forEach(m => { m._type = t; allModels.push(m); });
+          }
+        } catch (_) {}
+      }
+      renderModelDropdown(allModels);
+      document.getElementById('model-count').textContent = allModels.length + ' models (text + image + video)';
+      document.getElementById('model-search').style.display = 'block';
+      moreBtn.classList.remove('show');
+      addMsg('system', '✅ Loaded ' + allModels.length + ' Venice models.');
+      return;
+    }
+
+    // ── FEATHERLESS (and openai-compatible custom) — paginated ──
+    if (reset) { modelPage = 1; allModels = []; }
+
+    const perPage = 100;
+    const url = currentProvider === 'featherless'
+      ? 'https://api.featherless.ai/v1/models?page=' + modelPage + '&per_page=' + perPage
+      : PROVIDER_BASES[currentProvider] + '/models';
+
+    const r = await fetch(url, {
+      headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }
+    });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const data = await r.json();
-    const models = (data.data || data.models || []).map(m => m.id || m.name || m).filter(Boolean);
-    const sel = document.getElementById('model-select');
-    sel.innerHTML = '<option value="">— Select model (' + models.length + ') —</option>';
-    models.forEach(m => { const o = document.createElement('option'); o.value = m; o.textContent = m; sel.appendChild(o); });
-    document.getElementById('model-count').textContent = models.length + ' models loaded';
-    addMsg('system', '✅ Loaded ' + models.length + ' models from ' + currentProvider);
+    const newModels = (data.data || data.models || []).map(m =>
+      typeof m === 'string' ? { id: m, name: m } : { id: m.id || m.name, name: m.name || m.id }
+    ).filter(m => m.id);
+
+    modelHasMore = newModels.length === perPage;
+
+    if (reset) {
+      // Prepend top10 for Featherless, dedup against API results
+      if (currentProvider === 'featherless') {
+        const existingIds = new Set(newModels.map(m => m.id));
+        const toPrepend = FEATHERLESS_TOP10.filter(m => !existingIds.has(m.id));
+        allModels = toPrepend.concat(newModels);
+      } else {
+        allModels = newModels;
+      }
+      modelPage = 2; // next load-more fetches page 2
+    } else {
+      // Load more — append, skip dupes
+      const existingIds = new Set(allModels.map(m => m.id));
+      newModels.forEach(m => { if (!existingIds.has(m.id)) allModels.push(m); });
+      modelPage++;
+    }
+
+    renderModelDropdown(allModels);
+    document.getElementById('model-search').style.display = 'block';
+    document.getElementById('model-count').textContent =
+      allModels.length + ' models loaded' + (modelHasMore ? ' — more available' : ' — all loaded');
+    moreBtn.classList.toggle('show', modelHasMore);
+    moreBtn.textContent = '⬇ Load More Models';
+
+    if (reset) addMsg('system', '✅ Loaded ' + allModels.length + ' models from ' + currentProvider + (modelHasMore ? ' — tap Load More for next page' : ''));
+
   } catch (e) {
     alert('Could not load models: ' + e.message);
-  } finally { btn.textContent = '⚡ Load Models'; btn.disabled = false; }
+  } finally {
+    btn.textContent = '⚡ Load Models'; btn.disabled = false;
+    moreBtn.disabled = false;
+  }
 }
 
 /* ═══════════════════════════════════════════
