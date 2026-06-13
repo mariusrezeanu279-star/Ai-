@@ -28,12 +28,15 @@
   #api-key-input::placeholder{color:var(--text3)}
   #save-key-btn{background:var(--purple);color:#fff;border:none;padding:6px 14px;border-radius:var(--radius);font-size:13px;cursor:pointer;white-space:nowrap}
   #save-key-btn:active{background:var(--purple2)}
-  #model-row{display:flex;gap:6px;align-items:center;margin-top:6px}
-  #model-search{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:var(--radius);font-size:13px;margin-top:5px}
-  #model-search::placeholder{color:var(--text3)}
-  #model-select{flex:1;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:var(--radius);font-size:13px}
-  #load-models-btn{background:var(--bg4);border:1px solid var(--border2);color:var(--text2);padding:6px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;white-space:nowrap}
+  #model-row{display:flex;gap:6px;align-items:center;margin-top:6px;flex-wrap:wrap}
+  #model-select{flex:1;min-width:0;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:var(--radius);font-size:13px}
+  #load-models-btn{background:var(--bg4);border:1px solid var(--border2);color:var(--text2);padding:6px 10px;border-radius:var(--radius);font-size:12px;cursor:pointer;white-space:nowrap}
   #load-models-btn:active{background:var(--bg3)}
+  #load-all-btn{background:var(--purple);border:none;color:#fff;padding:6px 10px;border-radius:var(--radius);font-size:12px;cursor:pointer;white-space:nowrap;font-weight:600}
+  #load-all-btn:active{background:var(--purple2)}
+  #load-all-btn:disabled,#load-models-btn:disabled{opacity:.5;cursor:not-allowed}
+  #model-search{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:var(--radius);font-size:13px;margin-top:5px;display:none}
+  #model-search::placeholder{color:var(--text3)}
   #load-more-btn{background:var(--bg4);border:1px solid var(--purple);color:var(--purple-light);padding:5px 0;border-radius:var(--radius);font-size:12px;cursor:pointer;width:100%;margin-top:4px;display:none}
   #load-more-btn.show{display:block}
   #load-more-btn:active{background:var(--bg3)}
@@ -145,13 +148,16 @@
   /* ── sql.js loading banner ── */
   #sqljs-banner{background:#1e3a5f;color:#93c5fd;font-size:11px;padding:4px 10px;text-align:center;display:none;flex-shrink:0}
   #sqljs-banner.show{display:block}
+  
+  /* ── Loading progress bar ── */
+  #load-progress{height:2px;background:var(--purple);width:0%;transition:width .3s;display:none;flex-shrink:0}
+  #load-progress.show{display:block}
 </style>
 </head>
 <body>
 
-<!-- sql.js loaded from CDN -->
 <script>
-// sql.js state — loaded on first SQLite file touch
+// sql.js state
 let SQL = null;
 let sqlJsLoading = false;
 let sqlJsReady = false;
@@ -167,27 +173,21 @@ function ensureSqlJs(cb) {
   script.onload = () => {
     initSqlJs({ locateFile: f => 'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/' + f })
       .then(S => {
-        SQL = S;
-        sqlJsReady = true;
-        sqlJsLoading = false;
+        SQL = S; sqlJsReady = true; sqlJsLoading = false;
         if (banner) { banner.textContent = '✅ SQLite engine ready'; setTimeout(() => banner.classList.remove('show'), 2000); }
         cb();
       })
-      .catch(e => {
-        sqlJsLoading = false;
-        if (banner) { banner.textContent = '❌ sql.js failed: ' + e.message; }
-      });
+      .catch(e => { sqlJsLoading = false; if (banner) banner.textContent = '❌ sql.js failed: ' + e.message; });
   };
-  script.onerror = () => {
-    sqlJsLoading = false;
-    if (banner) { banner.textContent = '❌ Could not load sql.js — check internet connection'; }
-  };
+  script.onerror = () => { sqlJsLoading = false; if (banner) banner.textContent = '❌ Could not load sql.js'; };
   document.head.appendChild(script);
 }
 </script>
 
-<!-- HEADER -->
 <div id="sqljs-banner"></div>
+<div id="load-progress"></div>
+
+<!-- HEADER -->
 <div id="header">
   <div id="logo">
     🦅 <span>AI Pro</span>
@@ -206,10 +206,11 @@ function ensureSqlJs(cb) {
   </div>
   <div id="model-row">
     <select id="model-select"><option value="">— Select model —</option></select>
-    <button id="load-models-btn" onclick="loadModels(true)">⚡ Load Models</button>
+    <button id="load-models-btn" onclick="loadModels(true, false)" title="Load first 100 models">⚡ Load</button>
+    <button id="load-all-btn" onclick="loadModels(true, true)" title="Auto-fetch ALL pages (3000+ models)">🔄 Load All</button>
   </div>
-  <input id="model-search" type="search" placeholder="🔍 Search models…" style="display:none"/>
-  <button id="load-more-btn" onclick="loadModels(false)">⬇ Load More Models</button>
+  <input id="model-search" type="search" placeholder="🔍 Search models…"/>
+  <button id="load-more-btn" onclick="loadModels(false, false)">⬇ Load More Models</button>
   <div id="model-count"></div>
 </div>
 
@@ -228,10 +229,9 @@ function ensureSqlJs(cb) {
   <!-- CHAT -->
   <div id="panel-chat" class="panel active">
     <div id="chat-messages">
-      <div class="msg system">💡 Add API key → Load Models → Select a model → Chat<br/>Upload iPhone backup files (.plist, .sqlite, .db, .mdbackup…) — SQLite files open as real queryable databases, binary plists are decoded automatically</div>
+      <div class="msg system">💡 Add API key → tap 🔄 Load All for ALL 3000+ Featherless models → Select → Chat<br/>Upload iPhone backup files (.plist, .sqlite, .db, .mdbackup…) — SQLite = real queryable DB, binary plist = auto-decoded</div>
     </div>
 
-    <!-- SQLite inline viewer -->
     <div id="sqlite-viewer">
       <h4>🗄 SQLite — <span id="sqlite-db-name"></span></h4>
       <div id="sqlite-table-list"></div>
@@ -243,7 +243,6 @@ function ensureSqlJs(cb) {
       </div>
     </div>
 
-    <!-- Plist inline viewer -->
     <div id="plist-viewer">
       <h4>📋 Plist — <span id="plist-file-name"></span></h4>
       <div id="plist-content"></div>
@@ -356,7 +355,7 @@ function ensureSqlJs(cb) {
       <div class="section-title">Video & Media Analysis</div>
       <div class="video-note">
         <strong>What this can do</strong>
-        Upload a video file or paste a URL — the AI will describe, transcribe, analyse, or answer questions about the content. For large video files, a frame or audio extract is sent to the model.
+        Upload a video file or paste a URL — the AI will describe, transcribe, analyse, or answer questions about the content.
       </div>
       <label class="field-label">Upload video / audio</label>
       <div class="upload-zone" onclick="document.getElementById('video-file').click()">
@@ -389,8 +388,6 @@ let chatHistory = [];
 let attachedFileContent = null;
 let attachedFileName = null;
 let combineFilesData = [];
-
-// SQLite state
 let currentDb = null;
 let currentDbName = '';
 
@@ -411,10 +408,7 @@ const PROVIDER_DEFAULTS = {
 };
 
 /* ═══════════════════════════════════════════
-   BINARY PLIST PARSER
-   Full bplist00 decoder — handles int, real,
-   bool, date, data, ascii, UTF-16, uid,
-   array, dict, set
+   BINARY PLIST PARSER (full bplist00 decoder)
 ═══════════════════════════════════════════ */
 const BPlistParser = (() => {
   function readUint(buf, offset, size) {
@@ -422,7 +416,6 @@ const BPlistParser = (() => {
     for (let i = 0; i < size; i++) v = (v * 256) + buf[offset + i];
     return v;
   }
-
   function readInt(buf, offset, size) {
     const v = readUint(buf, offset, size);
     if (size === 1 && v >= 0x80) return v - 0x100;
@@ -430,161 +423,78 @@ const BPlistParser = (() => {
     if (size === 4 && v >= 0x80000000) return v - 0x100000000;
     return v;
   }
-
   function readFloat64(buf, offset) {
     const ab = new ArrayBuffer(8);
     const dv = new DataView(ab);
     for (let i = 0; i < 8; i++) dv.setUint8(7 - i, buf[offset + i]);
     return dv.getFloat64(0, false);
   }
-
   function readFloat32(buf, offset) {
     const ab = new ArrayBuffer(4);
     const dv = new DataView(ab);
     for (let i = 0; i < 4; i++) dv.setUint8(3 - i, buf[offset + i]);
     return dv.getFloat32(0, false);
   }
-
   function utf16Decode(buf, offset, len) {
     let s = '';
-    for (let i = 0; i < len; i++) {
-      const hi = buf[offset + i * 2];
-      const lo = buf[offset + i * 2 + 1];
-      s += String.fromCharCode((hi << 8) | lo);
-    }
+    for (let i = 0; i < len; i++) s += String.fromCharCode((buf[offset+i*2]<<8)|buf[offset+i*2+1]);
     return s;
   }
-
   function parse(arrayBuffer) {
     const buf = new Uint8Array(arrayBuffer);
     if (buf.length < 8) throw new Error('Too small for bplist');
     const magic = String.fromCharCode(...buf.slice(0, 8));
     if (magic !== 'bplist00') throw new Error('Not a binary plist (magic: ' + magic + ')');
-
-    // Trailer: last 32 bytes
-    const trailerOffset = buf.length - 32;
-    const offsetIntSize    = buf[trailerOffset + 6];
-    const objectRefSize    = buf[trailerOffset + 7];
-    const numObjects       = readUint(buf, trailerOffset + 8,  8);
-    const topObject        = readUint(buf, trailerOffset + 16, 8);
-    const offsetTableOffset= readUint(buf, trailerOffset + 24, 8);
-
-    // Read offset table
+    const to = buf.length - 32;
+    const offsetIntSize = buf[to+6];
+    const objectRefSize = buf[to+7];
+    const numObjects    = readUint(buf, to+8,  8);
+    const topObject     = readUint(buf, to+16, 8);
+    const offsetTableOff= readUint(buf, to+24, 8);
     const offsets = [];
-    for (let i = 0; i < numObjects; i++) {
-      offsets.push(readUint(buf, offsetTableOffset + i * offsetIntSize, offsetIntSize));
-    }
-
-    function readRef(pos) {
-      return readUint(buf, pos, objectRefSize);
-    }
-
+    for (let i = 0; i < numObjects; i++) offsets.push(readUint(buf, offsetTableOff+i*offsetIntSize, offsetIntSize));
+    function readRef(pos) { return readUint(buf, pos, objectRefSize); }
     function readCount(pos) {
-      // if low nibble of marker is 0xf, next object is int giving count
-      // this function reads an int object at pos and returns {count, newPos}
-      const marker = buf[pos];
-      const hi = (marker >> 4) & 0xf;
-      const lo = marker & 0xf;
-      if (hi !== 0x1) throw new Error('Expected int marker for count, got ' + marker.toString(16));
-      const size = 1 << lo;
-      return { count: readUint(buf, pos + 1, size), newPos: pos + 1 + size };
+      const mk = buf[pos], lo = mk & 0xf;
+      if ((mk>>4) !== 0x1) throw new Error('Expected int marker');
+      const size = 1<<lo;
+      return { count: readUint(buf, pos+1, size), newPos: pos+1+size };
     }
-
     function parseObject(idx) {
       const offset = offsets[idx];
       const marker = buf[offset];
-      const hi = (marker >> 4) & 0xf;
-      const lo = marker & 0xf;
-
+      const hi = (marker>>4)&0xf, lo = marker&0xf;
       if (marker === 0x00) return null;
       if (marker === 0x08) return false;
       if (marker === 0x09) return true;
-      if (marker === 0x0f) return null; // fill byte
-
-      if (hi === 0x1) { // int
-        const size = 1 << lo;
-        return readInt(buf, offset + 1, size);
-      }
-
-      if (hi === 0x2) { // real
-        if (lo === 2) return readFloat32(buf, offset + 1);
-        if (lo === 3) return readFloat64(buf, offset + 1);
-      }
-
-      if (hi === 0x3) { // date (NSDate = seconds since 2001-01-01)
-        const secs = readFloat64(buf, offset + 1);
-        const ms = (secs + 978307200) * 1000;
-        return new Date(ms).toISOString();
-      }
-
-      if (hi === 0x4) { // data
-        let len = lo, dataStart = offset + 1;
-        if (lo === 0xf) {
-          const r = readCount(offset + 1);
-          len = r.count; dataStart = r.newPos;
-        }
-        return '[Data ' + len + ' bytes]';
-      }
-
-      if (hi === 0x5) { // ASCII string
-        let len = lo, strStart = offset + 1;
-        if (lo === 0xf) {
-          const r = readCount(offset + 1);
-          len = r.count; strStart = r.newPos;
-        }
-        return String.fromCharCode(...buf.slice(strStart, strStart + len));
-      }
-
-      if (hi === 0x6) { // UTF-16 string
-        let len = lo, strStart = offset + 1;
-        if (lo === 0xf) {
-          const r = readCount(offset + 1);
-          len = r.count; strStart = r.newPos;
-        }
-        return utf16Decode(buf, strStart, len);
-      }
-
-      if (hi === 0x8) { // UID
-        const size = lo + 1;
-        return { uid: readUint(buf, offset + 1, size) };
-      }
-
-      if (hi === 0xa || hi === 0xc) { // array or set
-        let count = lo, refStart = offset + 1;
-        if (lo === 0xf) {
-          const r = readCount(offset + 1);
-          count = r.count; refStart = r.newPos;
-        }
-        const arr = [];
-        for (let i = 0; i < count; i++) {
-          const ref = readRef(refStart + i * objectRefSize);
-          arr.push(parseObject(ref));
-        }
+      if (marker === 0x0f) return null;
+      if (hi === 0x1) { const sz=1<<lo; return readInt(buf, offset+1, sz); }
+      if (hi === 0x2) { if (lo===2) return readFloat32(buf,offset+1); if (lo===3) return readFloat64(buf,offset+1); }
+      if (hi === 0x3) { const secs=readFloat64(buf,offset+1); return new Date((secs+978307200)*1000).toISOString(); }
+      if (hi === 0x4) { let len=lo,ds=offset+1; if(lo===0xf){const r=readCount(offset+1);len=r.count;ds=r.newPos;} return '[Data '+len+' bytes]'; }
+      if (hi === 0x5) { let len=lo,ss=offset+1; if(lo===0xf){const r=readCount(offset+1);len=r.count;ss=r.newPos;} return String.fromCharCode(...buf.slice(ss,ss+len)); }
+      if (hi === 0x6) { let len=lo,ss=offset+1; if(lo===0xf){const r=readCount(offset+1);len=r.count;ss=r.newPos;} return utf16Decode(buf,ss,len); }
+      if (hi === 0x8) { return { uid: readUint(buf,offset+1,lo+1) }; }
+      if (hi === 0xa || hi === 0xc) {
+        let cnt=lo,rs=offset+1; if(lo===0xf){const r=readCount(offset+1);cnt=r.count;rs=r.newPos;}
+        const arr=[];
+        for(let i=0;i<cnt;i++) arr.push(parseObject(readRef(rs+i*objectRefSize)));
         return arr;
       }
-
-      if (hi === 0xd) { // dict
-        let count = lo, refStart = offset + 1;
-        if (lo === 0xf) {
-          const r = readCount(offset + 1);
-          count = r.count; refStart = r.newPos;
-        }
-        const obj = {};
-        for (let i = 0; i < count; i++) {
-          const keyRef = readRef(refStart + i * objectRefSize);
-          const valRef = readRef(refStart + (count + i) * objectRefSize);
-          const key = parseObject(keyRef);
-          obj[String(key)] = parseObject(valRef);
+      if (hi === 0xd) {
+        let cnt=lo,rs=offset+1; if(lo===0xf){const r=readCount(offset+1);cnt=r.count;rs=r.newPos;}
+        const obj={};
+        for(let i=0;i<cnt;i++){
+          const kRef=readRef(rs+i*objectRefSize);
+          const vRef=readRef(rs+(cnt+i)*objectRefSize);
+          obj[String(parseObject(kRef))]=parseObject(vRef);
         }
         return obj;
       }
-
-      return '[Unknown marker 0x' + marker.toString(16) + ']';
+      return '[Unknown marker 0x'+marker.toString(16)+']';
     }
-
     return parseObject(topObject);
   }
-
   return { parse };
 })();
 
@@ -615,33 +525,36 @@ function saveKey() {
 function getKey() { return savedKeys[currentProvider] || ''; }
 
 /* ═══════════════════════════════════════════
-   MODELS — paginated + top10 + search
+   MODELS — paginated + top10 pinned + search
+   
+   ⚡ Load      = fetch first 100 (page 1 only)
+   🔄 Load All  = auto-loop ALL pages until done
+   ⬇ Load More = fetch next 100 (one page)
 ═══════════════════════════════════════════ */
 const FEATHERLESS_TOP10 = [
-  { id: 'huihui-ai/Llama-3.3-70B-Instruct-abliterated',        name: '⭐ Llama 3.3 70B Abliterated' },
-  { id: 'cognitivecomputations/dolphin-2.9-llama3-70b',         name: '⭐ Dolphin 2.9 Llama3 70B' },
-  { id: 'Qwen/Qwen2.5-72B-Instruct',                            name: '⭐ Qwen 2.5 72B' },
-  { id: 'deepseek-ai/DeepSeek-V2.5-1210',                       name: '⭐ DeepSeek V2.5' },
-  { id: 'meta-llama/Meta-Llama-3.1-405B-Instruct',              name: '⭐ Llama 3.1 405B' },
-  { id: 'Qwen/Qwen2.5-14B-Instruct',                            name: '⭐ Qwen 2.5 14B' },
-  { id: 'NousResearch/Hermes-2-Pro-Llama-3-8B',                 name: '⭐ Hermes 2 Pro Llama 3 8B' },
-  { id: 'huihui-ai/Mistral-Small-24B-Instruct-2501-abliterated', name: '⭐ Mistral Small 24B Abliterated' },
-  { id: 'cognitivecomputations/dolphin-2.9.1-mistral-7b',       name: '⭐ Dolphin 2.9.1 Mistral 7B' },
-  { id: 'meta-llama/Meta-Llama-3.3-70B-Instruct',               name: '⭐ Llama 3.3 70B (Standard)' }
+  { id: 'huihui-ai/Llama-3.3-70B-Instruct-abliterated',         name: '⭐ Llama 3.3 70B Abliterated' },
+  { id: 'cognitivecomputations/dolphin-2.9-llama3-70b',          name: '⭐ Dolphin 2.9 Llama3 70B' },
+  { id: 'Qwen/Qwen2.5-72B-Instruct',                             name: '⭐ Qwen 2.5 72B' },
+  { id: 'deepseek-ai/DeepSeek-V2.5-1210',                        name: '⭐ DeepSeek V2.5' },
+  { id: 'meta-llama/Meta-Llama-3.1-405B-Instruct',               name: '⭐ Llama 3.1 405B' },
+  { id: 'Qwen/Qwen2.5-14B-Instruct',                             name: '⭐ Qwen 2.5 14B' },
+  { id: 'NousResearch/Hermes-2-Pro-Llama-3-8B',                  name: '⭐ Hermes 2 Pro Llama 3 8B' },
+  { id: 'huihui-ai/Mistral-Small-24B-Instruct-2501-abliterated',  name: '⭐ Mistral Small 24B Abliterated' },
+  { id: 'cognitivecomputations/dolphin-2.9.1-mistral-7b',        name: '⭐ Dolphin 2.9.1 Mistral 7B' },
+  { id: 'meta-llama/Meta-Llama-3.3-70B-Instruct',                name: '⭐ Llama 3.3 70B (Standard)' }
 ];
 
 let modelPage = 1;
 let allModels = [];
 let modelHasMore = false;
 let searchTimeout = null;
+let loadAllAbort = false;
 
-// Called on provider change — resets to default list only, no API call
 function populateDefaultModels() {
-  modelPage = 1; allModels = []; modelHasMore = false;
+  modelPage = 1; allModels = []; modelHasMore = false; loadAllAbort = false;
   const searchEl = document.getElementById('model-search');
   searchEl.style.display = 'none'; searchEl.value = '';
   document.getElementById('load-more-btn').classList.remove('show');
-
   const sel = document.getElementById('model-select');
   sel.innerHTML = '<option value="">— Select model —</option>';
   const defaults = PROVIDER_DEFAULTS[currentProvider] || [];
@@ -650,20 +563,17 @@ function populateDefaultModels() {
     o.value = m; o.textContent = m; sel.appendChild(o);
   });
   document.getElementById('model-count').textContent =
-    defaults.length ? defaults.length + ' defaults — tap ⚡ to load all' : '';
+    defaults.length ? defaults.length + ' defaults — tap ⚡ Load or 🔄 Load All' : '';
 }
 populateDefaultModels();
 
-// Wire search input (attaches once — safe to call multiple times due to clone trick)
+// Search input wiring
 (function wireSearch() {
-  const el = document.getElementById('model-search');
-  el.addEventListener('input', function() {
+  document.getElementById('model-search').addEventListener('input', function() {
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
       const term = this.value.toLowerCase().trim();
-      const filtered = term
-        ? allModels.filter(m => (m.name || m.id).toLowerCase().includes(term))
-        : allModels;
+      const filtered = term ? allModels.filter(m => (m.name||m.id).toLowerCase().includes(term)) : allModels;
       renderModelDropdown(filtered);
     }, 150);
   });
@@ -676,25 +586,38 @@ function renderModelDropdown(models) {
   models.forEach(m => {
     const o = document.createElement('option');
     o.value = m.id;
-    o.textContent = m.name || m.id;
-    if (m._type) o.textContent += ' [' + m._type + ']';
+    o.textContent = (m.name || m.id) + (m._type ? ' ['+m._type+']' : '');
     sel.appendChild(o);
   });
-  // Restore selection if still present
   if (currentVal) sel.value = currentVal;
 }
 
-async function loadModels(reset = true) {
+// ── MAIN LOAD FUNCTION ──
+// reset=true  → start fresh from page 1
+// autoAll=true → keep looping until all pages fetched (Load All button)
+// autoAll=false → fetch only current page then stop (Load / Load More)
+async function loadModels(reset = true, autoAll = false) {
   const key = getKey();
   if (!key) return alert('Save your API key first.');
-  const btn = document.getElementById('load-models-btn');
-  const moreBtn = document.getElementById('load-more-btn');
-  btn.textContent = 'Loading…'; btn.disabled = true;
-  moreBtn.textContent = '⏳ Loading…'; moreBtn.disabled = true;
+
+  loadAllAbort = false;
+  const btn    = document.getElementById('load-models-btn');
+  const allBtn = document.getElementById('load-all-btn');
+  const moreBtn= document.getElementById('load-more-btn');
+  const prog   = document.getElementById('load-progress');
+
+  btn.disabled = true; allBtn.disabled = true; moreBtn.disabled = true;
+  if (autoAll) {
+    allBtn.textContent = '⏳ Loading…';
+    prog.style.width = '5%'; prog.classList.add('show');
+  } else {
+    btn.textContent = '⏳';
+    moreBtn.textContent = '⏳ Loading…';
+  }
 
   try {
+    // ── Anthropic — fixed list ──
     if (currentProvider === 'anthropic') {
-      // Fixed list — no pagination needed
       allModels = PROVIDER_DEFAULTS.anthropic.map(id => ({ id, name: id }));
       renderModelDropdown(allModels);
       document.getElementById('model-count').textContent = allModels.length + ' models';
@@ -704,8 +627,8 @@ async function loadModels(reset = true) {
       return;
     }
 
+    // ── Venice — fetch by type, no pagination ──
     if (currentProvider === 'venice') {
-      // Venice — fetch by type separately, no pagination
       if (reset) allModels = [];
       const types = ['text', 'image', 'video'];
       for (const t of types) {
@@ -727,56 +650,80 @@ async function loadModels(reset = true) {
       return;
     }
 
-    // ── FEATHERLESS (and openai-compatible custom) — paginated ──
+    // ── Featherless / OpenAI-compatible — PAGINATED ──
     if (reset) { modelPage = 1; allModels = []; }
 
     const perPage = 100;
-    const url = currentProvider === 'featherless'
-      ? 'https://api.featherless.ai/v1/models?page=' + modelPage + '&per_page=' + perPage
-      : PROVIDER_BASES[currentProvider] + '/models';
+    let pagesLoaded = 0;
+    const ESTIMATED_TOTAL = currentProvider === 'featherless' ? 3200 : 500;
 
-    const r = await fetch(url, {
-      headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }
-    });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const data = await r.json();
-    const newModels = (data.data || data.models || []).map(m =>
-      typeof m === 'string' ? { id: m, name: m } : { id: m.id || m.name, name: m.name || m.id }
-    ).filter(m => m.id);
+    do {
+      if (loadAllAbort) break;
 
-    modelHasMore = newModels.length === perPage;
+      const url = currentProvider === 'featherless'
+        ? 'https://api.featherless.ai/v1/models?page=' + modelPage + '&per_page=' + perPage
+        : PROVIDER_BASES[currentProvider] + '/models';
 
-    if (reset) {
-      // Prepend top10 for Featherless, dedup against API results
-      if (currentProvider === 'featherless') {
-        const existingIds = new Set(newModels.map(m => m.id));
-        const toPrepend = FEATHERLESS_TOP10.filter(m => !existingIds.has(m.id));
-        allModels = toPrepend.concat(newModels);
-      } else {
-        allModels = newModels;
-      }
-      modelPage = 2; // next load-more fetches page 2
-    } else {
-      // Load more — append, skip dupes
+      const r = await fetch(url, {
+        headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' }
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' on page ' + modelPage);
+
+      const data = await r.json();
+      const newModels = (data.data || data.models || [])
+        .map(m => typeof m === 'string' ? { id: m, name: m } : { id: m.id||m.name, name: m.name||m.id })
+        .filter(m => m.id);
+
+      // Append, dedup
       const existingIds = new Set(allModels.map(m => m.id));
       newModels.forEach(m => { if (!existingIds.has(m.id)) allModels.push(m); });
-      modelPage++;
-    }
 
-    renderModelDropdown(allModels);
+      modelHasMore = newModels.length === perPage;
+      pagesLoaded++;
+      modelPage++;
+
+      // On very first page (after reset), pin top10 to the top for Featherless
+      if (reset && pagesLoaded === 1 && currentProvider === 'featherless') {
+        const allIds = new Set(allModels.map(m => m.id));
+        const toPin = FEATHERLESS_TOP10.filter(m => !allIds.has(m.id));
+        // Remove any existing top10 from the body to avoid dupes then prepend
+        const bodyModels = allModels.filter(m => !FEATHERLESS_TOP10.find(t => t.id === m.id));
+        const pinnedInBody = allModels.filter(m => FEATHERLESS_TOP10.find(t => t.id === m.id))
+          .map(m => { const pin = FEATHERLESS_TOP10.find(t => t.id === m.id); return { ...m, name: pin.name }; });
+        allModels = toPin.concat(pinnedInBody).concat(bodyModels);
+      }
+
+      // Live update count + dropdown
+      document.getElementById('model-count').textContent =
+        allModels.length + ' models' + (modelHasMore ? ' (page '+pagesLoaded+'…)' : ' — all loaded ✅');
+      renderModelDropdown(allModels);
+
+      // Update progress bar
+      if (autoAll) {
+        const pct = Math.min(95, Math.round((allModels.length / ESTIMATED_TOTAL) * 100));
+        prog.style.width = pct + '%';
+      }
+
+    } while (autoAll && modelHasMore);
+
+    // Final state
     document.getElementById('model-search').style.display = 'block';
     document.getElementById('model-count').textContent =
-      allModels.length + ' models loaded' + (modelHasMore ? ' — more available' : ' — all loaded');
+      allModels.length + ' models loaded' + (modelHasMore ? ' — ⬇ more available' : ' — all loaded ✅');
     moreBtn.classList.toggle('show', modelHasMore);
     moreBtn.textContent = '⬇ Load More Models';
 
-    if (reset) addMsg('system', '✅ Loaded ' + allModels.length + ' models from ' + currentProvider + (modelHasMore ? ' — tap Load More for next page' : ''));
+    if (autoAll) {
+      prog.style.width = '100%';
+      setTimeout(() => { prog.classList.remove('show'); prog.style.width = '0%'; }, 800);
+    }
+    if (reset) addMsg('system', '✅ ' + allModels.length + ' models loaded from ' + currentProvider + (modelHasMore ? ' — tap ⬇ for more' : ''));
 
   } catch (e) {
-    alert('Could not load models: ' + e.message);
+    addMsg('system', '❌ Model load error: ' + e.message);
   } finally {
-    btn.textContent = '⚡ Load Models'; btn.disabled = false;
-    moreBtn.disabled = false;
+    btn.disabled = false; allBtn.disabled = false; moreBtn.disabled = false;
+    btn.textContent = '⚡ Load'; allBtn.textContent = '🔄 Load All';
   }
 }
 
@@ -785,7 +732,7 @@ async function loadModels(reset = true) {
 ═══════════════════════════════════════════ */
 function switchTab(id) {
   document.querySelectorAll('.tab').forEach((t, i) => {
-    const ids = ['chat', 'image', 'edit', 'combine', 'video'];
+    const ids = ['chat','image','edit','combine','video'];
     t.classList.toggle('active', ids[i] === id);
   });
   document.querySelectorAll('.panel').forEach(p => {
@@ -801,20 +748,16 @@ function openSqliteDb(arrayBuffer, filename) {
   document.getElementById('sqlite-db-name').textContent = filename;
   document.getElementById('sqlite-viewer').classList.add('show');
   document.getElementById('plist-viewer').classList.remove('show');
-
   try {
     if (currentDb) { currentDb.close(); currentDb = null; }
     currentDb = new SQL.Database(new Uint8Array(arrayBuffer));
-
-    // List all tables
     const res = currentDb.exec("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
     const tables = res.length ? res[0].values.map(r => r[0]) : [];
-
     const listEl = document.getElementById('sqlite-table-list');
     listEl.innerHTML = '';
     tables.forEach((t, i) => {
       const chip = document.createElement('div');
-      chip.className = 'sqlite-table-chip' + (i === 0 ? ' active' : '');
+      chip.className = 'sqlite-table-chip' + (i===0?' active':'');
       chip.textContent = t;
       chip.onclick = () => {
         document.querySelectorAll('.sqlite-table-chip').forEach(c => c.classList.remove('active'));
@@ -823,52 +766,41 @@ function openSqliteDb(arrayBuffer, filename) {
       };
       listEl.appendChild(chip);
     });
-
     if (tables.length > 0) {
       loadSqliteTable(tables[0]);
-      // Build AI context — schema + sample data
-      let schemaText = '[SQLite database: ' + filename + ']\n\nTables:\n';
+      let schemaText = '[SQLite database: '+filename+']\n\nTables:\n';
       tables.forEach(t => {
         try {
-          const cols = currentDb.exec('PRAGMA table_info(' + t + ')');
-          const count = currentDb.exec('SELECT COUNT(*) FROM "' + t + '"');
+          const cols = currentDb.exec('PRAGMA table_info('+t+')');
+          const count = currentDb.exec('SELECT COUNT(*) FROM "'+t+'"');
           const rowCount = count.length ? count[0].values[0][0] : '?';
-          schemaText += '\n' + t + ' (' + rowCount + ' rows)\n';
-          if (cols.length) {
-            cols[0].values.forEach(c => { schemaText += '  ' + c[1] + ' ' + c[2] + '\n'; });
-          }
-          // Sample 3 rows
-          const sample = currentDb.exec('SELECT * FROM "' + t + '" LIMIT 3');
+          schemaText += '\n'+t+' ('+rowCount+' rows)\n';
+          if (cols.length) cols[0].values.forEach(c => { schemaText += '  '+c[1]+' '+c[2]+'\n'; });
+          const sample = currentDb.exec('SELECT * FROM "'+t+'" LIMIT 3');
           if (sample.length && sample[0].values.length) {
             schemaText += '  Sample rows:\n';
-            sample[0].values.forEach(row => {
-              schemaText += '  ' + JSON.stringify(row) + '\n';
-            });
+            sample[0].values.forEach(row => { schemaText += '  '+JSON.stringify(row)+'\n'; });
           }
-        } catch (_) {}
+        } catch(_) {}
       });
       attachedFileContent = { type: 'text', text: schemaText.slice(0, 50000), name: filename };
     } else {
-      document.getElementById('sqlite-table-data').innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px">No tables found in this database.</div>';
-      attachedFileContent = { type: 'text', text: '[SQLite database: ' + filename + ' — no tables]', name: filename };
+      document.getElementById('sqlite-table-data').innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px">No tables found.</div>';
+      attachedFileContent = { type: 'text', text: '[SQLite: '+filename+' — no tables]', name: filename };
     }
-
-    setFileStatus('✅ SQLite opened — ' + tables.length + ' tables', 'ok');
-  } catch (e) {
-    setFileStatus('❌ SQLite error: ' + e.message, 'err');
-  }
+    setFileStatus('✅ SQLite opened — '+tables.length+' tables', 'ok');
+  } catch(e) { setFileStatus('❌ SQLite error: '+e.message, 'err'); }
 }
 
 function loadSqliteTable(tableName) {
   if (!currentDb) return;
   try {
-    const res = currentDb.exec('SELECT * FROM "' + tableName + '" LIMIT 200');
-    const countRes = currentDb.exec('SELECT COUNT(*) FROM "' + tableName + '"');
+    const res = currentDb.exec('SELECT * FROM "'+tableName+'" LIMIT 200');
+    const countRes = currentDb.exec('SELECT COUNT(*) FROM "'+tableName+'"');
     const totalRows = countRes.length ? countRes[0].values[0][0] : '?';
     renderSqliteResult(res, totalRows);
-  } catch (e) {
-    document.getElementById('sqlite-table-data').innerHTML =
-      '<div style="color:#fca5a5;font-size:12px;padding:8px">Error: ' + e.message + '</div>';
+  } catch(e) {
+    document.getElementById('sqlite-table-data').innerHTML = '<div style="color:#fca5a5;font-size:12px;padding:8px">Error: '+e.message+'</div>';
   }
 }
 
@@ -879,9 +811,8 @@ function runSqlQuery() {
   try {
     const res = currentDb.exec(sql);
     renderSqliteResult(res, null);
-  } catch (e) {
-    document.getElementById('sqlite-table-data').innerHTML =
-      '<div style="color:#fca5a5;font-size:12px;padding:8px">SQL Error: ' + e.message + '</div>';
+  } catch(e) {
+    document.getElementById('sqlite-table-data').innerHTML = '<div style="color:#fca5a5;font-size:12px;padding:8px">SQL Error: '+e.message+'</div>';
     document.getElementById('sqlite-row-count').textContent = '';
   }
 }
@@ -891,25 +822,17 @@ function renderSqliteResult(res, totalRows) {
   const countEl = document.getElementById('sqlite-row-count');
   if (!res || !res.length) {
     container.innerHTML = '<div style="color:var(--text3);font-size:12px;padding:8px">No rows returned.</div>';
-    countEl.textContent = '';
-    return;
+    countEl.textContent = ''; return;
   }
   const { columns, values } = res[0];
-  let html = '<table><tr>' + columns.map(c => '<th>' + esc(c) + '</th>').join('') + '</tr>';
-  values.forEach(row => {
-    html += '<tr>' + row.map(cell => '<td>' + esc(cell === null ? 'NULL' : String(cell)) + '</td>').join('') + '</tr>';
-  });
+  let html = '<table><tr>'+columns.map(c=>'<th>'+esc(c)+'</th>').join('')+'</tr>';
+  values.forEach(row => { html += '<tr>'+row.map(cell=>'<td>'+esc(cell===null?'NULL':String(cell))+'</td>').join('')+'</tr>'; });
   html += '</table>';
   container.innerHTML = html;
-  const shown = values.length;
-  countEl.textContent = totalRows !== null
-    ? 'Showing ' + shown + ' of ' + totalRows + ' rows'
-    : shown + ' rows';
+  countEl.textContent = totalRows !== null ? 'Showing '+values.length+' of '+totalRows+' rows' : values.length+' rows';
 }
 
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 /* ═══════════════════════════════════════════
    PLIST VIEWER
@@ -921,13 +844,12 @@ function openPlistBinary(arrayBuffer, filename) {
   try {
     const parsed = BPlistParser.parse(arrayBuffer);
     const pretty = JSON.stringify(parsed, null, 2);
-    document.getElementById('plist-content').textContent = pretty.slice(0, 10000) +
-      (pretty.length > 10000 ? '\n…(truncated, full content sent to AI)' : '');
-    attachedFileContent = { type: 'text', text: '[Binary plist: ' + filename + ']\n\n' + pretty.slice(0, 50000), name: filename };
-    setFileStatus('✅ Plist decoded — ' + Object.keys(parsed || {}).length + ' keys', 'ok');
-  } catch (e) {
-    document.getElementById('plist-content').textContent = 'Parse error: ' + e.message;
-    setFileStatus('❌ Plist parse error: ' + e.message, 'err');
+    document.getElementById('plist-content').textContent = pretty.slice(0,10000) + (pretty.length>10000?'\n…(truncated, full sent to AI)':'');
+    attachedFileContent = { type:'text', text:'[Binary plist: '+filename+']\n\n'+pretty.slice(0,50000), name:filename };
+    setFileStatus('✅ Plist decoded — '+Object.keys(parsed||{}).length+' keys', 'ok');
+  } catch(e) {
+    document.getElementById('plist-content').textContent = 'Parse error: '+e.message;
+    setFileStatus('❌ Plist parse error: '+e.message, 'err');
   }
 }
 
@@ -935,18 +857,16 @@ function openPlistXml(text, filename) {
   document.getElementById('sqlite-viewer').classList.remove('show');
   document.getElementById('plist-viewer').classList.add('show');
   document.getElementById('plist-file-name').textContent = filename;
-  document.getElementById('plist-content').textContent = text.slice(0, 10000) +
-    (text.length > 10000 ? '\n…(truncated)' : '');
-  attachedFileContent = { type: 'text', text: '[XML plist: ' + filename + ']\n\n' + text.slice(0, 50000), name: filename };
+  document.getElementById('plist-content').textContent = text.slice(0,10000) + (text.length>10000?'\n…(truncated)':'');
+  attachedFileContent = { type:'text', text:'[XML plist: '+filename+']\n\n'+text.slice(0,50000), name:filename };
   setFileStatus('✅ XML plist loaded', 'ok');
 }
 
 /* ═══════════════════════════════════════════
-   FILE HANDLING — MAIN ENTRY POINT
+   FILE HANDLING
 ═══════════════════════════════════════════ */
 async function handleFile(inp) {
-  const file = inp.files[0];
-  if (!file) return;
+  const file = inp.files[0]; if (!file) return;
   const fname = file.name;
   const ext = fname.split('.').pop().toLowerCase();
   document.getElementById('file-name').textContent = fname;
@@ -954,148 +874,74 @@ async function handleFile(inp) {
   document.getElementById('plist-viewer').classList.remove('show');
   document.getElementById('sqlite-viewer').classList.remove('show');
   document.getElementById('parsed-preview').classList.remove('show');
-
   try {
-    // ── IMAGES ──
     if (['jpg','jpeg','png','gif','webp','heic'].includes(ext)) {
       const b64 = await toBase64(file);
-      attachedFileContent = { type: 'image', data: b64, mime: file.type || 'image/jpeg', name: fname };
-      setFileStatus('✅ Image ready', 'ok');
-      return;
+      attachedFileContent = { type:'image', data:b64, mime:file.type||'image/jpeg', name:fname };
+      setFileStatus('✅ Image ready', 'ok'); return;
     }
-
     const arrayBuffer = await readAsArrayBuffer(file);
     const bytes = new Uint8Array(arrayBuffer);
-
-    // ── SQLITE / DB ──
-    const isSQLite = bytes[0] === 0x53 && bytes[1] === 0x51 &&
-                     bytes[2] === 0x4c && bytes[3] === 0x69; // "SQLi"
+    const isSQLite = bytes[0]===0x53&&bytes[1]===0x51&&bytes[2]===0x4c&&bytes[3]===0x69;
     if (isSQLite || ['sqlite','db','sqlite3','sqlitedb'].includes(ext)) {
-      if (isSQLite) {
-        setFileStatus('⏳ Loading SQLite…', 'ok');
-        ensureSqlJs(() => openSqliteDb(arrayBuffer, fname));
-        return;
-      }
+      if (isSQLite) { setFileStatus('⏳ Loading SQLite…','ok'); ensureSqlJs(()=>openSqliteDb(arrayBuffer,fname)); return; }
     }
-
-    // ── BINARY PLIST ──
-    const isBPlist = bytes[0] === 0x62 && bytes[1] === 0x70 &&
-                     bytes[2] === 0x6c && bytes[3] === 0x69 &&
-                     bytes[4] === 0x73 && bytes[5] === 0x74; // "bplist"
-    if (isBPlist || (ext === 'plist' && isBPlist)) {
-      openPlistBinary(arrayBuffer, fname);
+    const isBPlist = bytes[0]===0x62&&bytes[1]===0x70&&bytes[2]===0x6c&&bytes[3]===0x69&&bytes[4]===0x73&&bytes[5]===0x74;
+    if (isBPlist) { openPlistBinary(arrayBuffer, fname); return; }
+    const text = new TextDecoder('utf-8',{fatal:false}).decode(bytes);
+    if (ext==='plist' || (text.includes('<plist')&&text.includes('</plist>'))) {
+      if (text.includes('<plist')) { openPlistXml(text, fname); return; }
+      try { openPlistBinary(arrayBuffer, fname); } catch(_) { openPlistXml(text, fname); }
       return;
     }
-
-    // ── TEXT / XML PLIST ──
-    const text = new TextDecoder('utf-8', { fatal: false }).decode(bytes);
-
-    if (ext === 'plist' || (text.includes('<plist') && text.includes('</plist>'))) {
-      if (text.includes('<plist')) {
-        openPlistXml(text, fname);
-        return;
-      }
-      // binary plist with .plist extension but no bplist header — try bplist anyway
-      try {
-        openPlistBinary(arrayBuffer, fname);
-      } catch (_) {
-        openPlistXml(text, fname);
-      }
-      return;
-    }
-
-    // ── MDBACKUP / MBDB / MDDATA ──
     if (['mdbackup','mbdb','mddata','bplist'].includes(ext)) {
-      // Try binary plist first
-      if (isBPlist) {
-        openPlistBinary(arrayBuffer, fname);
-        return;
-      }
-      // Try as text/XML
-      if (text.includes('<plist')) {
-        openPlistXml(text, fname);
-        return;
-      }
-      // Raw binary — extract readable strings
-      let readable = '[iPhone backup file: ' + fname + ' — ' + arrayBuffer.byteLength + ' bytes]\n\nExtracted strings:\n\n';
-      let str = '';
-      for (let i = 0; i < Math.min(bytes.length, 65536); i++) {
-        const c = bytes[i];
-        if (c >= 32 && c < 127) { str += String.fromCharCode(c); }
-        else { if (str.length > 4) { readable += str + '\n'; } str = ''; }
-      }
-      if (str.length > 4) readable += str;
-      attachedFileContent = { type: 'text', text: readable.slice(0, 50000), name: fname };
+      if (isBPlist) { openPlistBinary(arrayBuffer, fname); return; }
+      if (text.includes('<plist')) { openPlistXml(text, fname); return; }
+      let readable = '[iPhone backup file: '+fname+' — '+arrayBuffer.byteLength+' bytes]\n\nExtracted strings:\n\n';
+      let str='';
+      for(let i=0;i<Math.min(bytes.length,65536);i++){const c=bytes[i];if(c>=32&&c<127){str+=String.fromCharCode(c);}else{if(str.length>4){readable+=str+'\n';}str='';}}
+      if(str.length>4) readable+=str;
+      attachedFileContent = { type:'text', text:readable.slice(0,50000), name:fname };
       const preview = document.getElementById('parsed-preview');
-      preview.textContent = readable.slice(0, 600);
-      preview.classList.add('show');
-      setFileStatus('✅ Backup file parsed', 'ok');
-      return;
+      preview.textContent = readable.slice(0,600); preview.classList.add('show');
+      setFileStatus('✅ Backup file parsed','ok'); return;
     }
-
-    // ── JSON ──
-    if (ext === 'json') {
+    if (ext==='json') {
       try {
-        const pretty = JSON.stringify(JSON.parse(text), null, 2);
-        attachedFileContent = { type: 'text', text: pretty.slice(0, 50000), name: fname };
+        const pretty = JSON.stringify(JSON.parse(text),null,2);
+        attachedFileContent = { type:'text', text:pretty.slice(0,50000), name:fname };
         const preview = document.getElementById('parsed-preview');
-        preview.textContent = pretty.slice(0, 600) + (pretty.length > 600 ? '\n…(' + pretty.length + ' chars)' : '');
-        preview.classList.add('show');
-        setFileStatus('✅ JSON parsed', 'ok');
-      } catch (_) {
-        attachedFileContent = { type: 'text', text: text.slice(0, 50000), name: fname };
-        setFileStatus('✅ File loaded', 'ok');
+        preview.textContent = pretty.slice(0,600)+(pretty.length>600?'\n…('+pretty.length+' chars)':''); preview.classList.add('show');
+        setFileStatus('✅ JSON parsed','ok');
+      } catch(_) {
+        attachedFileContent = { type:'text', text:text.slice(0,50000), name:fname };
+        setFileStatus('✅ File loaded','ok');
       }
       return;
     }
-
-    // ── PLAIN TEXT / XML / CSV / etc ──
-    attachedFileContent = { type: 'text', text: text.slice(0, 50000), name: fname };
+    attachedFileContent = { type:'text', text:text.slice(0,50000), name:fname };
     const preview = document.getElementById('parsed-preview');
-    preview.textContent = text.slice(0, 600) + (text.length > 600 ? '\n…(' + text.length + ' chars)' : '');
-    preview.classList.add('show');
-    setFileStatus('✅ File loaded', 'ok');
-
-  } catch (e) {
-    setFileStatus('❌ ' + e.message, 'err');
-  }
+    preview.textContent = text.slice(0,600)+(text.length>600?'\n…('+text.length+' chars)':''); preview.classList.add('show');
+    setFileStatus('✅ File loaded','ok');
+  } catch(e) { setFileStatus('❌ '+e.message,'err'); }
 }
 
 function setFileStatus(msg, cls) {
   const el = document.getElementById('file-status');
-  el.textContent = msg;
-  el.className = cls;
-  el.style.display = 'inline-block';
+  el.textContent = msg; el.className = cls; el.style.display = 'inline-block';
 }
 
 /* ═══════════════════════════════════════════
    HELPERS
 ═══════════════════════════════════════════ */
 function toBase64(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result.split(',')[1]);
-    r.onerror = rej;
-    r.readAsDataURL(file);
-  });
+  return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});
 }
-
 function readAsText(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result);
-    r.onerror = rej;
-    r.readAsText(file, 'utf-8');
-  });
+  return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsText(file,'utf-8');});
 }
-
 function readAsArrayBuffer(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result);
-    r.onerror = rej;
-    r.readAsArrayBuffer(file);
-  });
+  return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsArrayBuffer(file);});
 }
 
 /* ═══════════════════════════════════════════
@@ -1103,252 +949,174 @@ function readAsArrayBuffer(file) {
 ═══════════════════════════════════════════ */
 function addMsg(role, text) {
   const div = document.createElement('div');
-  div.className = 'msg ' + role;
-  div.textContent = text;
+  div.className = 'msg '+role; div.textContent = text;
   const msgs = document.getElementById('chat-messages');
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-  return div;
+  msgs.appendChild(div); msgs.scrollTop = msgs.scrollHeight; return div;
 }
 
-function addMsgHTML(role, html) {
-  const div = document.createElement('div');
-  div.className = 'msg ' + role;
-  div.innerHTML = html;
-  const msgs = document.getElementById('chat-messages');
-  msgs.appendChild(div);
-  msgs.scrollTop = msgs.scrollHeight;
-  return div;
-}
-
-function autoResize(el) {
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
-}
-
-function chatKey(e) {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
-}
+function autoResize(el) { el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+function chatKey(e) { if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();} }
 
 async function sendChat() {
   const inp = document.getElementById('msg-input');
   const text = inp.value.trim();
   if (!text && !attachedFileContent) return;
-  const key = getKey();
-  if (!key) { alert('Save your API key first.'); return; }
-  const model = document.getElementById('model-select').value;
-  if (!model) { alert('Select a model first.'); return; }
-
+  const key = getKey(); if (!key) { alert('Save your API key first.'); return; }
+  const model = document.getElementById('model-select').value; if (!model) { alert('Select a model first.'); return; }
   let userText = text;
-  if (attachedFileContent) {
-    userText = (text || 'Please analyse this file:') + '\n\n[File: ' + attachedFileContent.name + ']';
-  }
+  if (attachedFileContent) userText = (text||'Please analyse this file:') + '\n\n[File: '+attachedFileContent.name+']';
   addMsg('user', userText);
-  inp.value = ''; inp.style.height = 'auto';
+  inp.value=''; inp.style.height='auto';
   const btn = document.getElementById('send-btn');
-  btn.disabled = true; btn.textContent = '…';
-
-  // Build messages
+  btn.disabled=true; btn.textContent='…';
   let messages = [...chatHistory];
   if (attachedFileContent) {
-    if (attachedFileContent.type === 'image') {
-      messages.push({ role: 'user', content: [
-        { type: 'image_url', image_url: { url: 'data:' + attachedFileContent.mime + ';base64,' + attachedFileContent.data } },
-        { type: 'text', text: text || 'Describe this image in detail.' }
+    if (attachedFileContent.type==='image') {
+      messages.push({role:'user',content:[
+        {type:'image_url',image_url:{url:'data:'+attachedFileContent.mime+';base64,'+attachedFileContent.data}},
+        {type:'text',text:text||'Describe this image in detail.'}
       ]});
     } else {
-      messages.push({ role: 'user', content: 'File contents of "' + attachedFileContent.name + '":\n\n' + attachedFileContent.text + (text ? '\n\n---\nUser question: ' + text : '') });
+      messages.push({role:'user',content:'File contents of "'+attachedFileContent.name+'":\n\n'+attachedFileContent.text+(text?'\n\n---\nUser question: '+text:'')});
     }
   } else {
-    messages.push({ role: 'user', content: text });
+    messages.push({role:'user',content:text});
   }
-
-  const thinkingDiv = addMsg('ai', '⏳ Thinking…');
+  const thinkingDiv = addMsg('ai','⏳ Thinking…');
   try {
     const respText = await chatCompletion(key, model, messages);
     thinkingDiv.textContent = respText;
-    chatHistory.push({ role: 'user', content: messages[messages.length - 1].content });
-    chatHistory.push({ role: 'assistant', content: respText });
-    if (chatHistory.length > 40) chatHistory = chatHistory.slice(-40);
-    // Clear file after send
-    attachedFileContent = null; attachedFileName = null;
-    document.getElementById('file-name').textContent = 'no file selected';
-    document.getElementById('file-status').style.display = 'none';
+    chatHistory.push({role:'user',content:messages[messages.length-1].content});
+    chatHistory.push({role:'assistant',content:respText});
+    if (chatHistory.length>40) chatHistory=chatHistory.slice(-40);
+    attachedFileContent=null; attachedFileName=null;
+    document.getElementById('file-name').textContent='no file selected';
+    document.getElementById('file-status').style.display='none';
     document.getElementById('parsed-preview').classList.remove('show');
-    document.getElementById('file-input').value = '';
-  } catch (e) {
-    thinkingDiv.textContent = '❌ Error: ' + e.message;
-    thinkingDiv.style.background = '#450a0a';
-  } finally { btn.disabled = false; btn.textContent = 'Send'; }
+    document.getElementById('file-input').value='';
+  } catch(e) {
+    thinkingDiv.textContent='❌ Error: '+e.message;
+    thinkingDiv.style.background='#450a0a';
+  } finally { btn.disabled=false; btn.textContent='Send'; }
 }
 
 /* ═══════════════════════════════════════════
    IMAGE GENERATION
 ═══════════════════════════════════════════ */
 function chipSelect(el, groupId) {
-  document.querySelectorAll('#' + groupId + ' .chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('#'+groupId+' .chip').forEach(c=>c.classList.remove('active'));
   el.classList.add('active');
 }
 
 async function generateImage() {
-  const key = getKey();
-  if (!key) { alert('Save your API key first.'); return; }
-  let prompt = document.getElementById('img-prompt').value.trim();
-  if (!prompt) { alert('Enter a prompt.'); return; }
+  const key = getKey(); if (!key) { alert('Save your API key first.'); return; }
+  let prompt = document.getElementById('img-prompt').value.trim(); if (!prompt) { alert('Enter a prompt.'); return; }
   const style = document.querySelector('#style-chips .chip.active')?.textContent;
-  if (style && style !== 'None') prompt += ', ' + style + ' style';
+  if (style && style!=='None') prompt += ', '+style+' style';
   const size = document.getElementById('img-size').value;
   const quality = document.getElementById('img-quality').value;
   const statusEl = document.getElementById('img-status');
-  statusEl.innerHTML = '<span class="spinner"></span>Generating image…';
-  statusEl.className = 'status-msg info show';
+  statusEl.innerHTML='<span class="spinner"></span>Generating image…'; statusEl.className='status-msg info show';
   try {
     let url, body, headers;
-    if (currentProvider === 'venice') {
-      url = 'https://api.venice.ai/api/v1/image/generate';
-      body = { model: 'fluently-xl', prompt, width: parseInt(size.split('x')[0]), height: parseInt(size.split('x')[1]), steps: 30 };
-      headers = { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' };
+    if (currentProvider==='venice') {
+      url='https://api.venice.ai/api/v1/image/generate';
+      body={model:'fluently-xl',prompt,width:parseInt(size.split('x')[0]),height:parseInt(size.split('x')[1]),steps:30};
+      headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'};
     } else {
-      url = PROVIDER_BASES[currentProvider] + '/images/generations';
-      body = { model: 'dall-e-3', prompt, n: 1, size, quality, response_format: 'url' };
-      headers = { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' };
+      url=PROVIDER_BASES[currentProvider]+'/images/generations';
+      body={model:'dall-e-3',prompt,n:1,size,quality,response_format:'url'};
+      headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'};
     }
-    const r = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+    const r = await fetch(url,{method:'POST',headers,body:JSON.stringify(body)});
     const d = await r.json();
-    if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
-    const imgUrl = d.data?.[0]?.url || d.images?.[0] || d.url;
-    if (!imgUrl) throw new Error('No image URL in response: ' + JSON.stringify(d).slice(0, 200));
-    document.getElementById('img-result').innerHTML =
-      '<img src="' + imgUrl + '" alt="Generated"/>' +
-      '<a href="' + imgUrl + '" target="_blank" style="font-size:12px;color:var(--purple-light);margin-top:6px">🔗 Open full size</a>';
-    statusEl.textContent = '✅ Image generated'; statusEl.className = 'status-msg ok show';
-  } catch (e) {
-    statusEl.textContent = '❌ ' + e.message; statusEl.className = 'status-msg err show';
-  }
+    if (d.error) throw new Error(d.error.message||JSON.stringify(d.error));
+    const imgUrl = d.data?.[0]?.url||d.images?.[0]||d.url;
+    if (!imgUrl) throw new Error('No image URL in response: '+JSON.stringify(d).slice(0,200));
+    document.getElementById('img-result').innerHTML=
+      '<img src="'+imgUrl+'" alt="Generated"/>'+
+      '<a href="'+imgUrl+'" target="_blank" style="font-size:12px;color:var(--purple-light);margin-top:6px">🔗 Open full size</a>';
+    statusEl.textContent='✅ Image generated'; statusEl.className='status-msg ok show';
+  } catch(e) { statusEl.textContent='❌ '+e.message; statusEl.className='status-msg err show'; }
 }
 
 /* ═══════════════════════════════════════════
    EDIT
 ═══════════════════════════════════════════ */
-function dragOver(e, el) { e.preventDefault(); el.classList.add('drag'); }
-function dragLeave(el) { el.classList.remove('drag'); }
-async function dropEdit(e, el) {
-  e.preventDefault(); el.classList.remove('drag');
-  const file = e.dataTransfer.files[0];
-  if (!file) return;
-  const text = await readAsText(file);
-  document.getElementById('edit-source').value = text;
-}
-async function loadEditFile(inp) {
-  const file = inp.files[0]; if (!file) return;
-  const text = await readAsText(file);
-  document.getElementById('edit-source').value = text;
-}
+function dragOver(e,el){e.preventDefault();el.classList.add('drag');}
+function dragLeave(el){el.classList.remove('drag');}
+async function dropEdit(e,el){e.preventDefault();el.classList.remove('drag');const file=e.dataTransfer.files[0];if(!file)return;document.getElementById('edit-source').value=await readAsText(file);}
+async function loadEditFile(inp){const file=inp.files[0];if(!file)return;document.getElementById('edit-source').value=await readAsText(file);}
 async function runEdit() {
-  const key = getKey(); if (!key) { alert('Save API key first.'); return; }
-  const model = document.getElementById('model-select').value; if (!model) { alert('Select a model.'); return; }
-  const source = document.getElementById('edit-source').value.trim();
-  const instruction = document.getElementById('edit-instruction').value.trim();
-  if (!source) { alert('Paste or upload text to edit.'); return; }
-  if (!instruction) { alert('Enter an edit instruction.'); return; }
-  const statusEl = document.getElementById('edit-status');
-  statusEl.innerHTML = '<span class="spinner"></span>Processing…'; statusEl.className = 'status-msg info show';
+  const key=getKey();if(!key){alert('Save API key first.');return;}
+  const model=document.getElementById('model-select').value;if(!model){alert('Select a model.');return;}
+  const source=document.getElementById('edit-source').value.trim();
+  const instruction=document.getElementById('edit-instruction').value.trim();
+  if(!source){alert('Paste or upload text to edit.');return;}
+  if(!instruction){alert('Enter an edit instruction.');return;}
+  const statusEl=document.getElementById('edit-status');
+  statusEl.innerHTML='<span class="spinner"></span>Processing…';statusEl.className='status-msg info show';
   try {
-    const msg = 'Here is the content to edit:\n\n' + source.slice(0, 30000) + '\n\n---\nInstruction: ' + instruction + '\n\nPlease apply the instruction and return only the result.';
-    const respText = await chatCompletion(key, model, [{ role: 'user', content: msg }]);
-    document.getElementById('edit-result').value = respText;
-    statusEl.textContent = '✅ Done'; statusEl.className = 'status-msg ok show';
-  } catch (e) { statusEl.textContent = '❌ ' + e.message; statusEl.className = 'status-msg err show'; }
+    const msg='Here is the content to edit:\n\n'+source.slice(0,30000)+'\n\n---\nInstruction: '+instruction+'\n\nApply the instruction and return only the result.';
+    document.getElementById('edit-result').value=await chatCompletion(key,model,[{role:'user',content:msg}]);
+    statusEl.textContent='✅ Done';statusEl.className='status-msg ok show';
+  } catch(e){statusEl.textContent='❌ '+e.message;statusEl.className='status-msg err show';}
 }
-function copyEdit() {
-  const v = document.getElementById('edit-result').value;
-  if (v) navigator.clipboard.writeText(v).then(() => alert('Copied!'));
-}
+function copyEdit(){const v=document.getElementById('edit-result').value;if(v)navigator.clipboard.writeText(v).then(()=>alert('Copied!'));}
 
 /* ═══════════════════════════════════════════
    COMBINE
 ═══════════════════════════════════════════ */
-async function loadCombineFiles(inp) {
-  combineFilesData = [];
-  const list = document.getElementById('combine-file-list');
-  list.textContent = 'Loading…';
-  for (const file of inp.files) {
-    try { const text = await readAsText(file); combineFilesData.push({ name: file.name, text }); }
-    catch (e) { combineFilesData.push({ name: file.name, text: '[Could not read: ' + e.message + ']' }); }
-  }
-  list.textContent = combineFilesData.map(f => '✅ ' + f.name).join('\n');
+async function loadCombineFiles(inp){
+  combineFilesData=[];const list=document.getElementById('combine-file-list');list.textContent='Loading…';
+  for(const file of inp.files){try{const text=await readAsText(file);combineFilesData.push({name:file.name,text});}catch(e){combineFilesData.push({name:file.name,text:'[Could not read: '+e.message+']'});}}
+  list.textContent=combineFilesData.map(f=>'✅ '+f.name).join('\n');
 }
-async function runCombine() {
-  const key = getKey(); if (!key) { alert('Save API key first.'); return; }
-  const model = document.getElementById('model-select').value; if (!model) { alert('Select a model.'); return; }
-  if (!combineFilesData.length) { alert('Upload files first.'); return; }
-  const instruction = document.getElementById('combine-instruction').value.trim();
-  if (!instruction) { alert('Enter instructions for combining.'); return; }
-  const statusEl = document.getElementById('combine-status');
-  statusEl.innerHTML = '<span class="spinner"></span>Combining…'; statusEl.className = 'status-msg info show';
-  try {
-    let content = 'Instruction: ' + instruction + '\n\n';
-    combineFilesData.forEach((f, i) => { content += '--- File ' + (i + 1) + ': ' + f.name + ' ---\n' + f.text.slice(0, 15000) + '\n\n'; });
-    const respText = await chatCompletion(key, model, [{ role: 'user', content: content.slice(0, 50000) }]);
-    document.getElementById('combine-result').value = respText;
-    statusEl.textContent = '✅ Done'; statusEl.className = 'status-msg ok show';
-  } catch (e) { statusEl.textContent = '❌ ' + e.message; statusEl.className = 'status-msg err show'; }
+async function runCombine(){
+  const key=getKey();if(!key){alert('Save API key first.');return;}
+  const model=document.getElementById('model-select').value;if(!model){alert('Select a model.');return;}
+  if(!combineFilesData.length){alert('Upload files first.');return;}
+  const instruction=document.getElementById('combine-instruction').value.trim();if(!instruction){alert('Enter instructions.');return;}
+  const statusEl=document.getElementById('combine-status');
+  statusEl.innerHTML='<span class="spinner"></span>Combining…';statusEl.className='status-msg info show';
+  try{
+    let content='Instruction: '+instruction+'\n\n';
+    combineFilesData.forEach((f,i)=>{content+='--- File '+(i+1)+': '+f.name+' ---\n'+f.text.slice(0,15000)+'\n\n';});
+    document.getElementById('combine-result').value=await chatCompletion(key,model,[{role:'user',content:content.slice(0,50000)}]);
+    statusEl.textContent='✅ Done';statusEl.className='status-msg ok show';
+  }catch(e){statusEl.textContent='❌ '+e.message;statusEl.className='status-msg err show';}
 }
-function copyCombine() {
-  const v = document.getElementById('combine-result').value;
-  if (v) navigator.clipboard.writeText(v).then(() => alert('Copied!'));
-}
+function copyCombine(){const v=document.getElementById('combine-result').value;if(v)navigator.clipboard.writeText(v).then(()=>alert('Copied!'));}
 
 /* ═══════════════════════════════════════════
    VIDEO
 ═══════════════════════════════════════════ */
-function loadVideo(inp) {
-  const file = inp.files[0]; if (!file) return;
-  const url = URL.createObjectURL(file);
-  document.getElementById('video-preview').src = url;
-  document.getElementById('video-preview-wrap').style.display = 'block';
-}
-async function runVideo() {
-  const key = getKey(); if (!key) { alert('Save API key first.'); return; }
-  const model = document.getElementById('model-select').value; if (!model) { alert('Select a model.'); return; }
-  const urlVal = document.getElementById('video-url').value.trim();
-  const prompt = document.getElementById('video-prompt').value.trim() || 'Please describe and analyse this video.';
-  const statusEl = document.getElementById('video-status');
-  statusEl.innerHTML = '<span class="spinner"></span>Analysing…'; statusEl.className = 'status-msg info show';
-  try {
-    let msg = prompt;
-    if (urlVal) msg += ' [Video URL: ' + urlVal + ']';
-    const respText = await chatCompletion(key, model, [{ role: 'user', content: msg }]);
-    document.getElementById('video-result').value = respText;
-    statusEl.textContent = '✅ Done'; statusEl.className = 'status-msg ok show';
-  } catch (e) { statusEl.textContent = '❌ ' + e.message; statusEl.className = 'status-msg err show'; }
+function loadVideo(inp){const file=inp.files[0];if(!file)return;const url=URL.createObjectURL(file);document.getElementById('video-preview').src=url;document.getElementById('video-preview-wrap').style.display='block';}
+async function runVideo(){
+  const key=getKey();if(!key){alert('Save API key first.');return;}
+  const model=document.getElementById('model-select').value;if(!model){alert('Select a model.');return;}
+  const urlVal=document.getElementById('video-url').value.trim();
+  const prompt=document.getElementById('video-prompt').value.trim()||'Please describe and analyse this video.';
+  const statusEl=document.getElementById('video-status');
+  statusEl.innerHTML='<span class="spinner"></span>Analysing…';statusEl.className='status-msg info show';
+  try{
+    let msg=prompt;if(urlVal)msg+=' [Video URL: '+urlVal+']';
+    document.getElementById('video-result').value=await chatCompletion(key,model,[{role:'user',content:msg}]);
+    statusEl.textContent='✅ Done';statusEl.className='status-msg ok show';
+  }catch(e){statusEl.textContent='❌ '+e.message;statusEl.className='status-msg err show';}
 }
 
 /* ═══════════════════════════════════════════
    SHARED COMPLETION
 ═══════════════════════════════════════════ */
 async function chatCompletion(key, model, messages) {
-  if (currentProvider === 'anthropic') {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-      body: JSON.stringify({ model, max_tokens: 4096, messages })
-    });
-    const d = await r.json();
-    if (d.error) throw new Error(d.error.message);
-    return d.content?.[0]?.text || '';
+  if (currentProvider==='anthropic') {
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json'},body:JSON.stringify({model,max_tokens:4096,messages})});
+    const d=await r.json();if(d.error)throw new Error(d.error.message);return d.content?.[0]?.text||'';
   }
-  const base = currentProvider === 'custom'
-    ? (savedKeys.__customBase || PROVIDER_BASES.featherless)
-    : PROVIDER_BASES[currentProvider];
-  const r = await fetch(base + '/chat/completions', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model, messages, max_tokens: 4096 })
-  });
-  const d = await r.json();
-  if (d.error) throw new Error(d.error.message || JSON.stringify(d.error));
-  return d.choices?.[0]?.message?.content || '';
+  const base=currentProvider==='custom'?(savedKeys.__customBase||PROVIDER_BASES.featherless):PROVIDER_BASES[currentProvider];
+  const r=await fetch(base+'/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,messages,max_tokens:4096})});
+  const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));return d.choices?.[0]?.message?.content||'';
 }
 </script>
 </body>
