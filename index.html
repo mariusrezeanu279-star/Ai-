@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>AI Pro – Full Studio</title>
     <style>
+        /* ... existing styles ... */
         * {
             margin: 0;
             padding: 0;
@@ -507,8 +508,13 @@
             </div>
         </div>
         <div id="upload-controls">
-            <input type="file" id="vision-file" accept="image/*" />
+            <!-- UPDATED: Accept any file type -->
+            <input type="file" id="vision-file" accept="*/*" />
             <span id="file-status">No file</span>
+            <!-- Hint for forensic files -->
+            <div style="font-size:11px;color:#8b949e;flex-basis:100%;">
+                ℹ️ <strong>For binary files:</strong> Convert `.sqlite` to CSV/JSON, `.plist` to XML first.
+            </div>
         </div>
         <div class="chat-input-area">
             <textarea id="chat-input" placeholder="Message..." rows="1"></textarea>
@@ -923,7 +929,7 @@
         });
 
         // ============================================================
-        //  FILE UPLOAD FOR CHAT
+        //  FILE UPLOAD FOR CHAT (UPDATED: Accept any file type)
         // ============================================================
         document.getElementById('vision-file').addEventListener('change', function(e) {
             const file = e.target.files[0];
@@ -936,6 +942,10 @@
                 uploadedFileBase64 = ev.target.result.split(',')[1];
                 document.getElementById('file-status').textContent = '📎 ' + uploadedFileName;
                 toast('File loaded — ask about it');
+                // Check for binary files
+                if (uploadedFileName.endsWith('.sqlite') || uploadedFileName.endsWith('.db') || uploadedFileName.endsWith('.plist')) {
+                    toast('⚠️ Binary file detected. Convert to CSV/XML first.');
+                }
             };
             reader.onerror = function() { toast('Error reading file'); };
             reader.readAsDataURL(file);
