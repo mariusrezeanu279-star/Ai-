@@ -1000,19 +1000,6 @@ const PROVIDER_DEFAULTS = {
   custom:      []
 };
 
-const FEATHERLESS_TOP = [
-  {id:'huihui-ai/Llama-3.3-70B-Instruct-abliterated',name:'⭐ Llama 3.3 70B Abliterated'},
-  {id:'cognitivecomputations/dolphin-2.9-llama3-70b',name:'⭐ Dolphin 2.9 Llama3 70B'},
-  {id:'Qwen/Qwen2.5-72B-Instruct',name:'⭐ Qwen 2.5 72B'},
-  {id:'deepseek-ai/DeepSeek-V2.5-1210',name:'⭐ DeepSeek V2.5'},
-  {id:'meta-llama/Meta-Llama-3.1-405B-Instruct',name:'⭐ Llama 3.1 405B'},
-  {id:'Qwen/Qwen2.5-14B-Instruct',name:'⭐ Qwen 2.5 14B'},
-  {id:'NousResearch/Hermes-2-Pro-Llama-3-8B',name:'⭐ Hermes 2 Pro Llama 3 8B'},
-  {id:'huihui-ai/Mistral-Small-24B-Instruct-2501-abliterated',name:'⭐ Mistral Small 24B Abliterated'},
-  {id:'cognitivecomputations/dolphin-2.9.1-mistral-7b',name:'⭐ Dolphin 2.9.1 Mistral 7B'},
-  {id:'meta-llama/Meta-Llama-3.3-70B-Instruct',name:'⭐ Llama 3.3 70B'}
-];
-
 /* ═══════════════════════════════════════════════════════
    BINARY PLIST PARSER
 ═══════════════════════════════════════════════════════ */
@@ -1175,7 +1162,7 @@ function renderModelDropdown(models){
   models.forEach(m=>{
     const o=document.createElement('option');
     o.value=m.id;
-    o.textContent=(m.name||m.id)+(m._type?' ['+m._type+']':'');
+    o.textContent=m.display || m.name || m.id;
     frag.appendChild(o);
   });
   sel.innerHTML='';sel.appendChild(frag);
@@ -1219,8 +1206,11 @@ async function loadModels(reset=true,autoAll=false){
       addMsg('system','✅ '+allModels.length+' Venice models.');return;
     }
     if(reset){modelPage=1;allModels=[];}
-    const perPage=100;let pages=0;
-    const EST=currentProvider==='featherless'?3200:500;
+    
+    // FIX 1: Set per_page to 1000 for Featherless, else 100
+    const perPage = currentProvider === 'featherless' ? 1000 : 100;
+    let pages=0;
+    const EST=currentProvider==='featherless'?6700:500;
     do{
       if(loadAllAbort)break;
       const url=currentProvider==='featherless'
@@ -1229,20 +1219,57 @@ async function loadModels(reset=true,autoAll=false){
       const r=await fetch(url,{headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'}});
       if(!r.ok)throw new Error('HTTP '+r.status);
       const data=await r.json();
-      const newModels=(data.data||data.models||[])
-        .map(m=>typeof m==='string'?{id:m,name:m}:{id:m.id||m.name,name:m.name||m.id})
-        .filter(m=>m.id);
+      
+      // FIX 2: Parse rich metadata for labels (NSFW/Uncensored/Modalities)
+      const newModels = (data.data || data.models || [])
+        .map(m => {
+          let id = m.id || m.name;
+          let name = m.name || m.id;
+          let labels = [];
+          let category = "standard";
+
+          // Detect Uncensored/Abliterated/NSFW
+          if (m.training === "uncensored" || m.training === "abliterated" || m.training === "nsfw" || 
+              (m.capabilities && Array.isArray(m.capabilities) && m.capabilities.includes("nsfw"))) {
+            category = "priority";
+            labels.push("🔞");
+          }
+          // Detect Image/Video modalities
+          if (m.modalities && Array.isArray(m.modalities)) {
+            if (m.modalities.includes("image") || m.modalities.includes("video")) {
+              if (category !== "priority") category = "vision";
+              labels.push("🖼️");
+            }
+          }
+
+          let display = labels.length > 0 ? `[${labels.join(' ')}] ${name}` : name;
+          return {
+            id: id,
+            name: name,
+            display: display,
+            _category: category, // Used for sorting: priority > vision > standard
+            _raw: m
+          };
+        })
+        .filter(m => m.id);
+
+      // Remove duplicates & merge
       const existIds=new Set(allModels.map(m=>m.id));
-      newModels.forEach(m=>{if(!existIds.has(m.id))allModels.push(m);});
+      newModels.forEach(m=>{
+        if(!existIds.has(m.id)) {
+          allModels.push(m);
+          existIds.add(m.id);
+        }
+      });
+
+      // FIX 3: Sort models - Priority (Uncensored/NSFW) > Vision > Standard
+      const order = { priority: 0, vision: 1, standard: 2 };
+      allModels.sort((a, b) => {
+        return (order[a._category] || 2) - (order[b._category] || 2);
+      });
+
       modelHasMore=newModels.length===perPage;pages++;modelPage++;
-      if(reset&&pages===1&&currentProvider==='featherless'){
-        const allIds=new Set(allModels.map(m=>m.id));
-        const toPin=FEATHERLESS_TOP.filter(m=>!allIds.has(m.id));
-        const bodyMods=allModels.filter(m=>!FEATHERLESS_TOP.find(t=>t.id===m.id));
-        const pinned=allModels.filter(m=>FEATHERLESS_TOP.find(t=>t.id===m.id))
-          .map(m=>{const p=FEATHERLESS_TOP.find(t=>t.id===m.id);return{...m,name:p.name};});
-        allModels=toPin.concat(pinned).concat(bodyMods);
-      }
+      
       document.getElementById('model-count').textContent=
         allModels.length+' models'+(modelHasMore?' (page '+pages+'…)':' ✅');
       renderModelDropdown(allModels);
@@ -1251,6 +1278,7 @@ async function loadModels(reset=true,autoAll=false){
         prog.style.width=pct+'%';
       }
     }while(autoAll&&modelHasMore);
+    
     document.getElementById('model-search').style.display='block';
     document.getElementById('model-count').textContent=
       allModels.length+' models'+(modelHasMore?' — more available':'  ✅');
