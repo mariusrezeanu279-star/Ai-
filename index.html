@@ -1225,29 +1225,36 @@ async function loadModels(reset=true,autoAll=false){
         .map(m => {
           let id = m.id || m.name;
           let name = m.name || m.id;
-          let labels = [];
+          let label = "";
           let category = "standard";
+          const idLower = id.toLowerCase();
 
-          // Detect Uncensored/Abliterated/NSFW
-          if (m.training === "uncensored" || m.training === "abliterated" || m.training === "nsfw" || 
-              (m.capabilities && Array.isArray(m.capabilities) && m.capabilities.includes("nsfw"))) {
+          // 1. HEURISTIC FALLBACK: Check ID/Name keywords directly
+          if (idLower.includes("abliterated") || idLower.includes("uncensored") || idLower.includes("dolphin") || idLower.includes("nsfw") || idLower.includes("smaug")) {
+            label = "🔞";
             category = "priority";
-            labels.push("🔞");
+          } else if (idLower.includes("vision") || idLower.includes("vl") || idLower.includes("llava") || idLower.includes("cogvlm") || idLower.includes("qwen-vl") || idLower.includes("visual")) {
+            label = "🖼️";
+            category = "vision";
           }
-          // Detect Image/Video modalities
-          if (m.modalities && Array.isArray(m.modalities)) {
-            if (m.modalities.includes("image") || m.modalities.includes("video")) {
-              if (category !== "priority") category = "vision";
-              labels.push("🖼️");
+
+          // 2. OVERRIDE with official API metadata if available (more accurate)
+          if (m.training === "uncensored" || m.training === "abliterated" || m.training === "nsfw" || (m.capabilities && Array.isArray(m.capabilities) && m.capabilities.includes("nsfw"))) {
+            label = "🔞";
+            category = "priority";
+          } else if (m.modalities && Array.isArray(m.modalities) && (m.modalities.includes("image") || m.modalities.includes("video"))) {
+            if (category !== "priority") {
+              label = "🖼️";
+              category = "vision";
             }
           }
 
-          let display = labels.length > 0 ? `[${labels.join(' ')}] ${name}` : name;
+          let display = label ? `[${label}] ${name}` : name;
           return {
             id: id,
             name: name,
             display: display,
-            _category: category, // Used for sorting: priority > vision > standard
+            _category: category,
             _raw: m
           };
         })
