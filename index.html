@@ -1341,6 +1341,13 @@ function updateImgModelHint(){
   const hint=document.getElementById('img-model-hint');
   const label=document.getElementById('img-model-label');
   if(!hint)return;
+  // Featherless has no image API — always uses Pollinations.ai free
+  if(currentProvider==='featherless'){
+    hint.style.borderColor='var(--blue)';
+    label.style.color='var(--blue-text)';
+    label.textContent='ℹ️ Featherless → images use Pollinations.ai (free Flux, no key needed). Model selector ignored for image gen.';
+    return;
+  }
   const isImgGen=val.includes('flux')||val.includes('stable-diffusion')||val.includes('sdxl')||
     val.includes('sd3')||val.includes('kandinsky')||val.includes('pony')||val.includes('animagine')||
     val.includes('dreamshaper')||val.includes('pixart')||val.includes('txt2img')||
@@ -2013,13 +2020,16 @@ async function generateImage(){
   const selectedModelForImg=document.getElementById('model-select').value;
   if(!selectedModelForImg){showToast('Select a model first','err');return;}
   const modelLower=selectedModelForImg.toLowerCase();
-  const looksLikeImgGen=modelLower.includes('flux')||modelLower.includes('stable-diffusion')||
-    modelLower.includes('sdxl')||modelLower.includes('dreamshaper')||modelLower.includes('pony')||
-    modelLower.includes('animagine')||modelLower.includes('realvis')||modelLower.includes('pixart')||
-    (allModels.find(m=>m.id===selectedModelForImg)?._category==='imagegen');
-  if(!looksLikeImgGen){
-    const confirmed=confirm('"'+selectedModelForImg.split('/').pop()+'" looks like a text/LLM model, not an image-gen model. This will likely fail.\n\nTap 🎨 Image-Gen Only to filter to working models.\n\nTry anyway?');
-    if(!confirmed)return;
+  // Featherless always routes to Pollinations.ai — skip model validation
+  if(currentProvider!=='featherless'){
+    const looksLikeImgGen=modelLower.includes('flux')||modelLower.includes('stable-diffusion')||
+      modelLower.includes('sdxl')||modelLower.includes('dreamshaper')||modelLower.includes('pony')||
+      modelLower.includes('animagine')||modelLower.includes('realvis')||modelLower.includes('pixart')||
+      (allModels.find(m=>m.id===selectedModelForImg)?._category==='imagegen');
+    if(!looksLikeImgGen){
+      const confirmed=confirm('"'+selectedModelForImg.split('/').pop()+'" looks like a text/LLM model, not an image-gen model. This will likely fail.\n\nTap 🎨 Image-Gen Only to filter to working models.\n\nTry anyway?');
+      if(!confirmed)return;
+    }
   }
   let prompt=document.getElementById('img-prompt').value.trim();
   if(!prompt){showToast('Enter a prompt first','err');return;}
@@ -2037,11 +2047,24 @@ async function generateImage(){
       body={model:'fluently-xl',prompt,width:parseInt(size.split('x')[0]),height:parseInt(size.split('x')[1]),steps:30};
       headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'};
     }else if(currentProvider==='featherless'){
-      // Featherless image gen: uses /v1/images/generations with the selected model
-      url='https://api.featherless.ai/v1/images/generations';
+      // Featherless has no image gen API — use Pollinations.ai (free, no key needed)
+      const modelMap={'flux':'flux','turbo':'turbo','flux-realism':'flux-realism','flux-anime':'flux-anime','flux-3d':'flux-3d'};
+      const imgModel='flux';
       const[w,h]=size.split('x').map(Number);
-      body={model:selectedModel||'black-forest-labs/FLUX.1-schnell',prompt,width:w||512,height:h||512,num_inference_steps:20,guidance_scale:7.5};
-      headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'};
+      const encodedPrompt=encodeURIComponent(prompt);
+      // Pollinations: GET request returns image directly
+      const pollinationsUrl='https://image.pollinations.ai/prompt/'+encodedPrompt+'?model='+imgModel+'&width='+(w||1024)+'&height='+(h||1024)+'&nologo=true&seed='+Math.floor(Math.random()*99999);
+      statusEl.innerHTML='<span class="spinner"></span>Generating via Pollinations.ai (free)…';statusEl.className='status-msg info show';
+      // Pollinations returns image directly — fetch as blob
+      const imgResp=await fetch(pollinationsUrl);
+      if(!imgResp.ok)throw new Error('Pollinations error: HTTP '+imgResp.status);
+      const blob=await imgResp.blob();
+      const objectUrl=URL.createObjectURL(blob);
+      document.getElementById('img-result').innerHTML=
+        '<img src="'+objectUrl+'" alt="Generated" style="max-width:100%;border-radius:10px"/>'+
+        '<span style="font-size:12px;color:var(--text3);margin-top:8px;display:block">Generated via Pollinations.ai (Flux) — long-press image to save</span>';
+      statusEl.textContent='✅ Image generated (Pollinations.ai)';statusEl.className='status-msg ok show';
+      return;
     }else{
       url=PROVIDER_BASES[currentProvider]+'/images/generations';
       body={model:selectedModel||'dall-e-3',prompt,n:1,size,quality,response_format:'url'};
