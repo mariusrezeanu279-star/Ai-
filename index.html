@@ -1965,24 +1965,35 @@ async function generateImage(){
   const statusEl=document.getElementById('img-status');
   statusEl.innerHTML='<span class="spinner"></span>Generating…';statusEl.className='status-msg info show';
   try{
+    const selectedModel=document.getElementById('model-select').value;
     let url,body,headers;
     if(currentProvider==='venice'){
       url='https://api.venice.ai/api/v1/image/generate';
       body={model:'fluently-xl',prompt,width:parseInt(size.split('x')[0]),height:parseInt(size.split('x')[1]),steps:30};
       headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'};
+    }else if(currentProvider==='featherless'){
+      // Featherless image gen: uses /v1/images/generations with the selected model
+      url='https://api.featherless.ai/v1/images/generations';
+      const[w,h]=size.split('x').map(Number);
+      body={model:selectedModel||'black-forest-labs/FLUX.1-schnell',prompt,width:w||512,height:h||512,num_inference_steps:20,guidance_scale:7.5};
+      headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'};
     }else{
       url=PROVIDER_BASES[currentProvider]+'/images/generations';
-      body={model:'dall-e-3',prompt,n:1,size,quality,response_format:'url'};
+      body={model:selectedModel||'dall-e-3',prompt,n:1,size,quality,response_format:'url'};
       headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'};
     }
     const r=await fetch(url,{method:'POST',headers,body:JSON.stringify(body)});
     const d=await r.json();
     if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
-    const imgUrl=d.data?.[0]?.url||d.images?.[0]||d.url;
-    if(!imgUrl)throw new Error('No image URL in response');
+    const imgData=d.data?.[0];
+    let imgSrc=imgData?.url||d.images?.[0]||d.url;
+    if(!imgSrc&&imgData?.b64_json)imgSrc='data:image/png;base64,'+imgData.b64_json;
+    if(!imgSrc)throw new Error('No image in response: '+JSON.stringify(d).slice(0,300));
+    const isDataUrl=imgSrc.startsWith('data:');
     document.getElementById('img-result').innerHTML=
-      '<img src="'+imgUrl+'" alt="Generated" style="max-width:100%;border-radius:10px"/>'+
-      '<a href="'+imgUrl+'" target="_blank" style="font-size:12px;color:var(--accent-light);margin-top:8px;display:block">🔗 Open full size</a>';
+      '<img src="'+imgSrc+'" alt="Generated" style="max-width:100%;border-radius:10px"/>'+
+      (isDataUrl?'<span style="font-size:12px;color:var(--text3);margin-top:8px;display:block">Right-click image to save</span>':
+      '<a href="'+imgSrc+'" target="_blank" style="font-size:12px;color:var(--accent-light);margin-top:8px;display:block">🔗 Open full size</a>');
     statusEl.textContent='✅ Image generated';statusEl.className='status-msg ok show';
   }catch(e){
     statusEl.textContent='❌ '+e.message;statusEl.className='status-msg err show';
