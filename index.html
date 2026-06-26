@@ -727,6 +727,11 @@ function ensureSqlJs(cb){
   <div id="panel-image" class="panel">
     <div class="tab-scroll">
       <div class="tab-content">
+        <div id="img-model-hint" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:8px 12px;margin-bottom:10px;font-size:12px;color:var(--text2);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span id="img-model-label" style="flex:1">Select a model above (use 🎨 IMAGE-GEN models)</span>
+          <button onclick="filterImageGenModels()" style="background:var(--accent);color:#fff;border:none;padding:4px 12px;border-radius:20px;font-size:11px;cursor:pointer;white-space:nowrap;font-weight:600">🎨 Image-Gen Only</button>
+          <button onclick="resetModelFilter()" style="background:var(--bg4);color:var(--text2);border:1px solid var(--border2);padding:4px 10px;border-radius:20px;font-size:11px;cursor:pointer;white-space:nowrap">Show All</button>
+        </div>
         <div class="section-label">Prompt</div>
         <div class="field-group">
           <textarea class="field" id="img-prompt" rows="3" placeholder="Describe the image you want to create in detail…"></textarea>
@@ -1173,6 +1178,7 @@ function renderModelDropdown(models){
 
 document.getElementById('model-select').addEventListener('change',function(){
   if(this.value) try{localStorage.setItem('ai-pro-model',this.value);}catch(_){}
+  updateImgModelHint();
 });
 
 async function loadModels(reset=true,autoAll=false){
@@ -1326,6 +1332,54 @@ function switchTab(id){
     p.classList.toggle('active',p.id==='panel-'+id);
   });
   if(id==='settings') updateHistoryInfo();
+  if(id==='image') updateImgModelHint();
+}
+
+function updateImgModelHint(){
+  const sel=document.getElementById('model-select');
+  const val=sel.value||'';
+  const hint=document.getElementById('img-model-hint');
+  const label=document.getElementById('img-model-label');
+  if(!hint)return;
+  const isImgGen=val.includes('flux')||val.includes('stable-diffusion')||val.includes('sdxl')||
+    val.includes('sd3')||val.includes('kandinsky')||val.includes('pony')||val.includes('animagine')||
+    val.includes('dreamshaper')||val.includes('pixart')||val.includes('txt2img')||
+    (allModels.find(m=>m.id===val)?._category==='imagegen');
+  if(!val){
+    hint.style.borderColor='var(--orange)';
+    label.style.color='var(--orange)';
+    label.textContent='⚠️ No model selected — pick a 🎨 IMAGE-GEN model above';
+  }else if(!isImgGen){
+    hint.style.borderColor='var(--red)';
+    label.style.color='var(--red-text)';
+    label.textContent='⚠️ "'+val.split('/').pop()+'" is a text/LLM model — tap 🎨 Image-Gen Only to filter';
+  }else{
+    hint.style.borderColor='var(--green)';
+    label.style.color='var(--green-text)';
+    label.textContent='✅ Using: '+val.split('/').pop();
+  }
+}
+
+function filterImageGenModels(){
+  const imgGenModels=allModels.filter(m=>m._category==='imagegen'||
+    m.id.toLowerCase().includes('flux')||m.id.toLowerCase().includes('stable-diffusion')||
+    m.id.toLowerCase().includes('sdxl')||m.id.toLowerCase().includes('dreamshaper')||
+    m.id.toLowerCase().includes('pony')||m.id.toLowerCase().includes('animagine'));
+  if(!imgGenModels.length){
+    showToast('No image-gen models loaded — tap Load/All first','err');return;
+  }
+  renderModelDropdown(imgGenModels);
+  document.getElementById('model-count').textContent=imgGenModels.length+' image-gen models';
+  showToast('Showing '+imgGenModels.length+' image-gen models');
+  updateImgModelHint();
+}
+
+function resetModelFilter(){
+  if(allModels.length){
+    renderModelDropdown(allModels);
+    document.getElementById('model-count').textContent=allModels.length+' models ✅';
+  }
+  updateImgModelHint();
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1956,6 +2010,17 @@ function chipSelect(el,group){
 
 async function generateImage(){
   const key=getKey();if(!key){showToast('Save API key first','err');return;}
+  const selectedModelForImg=document.getElementById('model-select').value;
+  if(!selectedModelForImg){showToast('Select a model first','err');return;}
+  const modelLower=selectedModelForImg.toLowerCase();
+  const looksLikeImgGen=modelLower.includes('flux')||modelLower.includes('stable-diffusion')||
+    modelLower.includes('sdxl')||modelLower.includes('dreamshaper')||modelLower.includes('pony')||
+    modelLower.includes('animagine')||modelLower.includes('realvis')||modelLower.includes('pixart')||
+    (allModels.find(m=>m.id===selectedModelForImg)?._category==='imagegen');
+  if(!looksLikeImgGen){
+    const confirmed=confirm('"'+selectedModelForImg.split('/').pop()+'" looks like a text/LLM model, not an image-gen model. This will likely fail.\n\nTap 🎨 Image-Gen Only to filter to working models.\n\nTry anyway?');
+    if(!confirmed)return;
+  }
   let prompt=document.getElementById('img-prompt').value.trim();
   if(!prompt){showToast('Enter a prompt first','err');return;}
   const style=document.querySelector('#style-chips .chip.active')?.textContent;
