@@ -615,6 +615,7 @@ function ensureSqlJs(cb){
         <select id="provider-select" onchange="onProviderChange()">
           <option value="featherless">Featherless.ai</option>
           <option value="venice">Venice.ai</option>
+          <option value="atlascloud">Atlas Cloud</option>
           <option value="openai">OpenAI</option>
           <option value="anthropic">Anthropic</option>
           <option value="custom">Custom URL</option>
@@ -845,6 +846,36 @@ function ensureSqlJs(cb){
   <div id="panel-video" class="panel">
     <div class="tab-scroll">
       <div class="tab-content">
+
+        <!-- Atlas Cloud Video Gen section (shown only when provider = atlascloud) -->
+        <div id="atlas-video-section" style="display:none">
+          <div class="info-card" style="border-color:var(--green);background:var(--green-bg)">
+            <strong style="color:var(--green-text)">🎬 Atlas Cloud Video Generation</strong>
+            <p style="color:var(--green-text);opacity:.8">Generate AI videos from text prompts. wan-t2v (~$0.05 NZD/video) · kling-v1 (~$0.09 NZD/video). No monthly fee.</p>
+          </div>
+          <div class="section-label">Video Model</div>
+          <select class="field" id="atlas-video-model" style="margin-bottom:10px">
+            <option value="wan-t2v">wan-t2v — Fast, good quality (~$0.05 NZD)</option>
+            <option value="kling-v1">kling-v1 — High quality (~$0.09 NZD)</option>
+          </select>
+          <div class="section-label">Prompt</div>
+          <div class="field-group">
+            <textarea class="field" id="atlas-video-prompt" rows="3" placeholder="Describe the video you want to generate… e.g. A woman dancing in slow motion on a beach at sunset"></textarea>
+          </div>
+          <div class="section-label">Duration</div>
+          <select class="field" id="atlas-video-duration" style="margin-bottom:10px">
+            <option value="4">4 seconds</option>
+            <option value="6" selected>6 seconds</option>
+            <option value="8">8 seconds</option>
+          </select>
+          <div id="atlas-video-status" class="status-msg"></div>
+          <button class="action-btn" onclick="generateAtlasVideo()">🎬 Generate Video</button>
+          <div class="result-card" id="atlas-video-result">
+            <div class="result-placeholder"><span class="ph-icon">🎬</span>Generated video will appear here</div>
+          </div>
+          <div style="border-top:1px solid var(--border);margin:18px 0 12px"></div>
+        </div>
+
         <div class="info-card">
           <strong>Video & Media Analysis</strong>
           <p>Upload a video or audio file, or paste a URL. The AI will describe, transcribe, or answer questions about the content. For direct video analysis, use a vision-capable model.</p>
@@ -994,6 +1025,7 @@ const settings = {
 const PROVIDER_BASES = {
   featherless: 'https://api.featherless.ai/v1',
   venice:      'https://api.venice.ai/api/v1',
+  atlascloud:  'https://api.atlascloud.ai/v1',
   openai:      'https://api.openai.com/v1',
   anthropic:   'https://api.anthropic.com/v1',
   custom:      ''
@@ -1002,6 +1034,7 @@ const PROVIDER_BASES = {
 const PROVIDER_DEFAULTS = {
   featherless: ['deepseek-ai/DeepSeek-R1-0528','meta-llama/Llama-3.3-70B-Instruct','Qwen/Qwen2.5-72B-Instruct','mistralai/Mistral-7B-Instruct-v0.3'],
   venice:      ['llama-3.3-70b','mistral-31-24b','deepseek-r1-671b','qwen-2.5-vl'],
+  atlascloud:  ['flux-schnell','flux-dev','seedream-lite','z-image-turbo','wan-t2v','kling-v1'],
   openai:      ['gpt-4o','gpt-4o-mini','gpt-4-turbo','o1-mini','gpt-3.5-turbo'],
   anthropic:   ['claude-opus-4-6','claude-sonnet-4-6','claude-haiku-4-5-20251001'],
   custom:      []
@@ -1108,11 +1141,18 @@ function onProviderChange(reset=true){
   inp.placeholder = saved ? 'Key saved — type to replace' : 'Paste API key…';
   document.getElementById('key-saved-badge').style.display = saved ? 'inline-block' : 'none';
   document.getElementById('provider-badge').textContent = {
-    featherless:'Featherless',venice:'Venice',openai:'OpenAI',anthropic:'Anthropic',custom:'Custom'
+    featherless:'Featherless',venice:'Venice',atlascloud:'Atlas Cloud',openai:'OpenAI',anthropic:'Anthropic',custom:'Custom'
   }[currentProvider]||currentProvider;
   document.getElementById('custom-base-row').style.display = currentProvider==='custom' ? 'block' : 'none';
   if (reset) populateDefaultModels();
   localStorage.setItem('ai-pro-provider', currentProvider);
+  // Show/hide Atlas Cloud video gen section if already on video tab
+  const atlasSec=document.getElementById('atlas-video-section');
+  if(atlasSec){
+    const videoPanel=document.getElementById('panel-video');
+    if(videoPanel&&videoPanel.classList.contains('active'))
+      atlasSec.style.display=currentProvider==='atlascloud'?'block':'none';
+  }
 }
 
 function saveKey(){
@@ -1333,6 +1373,10 @@ function switchTab(id){
   });
   if(id==='settings') updateHistoryInfo();
   if(id==='image') updateImgModelHint();
+  if(id==='video'){
+    const atlasSec=document.getElementById('atlas-video-section');
+    if(atlasSec) atlasSec.style.display=currentProvider==='atlascloud'?'block':'none';
+  }
 }
 
 function updateImgModelHint(){
@@ -1346,6 +1390,13 @@ function updateImgModelHint(){
     hint.style.borderColor='var(--blue)';
     label.style.color='var(--blue-text)';
     label.textContent='ℹ️ Featherless → images use Pollinations.ai (free Flux, no key needed). Model selector ignored for image gen.';
+    return;
+  }
+  // Atlas Cloud — fully uncensored, pay-as-you-go
+  if(currentProvider==='atlascloud'){
+    hint.style.borderColor='var(--green)';
+    label.style.color='var(--green-text)';
+    label.textContent='✅ Atlas Cloud — fully uncensored NSFW image gen. ~$0.005 NZD/image (flux-schnell). No monthly fee, credits never expire.';
     return;
   }
   const isImgGen=val.includes('flux')||val.includes('stable-diffusion')||val.includes('sdxl')||
@@ -2025,8 +2076,8 @@ async function generateImage(){
   const selectedModelForImg=document.getElementById('model-select').value;
   if(!selectedModelForImg){showToast('Select a model first','err');return;}
   const modelLower=selectedModelForImg.toLowerCase();
-  // Featherless always routes to Pollinations.ai — skip model validation
-  if(currentProvider!=='featherless'){
+  // Featherless/Atlas Cloud handle image gen differently — skip model validation
+  if(currentProvider!=='featherless'&&currentProvider!=='atlascloud'){
     const looksLikeImgGen=modelLower.includes('flux')||modelLower.includes('stable-diffusion')||
       modelLower.includes('sdxl')||modelLower.includes('dreamshaper')||modelLower.includes('pony')||
       modelLower.includes('animagine')||modelLower.includes('realvis')||modelLower.includes('pixart')||
@@ -2050,6 +2101,16 @@ async function generateImage(){
     if(currentProvider==='venice'){
       url='https://api.venice.ai/api/v1/image/generate';
       body={model:'fluently-xl',prompt,width:parseInt(size.split('x')[0]),height:parseInt(size.split('x')[1]),steps:30};
+      headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'};
+    }else if(currentProvider==='atlascloud'){
+      // Atlas Cloud — fully uncensored, pay-as-you-go image gen
+      const[w,h]=size.split('x').map(Number);
+      const acModel=document.getElementById('model-select').value||'flux-schnell';
+      // Only image models are valid here
+      const validImgModels=['flux-schnell','flux-dev','seedream-lite','z-image-turbo'];
+      const useModel=validImgModels.includes(acModel)?acModel:'flux-schnell';
+      url='https://api.atlascloud.ai/v1/images/generations';
+      body={model:useModel,prompt,width:w||1024,height:h||1024,num_images:1};
       headers={'Authorization':'Bearer '+key,'Content-Type':'application/json'};
     }else if(currentProvider==='featherless'){
       // Featherless has no image gen API — use free APIs with retry + fallback
@@ -2261,6 +2322,64 @@ async function runVideo(){
     document.getElementById('video-result').value=await chatCompletion(key,model,[{role:'user',content:msg}],sysp,maxTok);
     statusEl.textContent='✅ Done';statusEl.className='status-msg ok show';
   }catch(e){statusEl.textContent='❌ '+e.message;statusEl.className='status-msg err show';}
+}
+
+async function generateAtlasVideo(){
+  const key=getKey();if(!key){showToast('Save Atlas Cloud API key first','err');return;}
+  const prompt=document.getElementById('atlas-video-prompt').value.trim();
+  if(!prompt){showToast('Enter a prompt first','err');return;}
+  const model=document.getElementById('atlas-video-model').value||'wan-t2v';
+  const duration=parseInt(document.getElementById('atlas-video-duration').value)||6;
+  const statusEl=document.getElementById('atlas-video-status');
+  const resultEl=document.getElementById('atlas-video-result');
+  statusEl.innerHTML='<span class="spinner"></span>Submitting video job to Atlas Cloud… (this can take 1–3 minutes)';
+  statusEl.className='status-msg info show';
+  resultEl.innerHTML='<div class="result-placeholder"><span class="ph-icon">⏳</span>Generating video…</div>';
+  try{
+    // Step 1: Submit the video generation job
+    const r=await fetch('https://api.atlascloud.ai/v1/videos/generations',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+key,'Content-Type':'application/json'},
+      body:JSON.stringify({model,prompt,duration})
+    });
+    const d=await r.json();
+    if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
+    // Atlas Cloud may return a job ID to poll, or a direct URL
+    const directUrl=d.url||d.video_url||d.data?.[0]?.url;
+    if(directUrl){
+      resultEl.innerHTML='<video src="'+directUrl+'" controls style="max-width:100%;border-radius:10px"></video>'+
+        '<div style="margin-top:8px"><a href="'+directUrl+'" target="_blank" style="font-size:12px;color:var(--accent-light)">🔗 Open / Download</a>'+
+        '<span style="font-size:12px;color:var(--text3);margin-left:12px">Model: '+model+' · '+duration+'s</span></div>';
+      statusEl.textContent='✅ Video generated!';statusEl.className='status-msg ok show';
+      return;
+    }
+    // Poll for job completion if we got a job ID
+    const jobId=d.id||d.job_id;
+    if(!jobId)throw new Error('No video URL or job ID returned: '+JSON.stringify(d).slice(0,200));
+    let videoUrl=null;
+    for(let i=0;i<60;i++){
+      await new Promise(res=>setTimeout(res,3000));
+      const pollSecs=(i+1)*3;
+      statusEl.innerHTML='<span class="spinner"></span>Generating… '+pollSecs+'s elapsed (Atlas Cloud video jobs take 1–3 min)';
+      const pr=await fetch('https://api.atlascloud.ai/v1/videos/generations/'+jobId,{
+        headers:{'Authorization':'Bearer '+key}
+      });
+      const pd=await pr.json();
+      if(pd.status==='completed'||pd.status==='succeeded'){
+        videoUrl=pd.url||pd.video_url||pd.output?.url||pd.data?.[0]?.url;
+        break;
+      }
+      if(pd.status==='failed')throw new Error('Video job failed: '+(pd.error||pd.message||'unknown error'));
+    }
+    if(!videoUrl)throw new Error('Video generation timed out after 3 minutes. Check Atlas Cloud dashboard.');
+    resultEl.innerHTML='<video src="'+videoUrl+'" controls style="max-width:100%;border-radius:10px"></video>'+
+      '<div style="margin-top:8px"><a href="'+videoUrl+'" target="_blank" style="font-size:12px;color:var(--accent-light)">🔗 Open / Download</a>'+
+      '<span style="font-size:12px;color:var(--text3);margin-left:12px">Model: '+model+' · '+duration+'s</span></div>';
+    statusEl.textContent='✅ Video generated!';statusEl.className='status-msg ok show';
+  }catch(e){
+    statusEl.textContent='❌ '+e.message;statusEl.className='status-msg err show';
+    resultEl.innerHTML='<div class="result-placeholder"><span class="ph-icon">❌</span>Video generation failed</div>';
+  }
 }
 
 /* ═══════════════════════════════════════════════════════
