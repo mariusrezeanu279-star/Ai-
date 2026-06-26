@@ -677,7 +677,7 @@ function ensureSqlJs(cb){
     <div id="plist-viewer">
       <div id="plist-viewer-header">
         <h4>📋 <span id="plist-file-name"></span></h4>
-        <button id="sqlite-close-btn" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px" onclick="closePlist()">✕</button>
+        <button id="plist-close-btn" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px" onclick="closePlist()">✕</button>
       </div>
       <div id="plist-content"></div>
     </div>
@@ -926,8 +926,10 @@ function ensureSqlJs(cb){
             <select class="field" id="max-tokens-select" style="width:100px;padding:5px 8px;font-size:12px">
               <option value="1024">1 024</option>
               <option value="2048">2 048</option>
-              <option value="4096" selected>4 096</option>
-              <option value="8192">8 192</option>
+              <option value="4096">4 096</option>
+              <option value="8192" selected>8 192</option>
+              <option value="16384">16 384</option>
+              <option value="32000">32 000</option>
             </select>
           </div>
         </div>
@@ -1220,36 +1222,48 @@ async function loadModels(reset=true,autoAll=false){
       if(!r.ok)throw new Error('HTTP '+r.status);
       const data=await r.json();
       
-      // FIX 2: Parse rich metadata for labels (NSFW/Uncensored/Modalities)
+      // FIX 2: Parse rich metadata for labels (NSFW/Uncensored unchanged, Image-Gen + Vision)
       const newModels = (data.data || data.models || [])
         .map(m => {
           let id = m.id || m.name;
           let name = m.name || m.id;
-          let label = "";
-          let category = "standard";
           const idLower = id.toLowerCase();
+          const tags = [];
+          let category = "standard";
 
-          // 1. HEURISTIC FALLBACK: Check ID/Name keywords directly
-          if (idLower.includes("abliterated") || idLower.includes("uncensored") || idLower.includes("dolphin") || idLower.includes("nsfw") || idLower.includes("smaug")) {
-            label = "🔞";
-            category = "priority";
-          } else if (idLower.includes("vision") || idLower.includes("vl") || idLower.includes("llava") || idLower.includes("cogvlm") || idLower.includes("qwen-vl") || idLower.includes("visual")) {
-            label = "🖼️";
-            category = "vision";
+          // ── NSFW / Uncensored — UNCHANGED, same detection + same emoji + same top priority ──
+          const isNsfw =
+            idLower.includes("abliterated") || idLower.includes("uncensored") || idLower.includes("dolphin") ||
+            idLower.includes("nsfw") || idLower.includes("smaug") ||
+            m.training === "uncensored" || m.training === "abliterated" || m.training === "nsfw" ||
+            (m.capabilities && Array.isArray(m.capabilities) && m.capabilities.includes("nsfw"));
+          if (isNsfw) { tags.push("🔞"); category = "priority"; }
+
+          // ── NEW: Image-GENERATION models (Stable Diffusion / SDXL / Flux / Pony etc.) ──
+          // These make pictures, as opposed to the "vision" models below which only read pictures.
+          const imageGenKeywords = ["stable-diffusion","stablediffusion","sdxl","sd-xl","sd_xl","sd3","flux",
+            "kandinsky","playground-v2","pony","illustrious","animagine","dreamshaper","realvisxl",
+            "juggernaut","epicrealism","proteus","pixart","deepfloyd","wuerstchen","text-to-image","txt2img"];
+          const isImageGen =
+            imageGenKeywords.some(k => idLower.includes(k)) ||
+            m.pipeline_tag === "text-to-image" || m.task === "text-to-image" || m.type === "image" ||
+            (Array.isArray(m.tags) && m.tags.includes("text-to-image"));
+          if (isImageGen) {
+            tags.push("🎨 IMAGE-GEN");
+            if (category !== "priority") category = "imagegen";
           }
 
-          // 2. OVERRIDE with official API metadata if available (more accurate)
-          if (m.training === "uncensored" || m.training === "abliterated" || m.training === "nsfw" || (m.capabilities && Array.isArray(m.capabilities) && m.capabilities.includes("nsfw"))) {
-            label = "🔞";
-            category = "priority";
-          } else if (m.modalities && Array.isArray(m.modalities) && (m.modalities.includes("image") || m.modalities.includes("video"))) {
-            if (category !== "priority") {
-              label = "🖼️";
-              category = "vision";
-            }
+          // ── Vision / image-INPUT models — unchanged detection, skipped if it's an image-gen model ──
+          const isVision =
+            idLower.includes("vision") || idLower.includes("vl") || idLower.includes("llava") ||
+            idLower.includes("cogvlm") || idLower.includes("qwen-vl") || idLower.includes("visual") ||
+            (m.modalities && Array.isArray(m.modalities) && (m.modalities.includes("image") || m.modalities.includes("video")));
+          if (isVision && !isImageGen) {
+            tags.push("🖼️");
+            if (category === "standard") category = "vision";
           }
 
-          let display = label ? `[${label}] ${name}` : name;
+          let display = tags.length ? `[${tags.join(" ")}] ${name}` : name;
           return {
             id: id,
             name: name,
@@ -1269,10 +1283,10 @@ async function loadModels(reset=true,autoAll=false){
         }
       });
 
-      // FIX 3: Sort models - Priority (Uncensored/NSFW) > Vision > Standard
-      const order = { priority: 0, vision: 1, standard: 2 };
+      // FIX 3: Sort - NSFW/Uncensored first (unchanged), then Image-Gen, then Vision, then everything else
+      const order = { priority: 0, imagegen: 1, vision: 2, standard: 3 };
       allModels.sort((a, b) => {
-        return (order[a._category] || 2) - (order[b._category] || 2);
+        return (order[a._category] ?? 3) - (order[b._category] ?? 3);
       });
 
       modelHasMore=newModels.length===perPage;pages++;modelPage++;
@@ -1701,7 +1715,16 @@ function addMsg(role,text){
   }
   const msgs=document.getElementById('chat-messages');
   msgs.appendChild(div);
-  if(settings.autoscroll)msgs.scrollTop=msgs.scrollHeight;
+  if(settings.autoscroll){
+    if(role==='ai'){
+      // Bring the TOP of the new AI message into view and leave it there,
+      // so you can read down from the start instead of being jumped to the bottom.
+      div.scrollIntoView({block:'start',behavior:'smooth'});
+    }else{
+      // Your own message: jump to the bottom as before, since nothing follows it yet.
+      msgs.scrollTop=msgs.scrollHeight;
+    }
+  }
   return div;
 }
 
@@ -1803,16 +1826,13 @@ async function sendChat(){
     chatHistory.push({role:'assistant',content:respText});
     if(chatHistory.length>40)chatHistory=chatHistory.slice(-40);
 
+    if(window.__lastTruncated)appendTruncationNotice(thinkingDiv);
+
     // Clear attachment
     const hadFile=!!attachedFileContent;
     clearFile();
     if(!hadFile){
       document.getElementById('file-input').value='';
-    }
-
-    if(settings.autoscroll){
-      const m=document.getElementById('chat-messages');
-      m.scrollTop=m.scrollHeight;
     }
   }catch(e){
     thinkingDiv.className='msg ai';
@@ -1821,6 +1841,48 @@ async function sendChat(){
     thinkingDiv.style.border='1px solid rgba(239,68,68,.2)';
   }finally{
     btn.disabled=false;
+  }
+}
+
+function appendTruncationNotice(div){
+  const note=document.createElement('div');
+  note.style.cssText='margin-top:8px;font-size:11px;color:var(--text3)';
+  note.textContent='⚠️ Hit the Max Tokens limit — the reply may be cut off.';
+  const contBtn=document.createElement('button');
+  contBtn.textContent='▶ Continue response';
+  contBtn.style.cssText='margin-top:6px;background:var(--bg4);border:1px solid var(--border2);color:var(--accent-light);padding:5px 12px;border-radius:8px;font-size:11px;cursor:pointer';
+  contBtn.onclick=()=>{contBtn.disabled=true;continueResponse();};
+  div.appendChild(note);
+  div.appendChild(contBtn);
+}
+
+async function continueResponse(){
+  const key=getKey();
+  if(!key){showToast('Save your API key first','err');return;}
+  const model=document.getElementById('model-select').value;
+  if(!model){showToast('Select a model first','err');return;}
+  const sysprompt=document.getElementById('system-prompt-input').value.trim();
+  const maxTok=parseInt(document.getElementById('max-tokens-select').value)||4096;
+  const continuePrompt='Continue exactly where you left off. Do not repeat anything you already said and do not add any preamble.';
+  const messages=[...chatHistory,{role:'user',content:continuePrompt}];
+  const thinkingDiv=addMsg('ai','__thinking__');
+  try{
+    const respText=await chatCompletion(key,model,messages,sysprompt,maxTok);
+    thinkingDiv.className='msg ai';
+    thinkingDiv.textContent=respText;
+    if(settings.markdown)renderMarkdown(thinkingDiv);
+    if(settings.timestamps){
+      const t=document.createElement('span');t.className='msg-time';
+      t.textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+      thinkingDiv.appendChild(t);
+    }
+    chatHistory.push({role:'user',content:continuePrompt});
+    chatHistory.push({role:'assistant',content:respText});
+    if(chatHistory.length>40)chatHistory=chatHistory.slice(-40);
+    if(window.__lastTruncated)appendTruncationNotice(thinkingDiv);
+  }catch(e){
+    thinkingDiv.className='msg ai';
+    thinkingDiv.textContent='❌ '+e.message;
   }
 }
 
@@ -1852,6 +1914,7 @@ function exportChat(){
    COMPLETION
 ═══════════════════════════════════════════════════════ */
 async function chatCompletion(key,model,messages,systemPrompt,maxTokens=4096){
+  window.__lastTruncated=false;
   if(currentProvider==='anthropic'){
     const body={model,max_tokens:maxTokens,messages};
     if(systemPrompt)body.system=systemPrompt;
@@ -1862,7 +1925,11 @@ async function chatCompletion(key,model,messages,systemPrompt,maxTokens=4096){
     });
     const d=await r.json();
     if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
-    return d.content?.[0]?.text||'';
+    // FIX: join every text block in the reply, not just the first one —
+    // this was the main cause of replies looking cut off mid-sentence.
+    const fullText=(d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+    window.__lastTruncated = d.stop_reason==='max_tokens';
+    return fullText;
   }
   const base=currentProvider==='custom'?(savedKeys.__customBase||''):PROVIDER_BASES[currentProvider];
   if(!base)throw new Error('No base URL set for Custom provider');
@@ -1874,7 +1941,9 @@ async function chatCompletion(key,model,messages,systemPrompt,maxTokens=4096){
   });
   const d=await r.json();
   if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
-  return d.choices?.[0]?.message?.content||'';
+  const choice=d.choices?.[0];
+  window.__lastTruncated = choice?.finish_reason==='length';
+  return choice?.message?.content||'';
 }
 
 /* ═══════════════════════════════════════════════════════
