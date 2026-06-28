@@ -252,6 +252,21 @@ select.field{width:100%;background:var(--bg3);border:1px solid var(--border2);co
 .history-btn{flex:1;background:var(--bg3);border:1px solid var(--border2);color:var(--text2);padding:8px;border-radius:var(--radius);font-size:12px;cursor:pointer;text-align:center;}
 .history-btn.danger{border-color:rgba(239,68,68,.3);color:var(--red-text)}
 .history-btn:hover{background:var(--bg4)}
+
+/* UNIVERSAL API TAB */
+#uni-mode-row{margin-bottom:14px}
+.uni-grid2{display:grid;grid-template-columns:2fr 1fr;gap:10px;margin-bottom:14px}
+#uni-template-row{display:flex;gap:6px;margin-bottom:8px}
+#uni-template-select{flex:1}
+.uni-tpl-btn{background:var(--bg4);border:1px solid var(--border2);color:var(--text2);padding:9px 12px;border-radius:var(--radius);font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.uni-tpl-btn:hover{background:var(--bg5);color:var(--text)}
+.uni-tpl-btn.danger{color:var(--red-text);border-color:rgba(239,68,68,.25)}
+#uni-image-fields{display:none}
+#uni-image-fields.show{display:block}
+#uni-raw-toggle{font-size:11px;color:var(--accent-light);cursor:pointer;text-align:right;display:block;margin-bottom:8px;user-select:none;}
+#uni-raw-response-wrap{display:none}
+#uni-raw-response-wrap.show{display:block}
+.uni-hint{font-size:11px;color:var(--text3);line-height:1.5;margin-top:-6px;margin-bottom:14px}
 </style>
 </head>
 <body>
@@ -327,6 +342,7 @@ function ensureSqlJs(cb){
   <div class="tab" onclick="switchTab('edit')"><span class="tab-icon">✏️</span>Edit</div>
   <div class="tab" onclick="switchTab('combine')"><span class="tab-icon">🧩</span>Combine</div>
   <div class="tab" onclick="switchTab('video')"><span class="tab-icon">🎬</span>Video</div>
+  <div class="tab" onclick="switchTab('universal')"><span class="tab-icon">🌐</span>API</div>
   <div class="tab" onclick="switchTab('settings')"><span class="tab-icon">⚙️</span>Settings</div>
 </div>
 
@@ -390,7 +406,7 @@ function ensureSqlJs(cb){
   </div>
 </div>
 
-<!-- IMAGE — own model selector per provider -->
+<!-- IMAGE — own model selector -->
 <div id="panel-image" class="panel">
   <div class="tab-scroll">
     <div class="tab-content">
@@ -545,6 +561,97 @@ function ensureSqlJs(cb){
     <button class="action-btn" onclick="runVideo()">🎬 Analyse with AI</button>
     <div class="section-label">Result</div>
     <div class="field-group"><textarea class="field" id="video-result" rows="6" placeholder="Analysis will appear here…" readonly style="min-height:150px"></textarea></div>
+  </div></div>
+</div>
+
+<!-- UNIVERSAL API -->
+<div id="panel-universal" class="panel">
+  <div class="tab-scroll"><div class="tab-content">
+
+    <div class="info-card">
+      <strong>🌐 Universal API Mode</strong>
+      <p>Point this at any text or image API — Mistral, Stability AI, a local Stable Diffusion server, anything. You control the URL, method, headers, and body.</p>
+    </div>
+
+    <div class="section-label">Mode</div>
+    <div class="chip-row" id="uni-mode-row">
+      <div class="chip active" id="uni-mode-text" onclick="uniSetMode('text')">💬 Text Generation</div>
+      <div class="chip" id="uni-mode-image" onclick="uniSetMode('image')">🖼 Image Generation</div>
+    </div>
+
+    <div class="section-label">Quick-fill example</div>
+    <div class="chip-row">
+      <div class="chip" onclick="uniLoadExample('mistral')">Mistral text</div>
+      <div class="chip" onclick="uniLoadExample('openai-text')">OpenAI text</div>
+      <div class="chip" onclick="uniLoadExample('stability')">Stability AI image</div>
+      <div class="chip" onclick="uniLoadExample('dalle')">DALL·E image</div>
+      <div class="chip" onclick="uniLoadExample('localsd')">Local Stable Diffusion</div>
+      <div class="chip" onclick="uniLoadExample('blank')">Blank</div>
+    </div>
+
+    <div class="section-label">Endpoint</div>
+    <div class="uni-grid2">
+      <input class="field" id="uni-url" placeholder="https://api.example.com/v1/chat/completions"/>
+      <select class="field" id="uni-method">
+        <option value="POST">POST</option>
+        <option value="GET">GET</option>
+        <option value="PUT">PUT</option>
+        <option value="PATCH">PATCH</option>
+        <option value="DELETE">DELETE</option>
+      </select>
+    </div>
+
+    <div class="section-label">Headers (JSON)</div>
+    <div class="field-group">
+      <textarea class="field" id="uni-headers" rows="3" placeholder='{"Authorization": "Bearer YOUR_KEY", "Content-Type": "application/json"}'></textarea>
+    </div>
+
+    <div id="uni-image-fields">
+      <div class="section-label">Image quick fields</div>
+      <div class="field-group"><textarea class="field" id="uni-img-prompt" rows="2" placeholder="A futuristic city at sunset…"></textarea></div>
+      <div class="row2" style="margin-bottom:8px">
+        <input class="field" id="uni-img-width" type="number" placeholder="Width e.g. 1024"/>
+        <input class="field" id="uni-img-height" type="number" placeholder="Height e.g. 1024"/>
+      </div>
+      <div class="upload-zone field-group" onclick="document.getElementById('uni-img-file').click()" style="padding:14px">
+        <input type="file" id="uni-img-file" accept="image/*" onchange="uniHandleImageUpload(this)" style="display:none"/>
+        <span class="uz-icon" style="font-size:18px;margin-bottom:4px">📎</span>
+        <span id="uni-img-file-name" style="font-size:12px">Optional: upload input image (img2img / inpainting)</span>
+      </div>
+      <button class="action-btn secondary" onclick="uniApplyQuickFields()">⬇ Apply fields into Body JSON below</button>
+      <div class="uni-hint">Best-effort: tries common field names (prompt / text_prompts / width / height / image_base64). Check the body JSON matches your API's exact schema before sending.</div>
+    </div>
+
+    <div class="section-label">Request Body (raw JSON)</div>
+    <div class="field-group">
+      <textarea class="field" id="uni-body" rows="8" style="font-family:'SF Mono',Monaco,Consolas,monospace;font-size:12px" placeholder='{"model":"...","messages":[{"role":"user","content":"..."}]}'></textarea>
+    </div>
+    <div class="uni-hint">Body is ignored automatically for GET requests.</div>
+
+    <div class="section-label">Templates</div>
+    <div id="uni-template-row">
+      <select class="field" id="uni-template-select"><option value="">— saved templates —</option></select>
+      <button class="uni-tpl-btn" onclick="uniLoadTemplate()">Load</button>
+      <button class="uni-tpl-btn danger" onclick="uniDeleteTemplate()">Delete</button>
+    </div>
+    <div class="field-group" style="display:flex;gap:6px">
+      <input class="field" id="uni-template-name" placeholder="Template name e.g. Stability image"/>
+      <button class="uni-tpl-btn" style="background:var(--accent);color:#fff;border-color:var(--accent)" onclick="uniSaveTemplate()">💾 Save</button>
+    </div>
+
+    <div id="uni-status" class="status-msg"></div>
+    <button class="action-btn" onclick="uniSendRequest()">🚀 Send Request</button>
+
+    <div class="section-label">Response</div>
+    <div class="result-card" id="uni-result">
+      <div class="result-placeholder"><span class="ph-icon">🌐</span>Response will appear here</div>
+    </div>
+    <span id="uni-raw-toggle" onclick="uniToggleRaw()">▸ Show raw response</span>
+    <div id="uni-raw-response-wrap">
+      <textarea class="field" id="uni-raw-response" rows="8" readonly style="font-family:'SF Mono',Monaco,Consolas,monospace;font-size:11px;min-height:140px"></textarea>
+      <button class="action-btn secondary" onclick="uniCopyRaw()">📋 Copy raw response</button>
+    </div>
+
   </div></div>
 </div>
 
@@ -753,6 +860,7 @@ const IMG_MODELS={
   }catch(_){}
   onProviderChange(false);
   loadImgModels();
+  uniRefreshTemplateSelect();
 })();
 
 /* ═══════════════════════════════════════════════════════
@@ -990,7 +1098,7 @@ async function loadModels(reset=true,autoAll=false){
 ═══════════════════════════════════════════════════════ */
 function switchTab(id){
   document.querySelectorAll('.tab').forEach((t,i)=>{
-    const ids=['chat','image','edit','combine','video','settings'];
+    const ids=['chat','image','edit','combine','video','universal','settings'];
     t.classList.toggle('active',ids[i]===id);
   });
   document.querySelectorAll('.panel').forEach(p=>{p.classList.toggle('active',p.id==='panel-'+id);});
@@ -1591,6 +1699,288 @@ async function generateAtlasVideo(){
     resultEl.innerHTML='<video src="'+videoUrl+'" controls style="max-width:100%;border-radius:10px"></video><div style="margin-top:8px"><a href="'+videoUrl+'" target="_blank" style="font-size:12px;color:var(--accent-light)">🔗 Download</a></div>';
     statusEl.textContent='✅ Video generated!';statusEl.className='status-msg ok show';
   }catch(e){statusEl.textContent='❌ '+e.message;statusEl.className='status-msg err show';resultEl.innerHTML='<div class="result-placeholder"><span class="ph-icon">❌</span>Failed</div>';}
+}
+
+/* ═══════════════════════════════════════════════════════
+   UNIVERSAL API MODE
+═══════════════════════════════════════════════════════ */
+let uniMode='text';
+let uniInputImageB64=null;
+let uniInputImageMime=null;
+
+function uniSetMode(mode){
+  uniMode=mode;
+  document.getElementById('uni-mode-text').classList.toggle('active',mode==='text');
+  document.getElementById('uni-mode-image').classList.toggle('active',mode==='image');
+  document.getElementById('uni-image-fields').classList.toggle('show',mode==='image');
+}
+
+const UNI_EXAMPLES={
+  mistral:{
+    mode:'text',url:'https://api.mistral.ai/v1/chat/completions',method:'POST',
+    headers:'{\n  "Authorization": "Bearer YOUR_MISTRAL_KEY",\n  "Content-Type": "application/json"\n}',
+    body:'{\n  "model": "codestral-latest",\n  "messages": [{"role": "user", "content": "Write a Python script."}],\n  "temperature": 0.3,\n  "max_tokens": 200\n}'
+  },
+  'openai-text':{
+    mode:'text',url:'https://api.openai.com/v1/chat/completions',method:'POST',
+    headers:'{\n  "Authorization": "Bearer YOUR_OPENAI_KEY",\n  "Content-Type": "application/json"\n}',
+    body:'{\n  "model": "gpt-4o-mini",\n  "messages": [{"role": "user", "content": "Hello!"}],\n  "max_tokens": 300\n}'
+  },
+  stability:{
+    mode:'image',url:'https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image',method:'POST',
+    headers:'{\n  "Authorization": "Bearer YOUR_STABILITY_KEY",\n  "Content-Type": "application/json",\n  "Accept": "application/json"\n}',
+    body:'{\n  "text_prompts": [{"text": "A futuristic city"}],\n  "width": 1024,\n  "height": 1024,\n  "steps": 50\n}'
+  },
+  dalle:{
+    mode:'image',url:'https://api.openai.com/v1/images/generations',method:'POST',
+    headers:'{\n  "Authorization": "Bearer YOUR_OPENAI_KEY",\n  "Content-Type": "application/json"\n}',
+    body:'{\n  "model": "dall-e-3",\n  "prompt": "A futuristic city",\n  "n": 1,\n  "size": "1024x1024"\n}'
+  },
+  localsd:{
+    mode:'image',url:'http://127.0.0.1:7860/sdapi/v1/txt2img',method:'POST',
+    headers:'{\n  "Content-Type": "application/json"\n}',
+    body:'{\n  "prompt": "A futuristic city",\n  "width": 1024,\n  "height": 1024,\n  "steps": 30\n}'
+  },
+  blank:{
+    mode:'text',url:'',method:'POST',
+    headers:'{\n  "Content-Type": "application/json"\n}',
+    body:'{\n\n}'
+  }
+};
+
+function uniLoadExample(name){
+  const ex=UNI_EXAMPLES[name];if(!ex)return;
+  document.getElementById('uni-url').value=ex.url;
+  document.getElementById('uni-method').value=ex.method;
+  document.getElementById('uni-headers').value=ex.headers;
+  document.getElementById('uni-body').value=ex.body;
+  uniSetMode(ex.mode);
+  showToast('Loaded "'+name+'" example');
+}
+
+async function uniHandleImageUpload(inp){
+  const file=inp.files[0];if(!file)return;
+  try{
+    uniInputImageB64=await toBase64(file);
+    uniInputImageMime=file.type||'image/png';
+    document.getElementById('uni-img-file-name').textContent='✅ '+file.name+' loaded';
+  }catch(e){showToast('Could not read image: '+e.message,'err');}
+}
+
+function uniApplyQuickFields(){
+  let body;
+  try{body=JSON.parse(document.getElementById('uni-body').value||'{}');}
+  catch(e){showToast('Body JSON is invalid — fix it before applying fields','err');return;}
+  const prompt=document.getElementById('uni-img-prompt').value.trim();
+  const width=parseInt(document.getElementById('uni-img-width').value)||null;
+  const height=parseInt(document.getElementById('uni-img-height').value)||null;
+  if(prompt){
+    body.prompt=prompt;
+    body.text_prompts=[{text:prompt}];
+  }
+  if(width)body.width=width;
+  if(height)body.height=height;
+  if(uniInputImageB64){
+    body.image_base64=uniInputImageB64;
+    body.init_image=uniInputImageB64;
+  }
+  document.getElementById('uni-body').value=JSON.stringify(body,null,2);
+  showToast('Applied to body JSON — check the field names match your API');
+}
+
+/* ── TEMPLATES ── */
+function uniGetTemplates(){
+  try{return JSON.parse(localStorage.getItem('ai-uni-templates')||'{}');}catch(_){return{};}
+}
+function uniSaveTemplates(t){try{localStorage.setItem('ai-uni-templates',JSON.stringify(t));}catch(_){}}
+function uniRefreshTemplateSelect(){
+  const sel=document.getElementById('uni-template-select');if(!sel)return;
+  const tpls=uniGetTemplates();
+  sel.innerHTML='<option value="">— saved templates —</option>';
+  Object.keys(tpls).forEach(name=>{const o=document.createElement('option');o.value=name;o.textContent=name;sel.appendChild(o);});
+}
+function uniSaveTemplate(){
+  const name=document.getElementById('uni-template-name').value.trim();
+  if(!name)return showToast('Enter a template name first','err');
+  const tpls=uniGetTemplates();
+  tpls[name]={
+    mode:uniMode,
+    url:document.getElementById('uni-url').value,
+    method:document.getElementById('uni-method').value,
+    headers:document.getElementById('uni-headers').value,
+    body:document.getElementById('uni-body').value
+  };
+  uniSaveTemplates(tpls);
+  uniRefreshTemplateSelect();
+  document.getElementById('uni-template-select').value=name;
+  document.getElementById('uni-template-name').value='';
+  showToast('✅ Template "'+name+'" saved');
+}
+function uniLoadTemplate(){
+  const name=document.getElementById('uni-template-select').value;if(!name)return;
+  const tpls=uniGetTemplates();const t=tpls[name];if(!t)return;
+  document.getElementById('uni-url').value=t.url||'';
+  document.getElementById('uni-method').value=t.method||'POST';
+  document.getElementById('uni-headers').value=t.headers||'';
+  document.getElementById('uni-body').value=t.body||'';
+  uniSetMode(t.mode||'text');
+  showToast('✅ Template "'+name+'" loaded');
+}
+function uniDeleteTemplate(){
+  const name=document.getElementById('uni-template-select').value;if(!name)return showToast('Select a template first','err');
+  const tpls=uniGetTemplates();delete tpls[name];uniSaveTemplates(tpls);uniRefreshTemplateSelect();
+  showToast('🗑 Template "'+name+'" deleted');
+}
+
+/* ── RAW RESPONSE TOGGLE ── */
+function uniToggleRaw(){
+  const wrap=document.getElementById('uni-raw-response-wrap');
+  const open=wrap.classList.toggle('show');
+  document.getElementById('uni-raw-toggle').textContent=(open?'▾ Hide raw response':'▸ Show raw response');
+}
+function uniCopyRaw(){
+  const v=document.getElementById('uni-raw-response').value;
+  if(v)navigator.clipboard.writeText(v).then(()=>showToast('Copied raw response!'));
+}
+
+/* ── helpers to pull text/url/base64 out of arbitrary JSON shapes ── */
+function uniExtractText(d){
+  if(typeof d==='string')return d;
+  const paths=[
+    d?.choices?.[0]?.message?.content,
+    d?.choices?.[0]?.text,
+    Array.isArray(d?.content)?d.content.filter(b=>b.type==='text').map(b=>b.text).join(''):null,
+    d?.output_text,
+    d?.output,
+    d?.text,
+    d?.response,
+    d?.result
+  ];
+  for(const p of paths){if(typeof p==='string'&&p.trim())return p;}
+  return null;
+}
+function uniExtractImage(d){
+  // direct url-style fields
+  const urlCandidates=[
+    d?.data?.[0]?.url,
+    d?.url,
+    d?.image_url,
+    d?.output?.[0],
+    d?.images?.[0],
+    Array.isArray(d?.artifacts)?null:null
+  ];
+  for(const c of urlCandidates){
+    if(typeof c==='string'&&/^https?:\/\//.test(c))return{type:'url',value:c};
+    if(typeof c==='string'&&c.startsWith('data:'))return{type:'dataurl',value:c};
+  }
+  // base64-style fields (no data: prefix)
+  const b64Candidates=[
+    d?.data?.[0]?.b64_json,
+    d?.image_base64,
+    d?.images?.[0],
+    d?.artifacts?.[0]?.base64,
+    d?.output?.[0]
+  ];
+  for(const c of b64Candidates){
+    if(typeof c==='string'&&c.length>200&&!/^https?:\/\//.test(c))return{type:'base64',value:c};
+  }
+  return null;
+}
+
+/* ── SEND ── */
+async function uniSendRequest(){
+  const url=document.getElementById('uni-url').value.trim();
+  const method=document.getElementById('uni-method').value;
+  const headersRaw=document.getElementById('uni-headers').value.trim();
+  const bodyRaw=document.getElementById('uni-body').value.trim();
+  const statusEl=document.getElementById('uni-status');
+  const resultEl=document.getElementById('uni-result');
+  const rawEl=document.getElementById('uni-raw-response');
+
+  if(!url)return showToast('Enter an API URL first','err');
+
+  let headers={};
+  if(headersRaw){
+    try{headers=JSON.parse(headersRaw);}
+    catch(e){statusEl.textContent='❌ Headers JSON is invalid: '+e.message;statusEl.className='status-msg err show';return;}
+  }
+
+  let bodyStr=undefined;
+  if(method!=='GET'&&bodyRaw){
+    try{JSON.parse(bodyRaw);}
+    catch(e){statusEl.textContent='❌ Body JSON is invalid: '+e.message;statusEl.className='status-msg err show';return;}
+    bodyStr=bodyRaw;
+    if(!Object.keys(headers).some(h=>h.toLowerCase()==='content-type'))headers['Content-Type']='application/json';
+  }
+
+  statusEl.innerHTML='<span class="spinner"></span>Sending…';statusEl.className='status-msg info show';
+  resultEl.innerHTML='<div class="result-placeholder"><span class="ph-icon">⏳</span>Waiting for response…</div>';
+  rawEl.value='';
+
+  try{
+    const r=await fetch(url,{method,headers,body:bodyStr});
+    const ct=r.headers.get('content-type')||'';
+
+    if(!r.ok){
+      let errText;
+      try{errText=await r.text();}catch(_){errText='';}
+      throw new Error('HTTP '+r.status+' '+r.statusText+(errText?' — '+errText.slice(0,400):''));
+    }
+
+    // Binary image response (e.g. Stability AI with Accept: image/png)
+    if(ct.startsWith('image/')){
+      const blob=await r.blob();
+      const objUrl=URL.createObjectURL(blob);
+      resultEl.innerHTML='<img src="'+objUrl+'" style="max-width:100%;border-radius:10px" alt="Response image"/>';
+      rawEl.value='[Binary image response: '+ct+', '+blob.size+' bytes]';
+      statusEl.textContent='✅ Image received';statusEl.className='status-msg ok show';
+      return;
+    }
+
+    const text=await r.text();
+    rawEl.value=text;
+    let data=null;
+    try{data=JSON.parse(text);}catch(_){}
+
+    if(!data){
+      // Plain text response
+      resultEl.innerHTML='<div style="font-size:13px;color:var(--text);white-space:pre-wrap;text-align:left;width:100%">'+esc(text.slice(0,4000))+'</div>';
+      statusEl.textContent='✅ Response received';statusEl.className='status-msg ok show';
+      return;
+    }
+    rawEl.value=JSON.stringify(data,null,2);
+
+    if(uniMode==='image'){
+      const img=uniExtractImage(data);
+      if(img){
+        if(img.type==='url'){
+          resultEl.innerHTML='<img src="'+img.value+'" style="max-width:100%;border-radius:10px" alt="Generated"/>';
+        }else if(img.type==='dataurl'){
+          resultEl.innerHTML='<img src="'+img.value+'" style="max-width:100%;border-radius:10px" alt="Generated"/>';
+        }else{
+          resultEl.innerHTML='<img src="data:image/png;base64,'+img.value+'" style="max-width:100%;border-radius:10px" alt="Generated"/>';
+        }
+        statusEl.textContent='✅ Image generated';statusEl.className='status-msg ok show';
+        return;
+      }
+      resultEl.innerHTML='<div class="result-placeholder">No recognisable image field found in the response — check raw response below.</div>';
+      statusEl.textContent='⚠️ No image found — see raw response';statusEl.className='status-msg info show';
+      return;
+    }
+
+    // text mode
+    const txt=uniExtractText(data);
+    if(txt){
+      resultEl.innerHTML='<div style="font-size:13px;color:var(--text);white-space:pre-wrap;text-align:left;width:100%">'+esc(txt)+'</div>';
+      statusEl.textContent='✅ Response received';statusEl.className='status-msg ok show';
+    }else{
+      resultEl.innerHTML='<div class="result-placeholder">No recognisable text field found — check raw response below.</div>';
+      statusEl.textContent='⚠️ No text found — see raw response';statusEl.className='status-msg info show';
+    }
+  }catch(e){
+    statusEl.textContent='❌ '+e.message;statusEl.className='status-msg err show';
+    resultEl.innerHTML='<div class="result-placeholder"><span class="ph-icon">❌</span>Request failed</div>';
+  }
 }
 
 /* ═══════════════════════════════════════════════════════
