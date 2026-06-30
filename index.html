@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-<title>Ai Studio</title>
+<title>AiÃ¢â¬â Studio</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -219,7 +219,7 @@ select.field{width:100%;background:var(--bg3);border:1px solid var(--border2);co
 .info-card p{font-size:12px;color:var(--text2);line-height:1.6}
 .video-preview{max-width:100%;border-radius:var(--radius);width:100%;display:block}
 
-/* IMAGE TAB - own model selector */
+/* IMAGE TAB Ã¢â¬â own model selector */
 #img-provider-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius2);padding:10px 12px;margin-bottom:12px;}
 #img-provider-bar label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
 #img-model-select{flex:1;min-width:120px;background:var(--bg4);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:var(--radius);font-size:12px;outline:none;}
@@ -278,17 +278,17 @@ function ensureSqlJs(cb){
   if(sqlJsLoading){setTimeout(()=>ensureSqlJs(cb),200);return;}
   sqlJsLoading=true;
   const banner=document.getElementById('sqljs-banner');
-  if(banner){banner.textContent='⏳ Loading SQLite engine…';banner.classList.add('show');}
+  if(banner){banner.textContent='Ã¢ÂÂ³ Loading SQLite engineÃ¢â¬Â¦';banner.classList.add('show');}
   const s=document.createElement('script');
   s.src='https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/sql-wasm.js';
   s.onload=()=>{
     initSqlJs({locateFile:f=>'https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.10.2/'+f})
       .then(S=>{SQL=S;sqlJsReady=true;sqlJsLoading=false;
-        if(banner){banner.textContent='✅ SQLite engine ready';setTimeout(()=>banner.classList.remove('show'),2000);}
+        if(banner){banner.textContent='Ã¢Åâ¦ SQLite engine ready';setTimeout(()=>banner.classList.remove('show'),2000);}
         cb();
-      }).catch(e=>{sqlJsLoading=false;if(banner)banner.textContent='❌ sql.js error: '+e.message;});
+      }).catch(e=>{sqlJsLoading=false;if(banner)banner.textContent='Ã¢ÂÅ sql.js error: '+e.message;});
   };
-  s.onerror=()=>{sqlJsLoading=false;if(banner)banner.textContent='❌ Could not load sql.js';};
+  s.onerror=()=>{sqlJsLoading=false;if(banner)banner.textContent='Ã¢ÂÅ Could not load sql.js';};
   document.head.appendChild(s);
 }
 </script>
@@ -298,12 +298,12 @@ function ensureSqlJs(cb){
 <div id="header">
   <div id="load-progress"></div>
   <div id="header-top">
-    <div id="logo">Ai Studio</div>
+    <div id="logo">AiÃ¢â¬â</div>
     <div id="header-badges">
       <span class="badge provider" id="provider-badge">Featherless</span>
-      <span class="badge key-saved" id="key-saved-badge" style="display:none">✓ Key saved</span>
+      <span class="badge key-saved" id="key-saved-badge" style="display:none">Ã¢Åâ Key saved</span>
     </div>
-    <button id="header-toggle" onclick="toggleHeader()">Settings ▾</button>
+    <button id="header-toggle" onclick="toggleHeader()">Settings Ã¢âÂ¾</button>
   </div>
   <div id="header-body" class="expanded">
     <div id="api-row">
@@ -318,33 +318,33 @@ function ensureSqlJs(cb){
           <option value="custom">Custom URL</option>
         </select>
       </div>
-      <input id="api-key-input" type="password" placeholder="Paste API key…"/>
+      <input id="api-key-input" type="password" placeholder="Paste API keyÃ¢â¬Â¦"/>
       <button id="save-key-btn" onclick="saveKey()">Save</button>
     </div>
     <div id="custom-base-row">
       <input id="custom-base-input" class="field" placeholder="Base URL e.g. https://your-api.com/v1" oninput="savedKeys.__customBase=this.value"/>
     </div>
     <div id="model-row">
-      <select id="model-select"><option value="">- Choose model -</option></select>
-      <button class="model-btn" id="load-models-btn" onclick="loadModels(true,false)">⚡ Load</button>
-      <button class="model-btn primary" id="load-all-btn" onclick="loadModels(true,true)">🔄 All</button>
+      <select id="model-select"><option value="">Ã¢â¬â Choose model Ã¢â¬â</option></select>
+      <button class="model-btn" id="load-models-btn" onclick="loadModels(true,false)">Ã¢Å¡Â¡ Load</button>
+      <button class="model-btn primary" id="load-all-btn" onclick="loadModels(true,true)">Ã°Å¸ââ All</button>
     </div>
-    <input id="model-search" placeholder="🔍 Search models…"/>
+    <input id="model-search" placeholder="Ã°Å¸âÂ Search modelsÃ¢â¬Â¦"/>
     <div id="model-footer">
       <span id="model-count"></span>
-      <button id="load-more-btn" onclick="loadModels(false,false)">⬇ More</button>
+      <button id="load-more-btn" onclick="loadModels(false,false)">Ã¢Â¬â¡ More</button>
     </div>
   </div>
 </div>
 
 <div id="tabs">
-  <div class="tab active" onclick="switchTab('chat')"><span class="tab-icon">💬</span>Chat</div>
-  <div class="tab" onclick="switchTab('image')"><span class="tab-icon">🖼</span>Image</div>
-  <div class="tab" onclick="switchTab('edit')"><span class="tab-icon">✏️</span>Edit</div>
-  <div class="tab" onclick="switchTab('combine')"><span class="tab-icon">🧩</span>Combine</div>
-  <div class="tab" onclick="switchTab('video')"><span class="tab-icon">🎬</span>Video</div>
-  <div class="tab" onclick="switchTab('universal')"><span class="tab-icon">🌐</span>API</div>
-  <div class="tab" onclick="switchTab('settings')"><span class="tab-icon">⚙️</span>Settings</div>
+  <div class="tab active" onclick="switchTab('chat')"><span class="tab-icon">Ã°Å¸âÂ¬</span>Chat</div>
+  <div class="tab" onclick="switchTab('image')"><span class="tab-icon">Ã°Å¸âÂ¼</span>Image</div>
+  <div class="tab" onclick="switchTab('edit')"><span class="tab-icon">Ã¢ÅÂÃ¯Â¸Â</span>Edit</div>
+  <div class="tab" onclick="switchTab('combine')"><span class="tab-icon">Ã°Å¸Â§Â©</span>Combine</div>
+  <div class="tab" onclick="switchTab('video')"><span class="tab-icon">Ã°Å¸Å½Â¬</span>Video</div>
+  <div class="tab" onclick="switchTab('universal')"><span class="tab-icon">Ã°Å¸ÅÂ</span>API</div>
+  <div class="tab" onclick="switchTab('settings')"><span class="tab-icon">Ã¢Å¡â¢Ã¯Â¸Â</span>Settings</div>
 </div>
 
 <div id="panels">
@@ -352,34 +352,34 @@ function ensureSqlJs(cb){
 <!-- CHAT -->
 <div id="panel-chat" class="panel active">
   <div id="chat-messages">
-    <div class="msg system">👋 Save your API key above, load models, then start chatting. Drop any file to analyse it - images, videos, .sqlite, .db, .plist, iPhone backups, and more.</div>
+    <div class="msg system">Ã°Å¸ââ¹ Save your API key above, load models, then start chatting. Drop any file to analyse it Ã¢â¬â images, videos, .sqlite, .db, .plist, iPhone backups, and more.</div>
   </div>
   <div id="sqlite-viewer">
     <div id="sqlite-viewer-header">
-      <h4>🗄 <span id="sqlite-db-name"></span></h4>
-      <button id="sqlite-close-btn" onclick="closeSqlite()">✕</button>
+      <h4>Ã°Å¸ââ <span id="sqlite-db-name"></span></h4>
+      <button id="sqlite-close-btn" onclick="closeSqlite()">Ã¢Åâ¢</button>
     </div>
     <div id="sqlite-table-list"></div>
     <div id="sqlite-table-data"></div>
     <div id="sqlite-row-count"></div>
     <div id="sqlite-sql-row">
       <input id="sqlite-sql-input" placeholder="SELECT * FROM table_name LIMIT 50" onkeydown="if(event.key==='Enter')runSqlQuery()"/>
-      <button id="sqlite-sql-btn" onclick="runSqlQuery()">▶ Run</button>
+      <button id="sqlite-sql-btn" onclick="runSqlQuery()">Ã¢âÂ¶ Run</button>
     </div>
   </div>
   <div id="plist-viewer">
     <div id="plist-viewer-header">
-      <h4>📋 <span id="plist-file-name"></span></h4>
-      <button id="plist-close-btn" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px" onclick="closePlist()">✕</button>
+      <h4>Ã°Å¸ââ¹ <span id="plist-file-name"></span></h4>
+      <button id="plist-close-btn" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px" onclick="closePlist()">Ã¢Åâ¢</button>
     </div>
     <div id="plist-content"></div>
   </div>
   <div id="attachment-area">
     <div id="attachment-header">
-      <div id="attachment-icon">📄</div>
+      <div id="attachment-icon">Ã°Å¸ââ</div>
       <div id="attachment-info">
-        <div id="attachment-name">-</div>
-        <div id="attachment-meta">-</div>
+        <div id="attachment-name">Ã¢â¬â</div>
+        <div id="attachment-meta">Ã¢â¬â</div>
       </div>
       <span id="attachment-status" class="ok" style="display:none"></span>
       <button id="attachment-clear" onclick="clearFile()">Remove</button>
@@ -389,9 +389,9 @@ function ensureSqlJs(cb){
   <div id="chat-bottom">
     <div id="input-drop-zone" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
       <div id="input-top">
-        <textarea id="msg-input" rows="1" placeholder="Message… (Shift+Enter for new line)" oninput="autoResize(this);updateCharCount()" onkeydown="chatKey(event)"></textarea>
+        <textarea id="msg-input" rows="1" placeholder="MessageÃ¢â¬Â¦ (Shift+Enter for new line)" oninput="autoResize(this);updateCharCount()" onkeydown="chatKey(event)"></textarea>
         <div id="input-actions">
-          <button id="attach-btn" title="Attach file" onclick="document.getElementById('file-input').click()">📎</button>
+          <button id="attach-btn" title="Attach file" onclick="document.getElementById('file-input').click()">Ã°Å¸âÅ½</button>
           <button id="send-btn" onclick="sendChat()" title="Send (Enter)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
@@ -400,31 +400,31 @@ function ensureSqlJs(cb){
       <div id="input-footer">
         <span id="drop-hint">Drop any file here to attach</span>
         <span id="char-count"></span>
-        <button id="clear-chat-btn" onclick="clearChat()">🗑 Clear</button>
+        <button id="clear-chat-btn" onclick="clearChat()">Ã°Å¸ââ Clear</button>
       </div>
     </div>
     <input id="file-input" type="file" onchange="handleFile(this)"/>
   </div>
 </div>
 
-<!-- IMAGE - own model selector -->
+<!-- IMAGE Ã¢â¬â own model selector -->
 <div id="panel-image" class="panel">
   <div class="tab-scroll">
     <div class="tab-content">
 
-      <!-- ── IMAGE PROVIDER BAR ── -->
+      <!-- Ã¢ââ¬Ã¢ââ¬ IMAGE PROVIDER BAR Ã¢ââ¬Ã¢ââ¬ -->
       <div id="img-provider-bar">
-        <label>🎨 Image Model</label>
+        <label>Ã°Å¸Å½Â¨ Image Model</label>
         <select id="img-model-select">
-          <option value="">- select provider first -</option>
+          <option value="">Ã¢â¬â select provider first Ã¢â¬â</option>
         </select>
-        <button id="img-load-btn" onclick="loadImgModels()">🔄 Refresh</button>
-        <div id="img-provider-note" style="color:var(--text3)">Loading…</div>
+        <button id="img-load-btn" onclick="loadImgModels()">Ã¢Å¸Â³ Refresh</button>
+        <div id="img-provider-note" style="color:var(--text3)">LoadingÃ¢â¬Â¦</div>
       </div>
 
       <div class="section-label">Prompt</div>
       <div class="field-group">
-        <textarea class="field" id="img-prompt" rows="3" placeholder="Describe the image you want to create in detail…"></textarea>
+        <textarea class="field" id="img-prompt" rows="3" placeholder="Describe the image you want to create in detailÃ¢â¬Â¦"></textarea>
       </div>
       <div class="section-label">Style</div>
       <div class="chip-row" id="style-chips">
@@ -443,10 +443,10 @@ function ensureSqlJs(cb){
         <div>
           <div class="section-label">Size</div>
           <select class="field" id="img-size">
-            <option value="1024x1024">1024×1024 Square</option>
-            <option value="1792x1024">1792×1024 Wide</option>
-            <option value="1024x1792">1024×1792 Portrait</option>
-            <option value="512x512">512×512 Small</option>
+            <option value="1024x1024">1024Ãâ1024 Square</option>
+            <option value="1792x1024">1792Ãâ1024 Wide</option>
+            <option value="1024x1792">1024Ãâ1792 Portrait</option>
+            <option value="512x512">512Ãâ512 Small</option>
           </select>
         </div>
         <div>
@@ -458,9 +458,9 @@ function ensureSqlJs(cb){
         </div>
       </div>
       <div id="img-status" class="status-msg"></div>
-      <button class="action-btn" onclick="generateImage()">🖼 Generate Image</button>
+      <button class="action-btn" onclick="generateImage()">Ã°Å¸âÂ¼ Generate Image</button>
       <div class="result-card" id="img-result">
-        <div class="result-placeholder"><span class="ph-icon">🎨</span>Generated image will appear here</div>
+        <div class="result-placeholder"><span class="ph-icon">Ã°Å¸Å½Â¨</span>Generated image will appear here</div>
       </div>
     </div>
   </div>
@@ -475,17 +475,17 @@ function ensureSqlJs(cb){
          ondragleave="this.classList.remove('drag')"
          ondrop="event.preventDefault();this.classList.remove('drag');loadEditFileDrop(event)">
       <input type="file" id="edit-file" onchange="loadEditFile(this)" style="display:none"/>
-      <span class="uz-icon">📄</span>Drop a file here or tap to upload
-      <p>txt, md, csv, json, html, plist, db, xml…</p>
+      <span class="uz-icon">Ã°Å¸âÂ</span>Drop a file here or tap to upload
+      <p>txt, md, csv, json, html, plist, db, xmlÃ¢â¬Â¦</p>
     </div>
-    <div class="field-group"><textarea class="field" id="edit-source" rows="5" placeholder="Or paste text, code, or data here…"></textarea></div>
+    <div class="field-group"><textarea class="field" id="edit-source" rows="5" placeholder="Or paste text, code, or data hereÃ¢â¬Â¦"></textarea></div>
     <div class="section-label">Instruction</div>
-    <div class="field-group"><textarea class="field" id="edit-instruction" rows="2" placeholder="e.g. Fix grammar, Translate to French, Convert to JSON…"></textarea></div>
+    <div class="field-group"><textarea class="field" id="edit-instruction" rows="2" placeholder="e.g. Fix grammar, Translate to French, Convert to JSONÃ¢â¬Â¦"></textarea></div>
     <div id="edit-status" class="status-msg"></div>
-    <button class="action-btn" onclick="runEdit()">✏️ Apply with AI</button>
+    <button class="action-btn" onclick="runEdit()">Ã¢ÅÂÃ¯Â¸Â Apply with AI</button>
     <div class="section-label">Result</div>
-    <div class="field-group"><textarea class="field" id="edit-result" rows="6" placeholder="Result will appear here…" readonly style="min-height:140px"></textarea></div>
-    <button class="action-btn secondary" onclick="copyEdit()">📋 Copy Result</button>
+    <div class="field-group"><textarea class="field" id="edit-result" rows="6" placeholder="Result will appear hereÃ¢â¬Â¦" readonly style="min-height:140px"></textarea></div>
+    <button class="action-btn secondary" onclick="copyEdit()">Ã°Å¸ââ¹ Copy Result</button>
   </div></div>
 </div>
 
@@ -498,17 +498,17 @@ function ensureSqlJs(cb){
          ondragleave="this.classList.remove('drag')"
          ondrop="event.preventDefault();this.classList.remove('drag');loadCombineFileDrop(event)">
       <input type="file" id="combine-files" multiple onchange="loadCombineFiles(this)" style="display:none"/>
-      <span class="uz-icon">📁</span>Select multiple files
-      <p>Hold Ctrl/⌘ to select multiple</p>
+      <span class="uz-icon">Ã°Å¸ââ</span>Select multiple files
+      <p>Hold Ctrl/Ã¢ÅË to select multiple</p>
     </div>
     <div class="combine-file-list" id="combine-file-list">No files loaded yet.</div>
     <div class="section-label">Instructions</div>
-    <div class="field-group"><textarea class="field" id="combine-instruction" rows="3" placeholder="e.g. Merge, Compare differences, Extract all contacts…"></textarea></div>
+    <div class="field-group"><textarea class="field" id="combine-instruction" rows="3" placeholder="e.g. Merge, Compare differences, Extract all contactsÃ¢â¬Â¦"></textarea></div>
     <div id="combine-status" class="status-msg"></div>
-    <button class="action-btn" onclick="runCombine()">🧩 Combine with AI</button>
+    <button class="action-btn" onclick="runCombine()">Ã°Å¸Â§Â© Combine with AI</button>
     <div class="section-label">Result</div>
-    <div class="field-group"><textarea class="field" id="combine-result" rows="6" placeholder="Combined output will appear here…" readonly style="min-height:150px"></textarea></div>
-    <button class="action-btn secondary" onclick="copyCombine()">📋 Copy Result</button>
+    <div class="field-group"><textarea class="field" id="combine-result" rows="6" placeholder="Combined output will appear hereÃ¢â¬Â¦" readonly style="min-height:150px"></textarea></div>
+    <button class="action-btn secondary" onclick="copyCombine()">Ã°Å¸ââ¹ Copy Result</button>
   </div></div>
 </div>
 
@@ -518,16 +518,16 @@ function ensureSqlJs(cb){
 
     <div id="atlas-video-section" style="display:none">
       <div class="info-card" style="border-color:var(--green);background:var(--green-bg)">
-        <strong style="color:var(--green-text)">🎬 Atlas Cloud Video Generation</strong>
-        <p style="color:var(--green-text);opacity:.8">Generate AI videos from text prompts. wan-t2v (~$0.05 NZD) · kling-v1 (~$0.09 NZD). No monthly fee.</p>
+        <strong style="color:var(--green-text)">Ã°Å¸Å½Â¬ Atlas Cloud Video Generation</strong>
+        <p style="color:var(--green-text);opacity:.8">Generate AI videos from text prompts. wan-t2v (~$0.05 NZD) ÃÂ· kling-v1 (~$0.09 NZD). No monthly fee.</p>
       </div>
       <div class="section-label">Video Model</div>
       <select class="field" id="atlas-video-model" style="margin-bottom:10px">
-        <option value="wan-t2v">wan-t2v - Fast, good quality (~$0.05 NZD)</option>
-        <option value="kling-v1">kling-v1 - High quality (~$0.09 NZD)</option>
+        <option value="wan-t2v">wan-t2v Ã¢â¬â Fast, good quality (~$0.05 NZD)</option>
+        <option value="kling-v1">kling-v1 Ã¢â¬â High quality (~$0.09 NZD)</option>
       </select>
       <div class="section-label">Prompt</div>
-      <div class="field-group"><textarea class="field" id="atlas-video-prompt" rows="3" placeholder="Describe the video… e.g. A woman dancing on a beach at sunset"></textarea></div>
+      <div class="field-group"><textarea class="field" id="atlas-video-prompt" rows="3" placeholder="Describe the videoÃ¢â¬Â¦ e.g. A woman dancing on a beach at sunset"></textarea></div>
       <div class="section-label">Duration</div>
       <select class="field" id="atlas-video-duration" style="margin-bottom:10px">
         <option value="4">4 seconds</option>
@@ -535,9 +535,9 @@ function ensureSqlJs(cb){
         <option value="8">8 seconds</option>
       </select>
       <div id="atlas-video-status" class="status-msg"></div>
-      <button class="action-btn" onclick="generateAtlasVideo()">🎬 Generate Video</button>
+      <button class="action-btn" onclick="generateAtlasVideo()">Ã°Å¸Å½Â¬ Generate Video</button>
       <div class="result-card" id="atlas-video-result">
-        <div class="result-placeholder"><span class="ph-icon">🎬</span>Generated video will appear here</div>
+        <div class="result-placeholder"><span class="ph-icon">Ã°Å¸Å½Â¬</span>Generated video will appear here</div>
       </div>
       <div style="border-top:1px solid var(--border);margin:18px 0 12px"></div>
     </div>
@@ -549,19 +549,19 @@ function ensureSqlJs(cb){
     <div class="section-label">Upload video or audio</div>
     <div class="upload-zone field-group" onclick="document.getElementById('video-file').click()">
       <input type="file" id="video-file" accept="video/*,audio/*" onchange="loadVideo(this)" style="display:none"/>
-      <span class="uz-icon">🎬</span>Tap to upload video or audio
+      <span class="uz-icon">Ã°Å¸Å½Â¬</span>Tap to upload video or audio
     </div>
     <div id="video-preview-wrap" style="display:none;margin-bottom:14px">
       <video id="video-preview" class="video-preview" controls></video>
     </div>
     <div class="section-label">Or paste a URL</div>
-    <div class="field-group"><input class="field" id="video-url" placeholder="https://youtube.com/watch?v=… or direct video URL"/></div>
+    <div class="field-group"><input class="field" id="video-url" placeholder="https://youtube.com/watch?v=Ã¢â¬Â¦ or direct video URL"/></div>
     <div class="section-label">Ask the AI</div>
     <div class="field-group"><textarea class="field" id="video-prompt" rows="3" placeholder="e.g. What is happening? Transcribe the speech."></textarea></div>
     <div id="video-status" class="status-msg"></div>
-    <button class="action-btn" onclick="runVideo()">🎬 Analyse with AI</button>
+    <button class="action-btn" onclick="runVideo()">Ã°Å¸Å½Â¬ Analyse with AI</button>
     <div class="section-label">Result</div>
-    <div class="field-group"><textarea class="field" id="video-result" rows="6" placeholder="Analysis will appear here…" readonly style="min-height:150px"></textarea></div>
+    <div class="field-group"><textarea class="field" id="video-result" rows="6" placeholder="Analysis will appear hereÃ¢â¬Â¦" readonly style="min-height:150px"></textarea></div>
   </div></div>
 </div>
 
@@ -570,14 +570,14 @@ function ensureSqlJs(cb){
   <div class="tab-scroll"><div class="tab-content">
 
     <div class="info-card">
-      <strong>🌐 Universal API Mode</strong>
-      <p>Point this at any text or image API - Mistral, Stability AI, a local Stable Diffusion server, anything. You control the URL, method, headers, and body.</p>
+      <strong>Ã°Å¸ÅÂ Universal API Mode</strong>
+      <p>Point this at any text or image API Ã¢â¬â Mistral, Stability AI, a local Stable Diffusion server, anything. You control the URL, method, headers, and body.</p>
     </div>
 
     <div class="section-label">Mode</div>
     <div class="chip-row" id="uni-mode-row">
-      <div class="chip active" id="uni-mode-text" onclick="uniSetMode('text')">💬 Text Generation</div>
-      <div class="chip" id="uni-mode-image" onclick="uniSetMode('image')">🖼 Image Generation</div>
+      <div class="chip active" id="uni-mode-text" onclick="uniSetMode('text')">Ã°Å¸âÂ¬ Text Generation</div>
+      <div class="chip" id="uni-mode-image" onclick="uniSetMode('image')">Ã°Å¸âÂ¼ Image Generation</div>
     </div>
 
     <div class="section-label">Quick-fill example</div>
@@ -585,7 +585,7 @@ function ensureSqlJs(cb){
       <div class="chip" onclick="uniLoadExample('mistral')">Mistral text</div>
       <div class="chip" onclick="uniLoadExample('openai-text')">OpenAI text</div>
       <div class="chip" onclick="uniLoadExample('stability')">Stability AI image</div>
-      <div class="chip" onclick="uniLoadExample('dalle')">DALL·E image</div>
+      <div class="chip" onclick="uniLoadExample('dalle')">DALLÃÂ·E image</div>
       <div class="chip" onclick="uniLoadExample('localsd')">Local Stable Diffusion</div>
       <div class="chip" onclick="uniLoadExample('blank')">Blank</div>
     </div>
@@ -609,17 +609,17 @@ function ensureSqlJs(cb){
 
     <div id="uni-image-fields">
       <div class="section-label">Image quick fields</div>
-      <div class="field-group"><textarea class="field" id="uni-img-prompt" rows="2" placeholder="A futuristic city at sunset…"></textarea></div>
+      <div class="field-group"><textarea class="field" id="uni-img-prompt" rows="2" placeholder="A futuristic city at sunsetÃ¢â¬Â¦"></textarea></div>
       <div class="row2" style="margin-bottom:8px">
         <input class="field" id="uni-img-width" type="number" placeholder="Width e.g. 1024"/>
         <input class="field" id="uni-img-height" type="number" placeholder="Height e.g. 1024"/>
       </div>
       <div class="upload-zone field-group" onclick="document.getElementById('uni-img-file').click()" style="padding:14px">
         <input type="file" id="uni-img-file" accept="image/*" onchange="uniHandleImageUpload(this)" style="display:none"/>
-        <span class="uz-icon" style="font-size:18px;margin-bottom:4px">📎</span>
+        <span class="uz-icon" style="font-size:18px;margin-bottom:4px">Ã°Å¸âÅ½</span>
         <span id="uni-img-file-name" style="font-size:12px">Optional: upload input image (img2img / inpainting)</span>
       </div>
-      <button class="action-btn secondary" onclick="uniApplyQuickFields()">⬇ Apply fields into Body JSON below</button>
+      <button class="action-btn secondary" onclick="uniApplyQuickFields()">Ã¢Â¬â¡ Apply fields into Body JSON below</button>
       <div class="uni-hint">Best-effort: tries common field names (prompt / text_prompts / width / height / image_base64). Check the body JSON matches your API's exact schema before sending.</div>
     </div>
 
@@ -631,26 +631,26 @@ function ensureSqlJs(cb){
 
     <div class="section-label">Templates</div>
     <div id="uni-template-row">
-      <select class="field" id="uni-template-select"><option value="">- saved templates -</option></select>
+      <select class="field" id="uni-template-select"><option value="">Ã¢â¬â saved templates Ã¢â¬â</option></select>
       <button class="uni-tpl-btn" onclick="uniLoadTemplate()">Load</button>
       <button class="uni-tpl-btn danger" onclick="uniDeleteTemplate()">Delete</button>
     </div>
     <div class="field-group" style="display:flex;gap:6px">
       <input class="field" id="uni-template-name" placeholder="Template name e.g. Stability image"/>
-      <button class="uni-tpl-btn" style="background:var(--accent);color:#fff;border-color:var(--accent)" onclick="uniSaveTemplate()">💾 Save</button>
+      <button class="uni-tpl-btn" style="background:var(--accent);color:#fff;border-color:var(--accent)" onclick="uniSaveTemplate()">Ã°Å¸âÂ¾ Save</button>
     </div>
 
     <div id="uni-status" class="status-msg"></div>
-    <button class="action-btn" onclick="uniSendRequest()">🚀 Send Request</button>
+    <button class="action-btn" onclick="uniSendRequest()">Ã°Å¸Å¡â¬ Send Request</button>
 
     <div class="section-label">Response</div>
     <div class="result-card" id="uni-result">
-      <div class="result-placeholder"><span class="ph-icon">🌐</span>Response will appear here</div>
+      <div class="result-placeholder"><span class="ph-icon">Ã°Å¸ÅÂ</span>Response will appear here</div>
     </div>
-    <span id="uni-raw-toggle" onclick="uniToggleRaw()">▸ Show raw response</span>
+    <span id="uni-raw-toggle" onclick="uniToggleRaw()">Ã¢âÂ¸ Show raw response</span>
     <div id="uni-raw-response-wrap">
       <textarea class="field" id="uni-raw-response" rows="8" readonly style="font-family:'SF Mono',Monaco,Consolas,monospace;font-size:11px;min-height:140px"></textarea>
-      <button class="action-btn secondary" onclick="uniCopyRaw()">📋 Copy raw response</button>
+      <button class="action-btn secondary" onclick="uniCopyRaw()">Ã°Å¸ââ¹ Copy raw response</button>
     </div>
 
   </div></div>
@@ -702,15 +702,15 @@ function ensureSqlJs(cb){
     <div class="settings-group">
       <div class="settings-group-title">Conversation History</div>
       <div class="history-actions">
-        <button class="history-btn" onclick="exportChat()">📤 Export chat</button>
-        <button class="history-btn danger" onclick="clearChat()">🗑 Clear chat</button>
+        <button class="history-btn" onclick="exportChat()">Ã°Å¸âÂ¤ Export chat</button>
+        <button class="history-btn danger" onclick="clearChat()">Ã°Å¸ââ Clear chat</button>
       </div>
       <div style="margin-top:10px;font-size:12px;color:var(--text3)" id="history-info">0 messages in history</div>
     </div>
     <div class="settings-group">
       <div class="settings-group-title">About</div>
       <div style="font-size:12px;color:var(--text3);line-height:1.7">
-        <strong style="color:var(--text2)">Ai Studio</strong> - single-file AI toolkit.<br/>
+        <strong style="color:var(--text2)">AiÃ¢â¬â Studio</strong> Ã¢â¬â single-file AI toolkit.<br/>
         Supports Featherless, Venice, Atlas Cloud, OpenAI, Anthropic, Hugging Face, and any OpenAI-compatible API.<br/>
         All data stays in your browser. No tracking, no accounts.
       </div>
@@ -721,9 +721,9 @@ function ensureSqlJs(cb){
 </div><!-- /panels -->
 
 <script>
-/* ════════════════════════════════════════════════════════════════════════════════════════
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
    BINARY PLIST PARSER
-════════════════════════════════════════════════════════════════════════════════════════ */
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 const BPlistParser=(()=>{
   function readUint(b,o,s){let v=0;for(let i=0;i<s;i++)v=v*256+b[o+i];return v;}
   function readInt(b,o,s){const v=readUint(b,o,s);if(s===1&&v>=0x80)return v-0x100;if(s===2&&v>=0x8000)return v-0x10000;if(s===4&&v>=0x80000000)return v-0x100000000;return v;}
@@ -759,9 +759,9 @@ const BPlistParser=(()=>{
   return{parse};
 })();
 
-/* ════════════════════════════════════════════════════════════════════════════════════════
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
    STATE
-════════════════════════════════════════════════════════════════════════════════════════ */
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 let savedKeys={};
 let currentProvider='featherless';
 let chatHistory=[];
@@ -796,67 +796,67 @@ const PROVIDER_DEFAULTS={
   atlascloud:['flux-schnell','flux-dev','wan-t2v','kling-v1'],
   openai:['gpt-4o','gpt-4o-mini','gpt-4-turbo','o1-mini','gpt-3.5-turbo'],
   anthropic:['claude-opus-4-6','claude-sonnet-4-6','claude-haiku-4-5-20251001'],
-  huggingface:['Qwen/Qwen3-8B','Qwen/Qwen2.5-7B-Instruct','meta-llama/Llama-3.1-8B-Instruct','microsoft/phi-3-mini-4k-instruct'],
+  huggingface:['HuggingFaceH4/zephyr-7b-beta','mistralai/Mistral-7B-Instruct-v0.3','microsoft/Phi-3-mini-4k-instruct','HuggingFaceH4/starchat2-15b-v0.1','google/gemma-2-2b-it'],
   custom:[]
 };
 
-/* ── PER-PROVIDER IMAGE MODEL LISTS ──
+/* Ã¢ââ¬Ã¢ââ¬ PER-PROVIDER IMAGE MODEL LISTS Ã¢ââ¬Ã¢ââ¬
    These are preloaded in the Image tab's own selector,
    completely independent from the chat model selector. */
 const IMG_MODELS={
   featherless:[
-    {id:'flux',        name:'Flux - best quality (free via Pollinations)'},
-    {id:'flux-realism',name:'Flux Realism - photorealistic (free via Pollinations)'},
-    {id:'flux-anime',  name:'Flux Anime - anime style (free via Pollinations)'},
-    {id:'flux-3d',     name:'Flux 3D - 3D renders (free via Pollinations)'},
-    {id:'turbo',       name:'Turbo - fast generation (free via Pollinations)'},
+    {id:'flux',        name:'Flux Ã¢â¬â best quality (free via Pollinations)'},
+    {id:'flux-realism',name:'Flux Realism Ã¢â¬â photorealistic (free via Pollinations)'},
+    {id:'flux-anime',  name:'Flux Anime Ã¢â¬â anime style (free via Pollinations)'},
+    {id:'flux-3d',     name:'Flux 3D Ã¢â¬â 3D renders (free via Pollinations)'},
+    {id:'turbo',       name:'Turbo Ã¢â¬â fast generation (free via Pollinations)'},
     {id:'gptimage',    name:'GPT Image (free via Pollinations)'},
   ],
   venice:[
-    {id:'fluently-xl',      name:'Fluently XL - general purpose'},
+    {id:'fluently-xl',      name:'Fluently XL Ã¢â¬â general purpose'},
     {id:'stable-diffusion-xl',name:'Stable Diffusion XL'},
     {id:'flux-dev',         name:'Flux Dev'},
-    {id:'flux-schnell',     name:'Flux Schnell - fast'},
+    {id:'flux-schnell',     name:'Flux Schnell Ã¢â¬â fast'},
     {id:'pony-realism',     name:'Pony Realism'},
-    {id:'lustify-sdxl',     name:'Lustify SDXL - adult/NSFW'},
+    {id:'lustify-sdxl',     name:'Lustify SDXL Ã¢â¬â adult/NSFW'},
     {id:'venice-sd35',      name:'Venice SD 3.5'},
     {id:'photoreal-pony',   name:'Photoreal Pony'},
-    {id:'illustrious-xl',   name:'Illustrious XL - anime/illustration'},
-    {id:'animagine-xl',     name:'Animagine XL - anime'},
+    {id:'illustrious-xl',   name:'Illustrious XL Ã¢â¬â anime/illustration'},
+    {id:'animagine-xl',     name:'Animagine XL Ã¢â¬â anime'},
   ],
   atlascloud:[
-    {id:'flux-schnell', name:'Flux Schnell - fast (~$0.005 NZD/img)'},
-    {id:'flux-dev',     name:'Flux Dev - high quality (~$0.01 NZD/img)'},
+    {id:'flux-schnell', name:'Flux Schnell Ã¢â¬â fast (~$0.005 NZD/img)'},
+    {id:'flux-dev',     name:'Flux Dev Ã¢â¬â high quality (~$0.01 NZD/img)'},
     {id:'seedream-lite',name:'Seedream Lite'},
     {id:'z-image-turbo',name:'Z-Image Turbo'},
   ],
   openai:[
-    {id:'dall-e-3',name:'DALL·E 3 - best quality'},
-    {id:'dall-e-2',name:'DALL·E 2 - faster/cheaper'},
-    {id:'gpt-image-1',name:'GPT Image 1 - latest'},
+    {id:'dall-e-3',name:'DALLÃÂ·E 3 Ã¢â¬â best quality'},
+    {id:'dall-e-2',name:'DALLÃÂ·E 2 Ã¢â¬â faster/cheaper'},
+    {id:'gpt-image-1',name:'GPT Image 1 Ã¢â¬â latest'},
   ],
   anthropic:[
-    // Anthropic has no image gen API - note shown instead
+    // Anthropic has no image gen API Ã¢â¬â note shown instead
   ],
   huggingface:[
-    {id:'black-forest-labs/FLUX.1-dev', name:'FLUX.1-dev - high quality'},
-    {id:'black-forest-labs/FLUX.1-schnell', name:'FLUX.1-schnell - fast'},
-    {id:'stabilityai/stable-diffusion-xl-base-1.0', name:'SDXL 1.0 - high quality'},
+    {id:'black-forest-labs/FLUX.1-dev', name:'FLUX.1-dev Ã¢â¬â high quality'},
+    {id:'black-forest-labs/FLUX.1-schnell', name:'FLUX.1-schnell Ã¢â¬â fast'},
+    {id:'stabilityai/stable-diffusion-xl-base-1.0', name:'SDXL 1.0 Ã¢â¬â high quality'},
     {id:'stabilityai/stable-diffusion-2-1', name:'Stable Diffusion 2.1'},
     {id:'runwayml/stable-diffusion-v1-5', name:'Stable Diffusion 1.5'},
     {id:'CompVis/stable-diffusion-v1-4', name:'Stable Diffusion 1.4'},
-    {id:'prompthero/openjourney', name:'OpenJourney - artistic'},
-    {id:'wavymulder/Analog-Diffusion', name:'Analog Diffusion - vintage'},
+    {id:'prompthero/openjourney', name:'OpenJourney Ã¢â¬â artistic'},
+    {id:'wavymulder/Analog-Diffusion', name:'Analog Diffusion Ã¢â¬â vintage'},
   ],
   custom:[
-    {id:'dall-e-3',name:'DALL·E 3 (if endpoint supports it)'},
+    {id:'dall-e-3',name:'DALLÃÂ·E 3 (if endpoint supports it)'},
     {id:'stable-diffusion-xl-1024-v1-0',name:'SDXL (if endpoint supports it)'},
   ]
 };
 
-/* ════════════════════════════════════════════════════════════════════════════════════════
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
    INIT
-════════════════════════════════════════════════════════════════════════════════════════ */
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 (function init(){
   try{
     const sk=localStorage.getItem('ai-pro-keys');if(sk)savedKeys=JSON.parse(sk);
@@ -875,24 +875,24 @@ const IMG_MODELS={
   uniRefreshTemplateSelect();
 })();
 
-/* ════════════════════════════════════════════════════════════════════════════════════════
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
    HEADER
-════════════════════════════════════════════════════════════════════════════════════════ */
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 function toggleHeader(){headerExpanded=!headerExpanded;collapseHeader(true);localStorage.setItem('ai-pro-header',headerExpanded?'expanded':'collapsed');}
 function collapseHeader(){
   document.getElementById('header-body').className='header-body '+(headerExpanded?'expanded':'collapsed');
-  document.getElementById('header-toggle').textContent=headerExpanded?'Settings ▾':'Settings ▸';
+  document.getElementById('header-toggle').textContent=headerExpanded?'Settings Ã¢âÂ¾':'Settings Ã¢âÂ¸';
 }
 
-/* ════════════════════════════════════════════════════════════════════════════════════════
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
    PROVIDER / KEYS
-════════════════════════════════════════════════════════════════════════════════════════ */
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 function onProviderChange(reset=true){
   currentProvider=document.getElementById('provider-select').value;
   const saved=savedKeys[currentProvider]||'';
   const inp=document.getElementById('api-key-input');
-  inp.value=saved?'••••••••••••••••':'';
-  inp.placeholder=saved?'Key saved - type to replace':'Paste API key…';
+  inp.value=saved?'Ã¢â¬Â¢Ã¢â¬Â¢Ã¢â¬Â¢Ã¢â¬Â¢Ã¢â¬Â¢Ã¢â¬Â¢Ã¢â¬Â¢Ã¢â¬Â¢Ã¢â¬Â¢Ã¢â¬Â¢Ã¢â¬Â¢Ã¢â¬Â¢Ã¢â¬Â¢Ã¢â¬Â¢Ã¢â¬Â¢Ã¢â¬Â¢':'';
+  inp.placeholder=saved?'Key saved Ã¢â¬â type to replace':'Paste API keyÃ¢â¬Â¦';
   document.getElementById('key-saved-badge').style.display=saved?'inline-block':'none';
   document.getElementById('provider-badge').textContent={featherless:'Featherless',venice:'Venice',atlascloud:'Atlas Cloud',openai:'OpenAI',anthropic:'Anthropic',huggingface:'Hugging Face',custom:'Custom'}[currentProvider]||currentProvider;
   document.getElementById('custom-base-row').style.display=currentProvider==='custom'?'block':'none';
@@ -905,22 +905,22 @@ function onProviderChange(reset=true){
 }
 function saveKey(){
   const raw=document.getElementById('api-key-input').value.trim();
-  if(!raw||raw.startsWith('•'))return showToast('Enter your API key first','err');
+  if(!raw||raw.startsWith('Ã¢â¬Â¢'))return showToast('Enter your API key first','err');
   savedKeys[currentProvider]=raw;
   try{localStorage.setItem('ai-pro-keys',JSON.stringify(savedKeys));}catch(_){}
   document.getElementById('api-key-input').value='';
-  document.getElementById('api-key-input').placeholder='Key saved - type to replace';
+  document.getElementById('api-key-input').placeholder='Key saved Ã¢â¬â type to replace';
   document.getElementById('key-saved-badge').style.display='inline-block';
   populateDefaultModels();
   loadImgModels();
-  showToast('✅ '+currentProvider+' key saved');
+  showToast('Ã¢Åâ¦ '+currentProvider+' key saved');
 }
 function getKey(){return savedKeys[currentProvider]||'';}
 
-/* ════════════════════════════════════════════════════════════════════════════════════════
-   IMAGE TAB - OWN MODEL SELECTOR
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
+   IMAGE TAB Ã¢â¬â OWN MODEL SELECTOR
    Loads prebuilt list + optionally fetches live from API
-════════════════════════════════════════════════════════════════════════════════════════ */
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 async function loadImgModels(){
   const sel=document.getElementById('img-model-select');
   const note=document.getElementById('img-provider-note');
@@ -929,9 +929,9 @@ async function loadImgModels(){
 
   sel.innerHTML='';
   if(!list.length){
-    sel.innerHTML='<option value="">- no image models for this provider -</option>';
+    sel.innerHTML='<option value="">Ã¢â¬â no image models for this provider Ã¢â¬â</option>';
     note.style.color='var(--red-text)';
-    note.textContent='⚠️ Anthropic has no image generation API. Switch provider to generate images.';
+    note.textContent='Ã¢Å¡Â Ã¯Â¸Â Anthropic has no image generation API. Switch provider to generate images.';
     return;
   }
 
@@ -948,7 +948,7 @@ async function loadImgModels(){
   // Update note per provider
   if(p==='featherless'){
     note.style.color='var(--blue-text)';
-    note.textContent='ℹ️ Featherless → images use Pollinations.ai (free Flux, no key needed)';
+    note.textContent='Ã¢âÂ¹Ã¯Â¸Â Featherless Ã¢â â images use Pollinations.ai (free Flux, no key needed)';
   }else if(p==='venice'){
     note.style.color='var(--green-text)';
     const key=getKey();
@@ -966,24 +966,24 @@ async function loadImgModels(){
               existing.add(m.id);
             }
           });
-          note.textContent='✅ Venice image models loaded ('+sel.options.length+' available)';
+          note.textContent='Ã¢Åâ¦ Venice image models loaded ('+sel.options.length+' available)';
         }
-      }catch(_){note.textContent='✅ Venice - using preloaded model list';}
+      }catch(_){note.textContent='Ã¢Åâ¦ Venice Ã¢â¬â using preloaded model list';}
     }else{
-      note.textContent='Venice - save your API key to load live model list';
+      note.textContent='Venice Ã¢â¬â save your API key to load live model list';
     }
   }else if(p==='atlascloud'){
     note.style.color='var(--green-text)';
-    note.textContent='✅ Atlas Cloud - fully uncensored NSFW image gen. ~$0.005 NZD/image. Credits never expire.';
+    note.textContent='Ã¢Åâ¦ Atlas Cloud Ã¢â¬â fully uncensored NSFW image gen. ~$0.005 NZD/image. Credits never expire.';
   }else if(p==='openai'){
     note.style.color='var(--text2)';
-    note.textContent='OpenAI DALL·E - standard/HD quality, requires API key with image access';
+    note.textContent='OpenAI DALLÃÂ·E Ã¢â¬â standard/HD quality, requires API key with image access';
   }else if(p==='huggingface'){
     note.style.color='var(--blue-text)';
-    note.textContent='🤗 Hugging Face - uses Inference API. Supports Flux, SDXL, and many more. Requires HF token.';
+    note.textContent='🤗 Hugging Face — global router. Free models: zephyr-7b-beta, Mistral-7B, Phi-3-mini. Get a free HF token at huggingface.co/settings/tokens.';
   }else if(p==='custom'){
     note.style.color='var(--text2)';
-    note.textContent='Custom endpoint - ensure it supports POST /images/generations (OpenAI-compatible format)';
+    note.textContent='Custom endpoint Ã¢â¬â ensure it supports POST /images/generations (OpenAI-compatible format)';
   }
 }
 
@@ -991,20 +991,20 @@ document.getElementById('img-model-select').addEventListener('change',function()
   if(this.value)try{localStorage.setItem('ai-pro-imgmodel-'+currentProvider,this.value);}catch(_){}
 });
 
-/* ════════════════════════════════════════════════════════════════════════════════════════
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
    CHAT MODELS
-════════════════════════════════════════════════════════════════════════════════════════ */
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 function populateDefaultModels(){
   modelPage=1;allModels=[];modelHasMore=false;loadAllAbort=false;
   const search=document.getElementById('model-search');search.style.display='none';search.value='';
   document.getElementById('load-more-btn').classList.remove('show');
   const sel=document.getElementById('model-select');
-  sel.innerHTML='<option value="">- Choose model -</option>';
+  sel.innerHTML='<option value="">Ã¢â¬â Choose model Ã¢â¬â</option>';
   const defaults=PROVIDER_DEFAULTS[currentProvider]||[];
   defaults.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;sel.appendChild(o);});
   const saved=localStorage.getItem('ai-pro-model');
   if(saved&&[...sel.options].some(o=>o.value===saved))sel.value=saved;
-  document.getElementById('model-count').textContent=defaults.length?defaults.length+' defaults - tap Load':'';
+  document.getElementById('model-count').textContent=defaults.length?defaults.length+' defaults Ã¢â¬â tap Load':'';
 }
 
 document.getElementById('model-search').addEventListener('input',function(){
@@ -1020,7 +1020,7 @@ function renderModelDropdown(models){
   const saved=document.getElementById('model-select').value;
   const sel=document.getElementById('model-select');
   const frag=document.createDocumentFragment();
-  const ph=document.createElement('option');ph.value='';ph.textContent='- '+models.length+' models -';frag.appendChild(ph);
+  const ph=document.createElement('option');ph.value='';ph.textContent='Ã¢â¬â '+models.length+' models Ã¢â¬â';frag.appendChild(ph);
   models.forEach(m=>{
     const o=document.createElement('option');
     o.value=m.id;o.textContent=m.display||m.name||m.id;
@@ -1043,13 +1043,13 @@ async function loadModels(reset=true,autoAll=false){
   const moreBtn=document.getElementById('load-more-btn');
   const prog=document.getElementById('load-progress');
   btn.disabled=true;allBtn.disabled=true;moreBtn.disabled=true;
-  if(autoAll){allBtn.textContent='⏳ Loading…';prog.style.width='5%';prog.classList.add('show');}
-  else{btn.textContent='⏳';}
+  if(autoAll){allBtn.textContent='Ã¢ÂÂ³ LoadingÃ¢â¬Â¦';prog.style.width='5%';prog.classList.add('show');}
+  else{btn.textContent='Ã¢ÂÂ³';}
   try{
     if(currentProvider==='anthropic'){
       allModels=PROVIDER_DEFAULTS.anthropic.map(id=>({id,name:id,display:id}));
       renderModelDropdown(allModels);document.getElementById('model-count').textContent=allModels.length+' models';
-      document.getElementById('model-search').style.display='block';addMsg('system','✅ Anthropic models listed.');return;
+      document.getElementById('model-search').style.display='block';addMsg('system','Ã¢Åâ¦ Anthropic models listed.');return;
     }
     if(currentProvider==='venice'){
       if(reset)allModels=[];
@@ -1060,7 +1060,7 @@ async function loadModels(reset=true,autoAll=false){
         }catch(_){}
       }
       renderModelDropdown(allModels);document.getElementById('model-count').textContent=allModels.length+' models';
-      document.getElementById('model-search').style.display='block';addMsg('system','✅ '+allModels.length+' Venice models.');return;
+      document.getElementById('model-search').style.display='block';addMsg('system','Ã¢Åâ¦ '+allModels.length+' Venice models.');return;
     }
     if(currentProvider==='huggingface'){
       if(reset)allModels=[];
@@ -1091,7 +1091,7 @@ async function loadModels(reset=true,autoAll=false){
           renderModelDropdown(allModels);
           document.getElementById('model-count').textContent=allModels.length+' Hugging Face chat models';
           document.getElementById('model-search').style.display='block';
-          addMsg('system','✅ '+allModels.length+' Hugging Face models loaded.');
+          addMsg('system','Ã¢Åâ¦ '+allModels.length+' Hugging Face models loaded.');
           return;
         }
       }catch(e){
@@ -1100,7 +1100,7 @@ async function loadModels(reset=true,autoAll=false){
         renderModelDropdown(allModels);
         document.getElementById('model-count').textContent=allModels.length+' Hugging Face (defaults)';
         document.getElementById('model-search').style.display='block';
-        addMsg('system','✅ '+allModels.length+' Hugging Face default models.');
+        addMsg('system','Ã¢Åâ¦ '+allModels.length+' Hugging Face default models.');
         return;
       }
     }
@@ -1124,10 +1124,10 @@ async function loadModels(reset=true,autoAll=false){
         let cat='standard';
         const isNsfw=idLow.includes('abliterated')||idLow.includes('uncensored')||idLow.includes('dolphin')||
           idLow.includes('nsfw')||m.training==='uncensored'||m.training==='abliterated';
-        if(isNsfw){tags.push('🔞');cat='priority';}
+        if(isNsfw){tags.push('Ã°Å¸âÅ¾');cat='priority';}
         const isVision=idLow.includes('vision')||idLow.includes('-vl')||idLow.includes('llava')||
           (m.modalities&&(m.modalities.includes('image')||m.modalities.includes('vision')));
-        if(isVision&&cat==='standard'){tags.push('🖼️');cat='vision';}
+        if(isVision&&cat==='standard'){tags.push('Ã°Å¸âÂ¼Ã¯Â¸Â');cat='vision';}
         return{id,name,display:tags.length?'['+tags.join('')+'] '+name:name,_cat:cat};
       }).filter(m=>m.id);
       const existIds=new Set(allModels.map(m=>m.id));
@@ -1136,22 +1136,22 @@ async function loadModels(reset=true,autoAll=false){
       const ord={priority:0,vision:1,standard:2};
       allModels.sort((a,b)=>(ord[a._cat]??2)-(ord[b._cat]??2));
       modelHasMore=newModels.length===perPage;pages++;modelPage++;
-      document.getElementById('model-count').textContent=allModels.length+' models'+(modelHasMore?' (page '+pages+'…)':' ✅');
+      document.getElementById('model-count').textContent=allModels.length+' models'+(modelHasMore?' (page '+pages+'Ã¢â¬Â¦)':' Ã¢Åâ¦');
       renderModelDropdown(allModels);
       if(autoAll){prog.style.width=Math.min(95,Math.round(pages/50*100))+'%';}
     }while(autoAll&&modelHasMore);
     document.getElementById('model-search').style.display='block';
-    document.getElementById('model-count').textContent=allModels.length+' models'+(modelHasMore?' - more available':'  ✅');
+    document.getElementById('model-count').textContent=allModels.length+' models'+(modelHasMore?' Ã¢â¬â more available':'  Ã¢Åâ¦');
     moreBtn.classList.toggle('show',modelHasMore);
     if(autoAll){prog.style.width='100%';setTimeout(()=>{prog.classList.remove('show');prog.style.width='0%';},800);}
-    if(reset)addMsg('system','✅ '+allModels.length+' models from '+currentProvider);
-  }catch(e){addMsg('system','❌ Model load error: '+e.message);}
-  finally{btn.disabled=false;allBtn.disabled=false;moreBtn.disabled=false;btn.textContent='⚡ Load';allBtn.textContent='🔄 All';}
+    if(reset)addMsg('system','Ã¢Åâ¦ '+allModels.length+' models from '+currentProvider);
+  }catch(e){addMsg('system','Ã¢ÂÅ Model load error: '+e.message);}
+  finally{btn.disabled=false;allBtn.disabled=false;moreBtn.disabled=false;btn.textContent='Ã¢Å¡Â¡ Load';allBtn.textContent='Ã°Å¸ââ All';}
 }
 
-/* ════════════════════════════════════════════════════════════════════════════════════════
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
    TABS
-════════════════════════════════════════════════════════════════════════════════════════ */
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 function switchTab(id){
   document.querySelectorAll('.tab').forEach((t,i)=>{
     const ids=['chat','image','edit','combine','video','universal','settings'];
@@ -1163,9 +1163,9 @@ function switchTab(id){
   if(id==='video'){const s=document.getElementById('atlas-video-section');if(s)s.style.display=currentProvider==='atlascloud'?'block':'none';}
 }
 
-/* ════════════════════════════════════════════════════════════════════════════════════════
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
    SETTINGS
-════════════════════════════════════════════════════════════════════════════════════════ */
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 function toggleSetting(key){
   settings[key]=!settings[key];
   document.getElementById('toggle-'+key).classList.toggle('on',settings[key]);
@@ -1175,9 +1175,9 @@ function updateHistoryInfo(){document.getElementById('history-info').textContent
 document.getElementById('system-prompt-input').addEventListener('input',function(){try{localStorage.setItem('ai-pro-sysprompt',this.value);}catch(_){}});
 document.getElementById('max-tokens-select').addEventListener('change',function(){try{localStorage.setItem('ai-pro-maxtokens',this.value);}catch(_){}});
 
-/* ════════════════════════════════════════════════════════════════════════════════════════
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
    SQLITE
-════════════════════════════════════════════════════════════════════════════════════════ */
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 function openSqliteDb(arrayBuffer,filename){
   currentDbName=filename;
   document.getElementById('sqlite-db-name').textContent=filename;
@@ -1211,11 +1211,11 @@ function openSqliteDb(arrayBuffer,filename){
       attachedFileContent={type:'text',text:schema.slice(0,50000),name:filename};
     }else{
       document.getElementById('sqlite-table-data').innerHTML='<div style="color:var(--text3);padding:8px;font-size:12px">No tables found.</div>';
-      attachedFileContent={type:'text',text:'[SQLite: '+filename+' - empty]',name:filename};
+      attachedFileContent={type:'text',text:'[SQLite: '+filename+' Ã¢â¬â empty]',name:filename};
     }
-    setAttachmentStatus('✅ '+tables.length+' tables loaded','ok');
-    showAttachmentArea(filename,'SQLite database • '+tables.length+' tables','🗄');
-  }catch(e){setAttachmentStatus('❌ '+e.message,'err');}
+    setAttachmentStatus('Ã¢Åâ¦ '+tables.length+' tables loaded','ok');
+    showAttachmentArea(filename,'SQLite database Ã¢â¬Â¢ '+tables.length+' tables','Ã°Å¸ââ');
+  }catch(e){setAttachmentStatus('Ã¢ÂÅ '+e.message,'err');}
 }
 function loadSqliteTable(t){
   if(!currentDb)return;
@@ -1244,33 +1244,33 @@ function closeSqlite(){document.getElementById('sqlite-viewer').classList.remove
 function closePlist(){document.getElementById('plist-viewer').classList.remove('show');}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 
-/* ════════════════════════════════════════════════════════════════════════════════════════
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
    PLIST
-════════════════════════════════════════════════════════════════════════════════════════ */
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 function openPlistBinary(ab,filename){
   document.getElementById('sqlite-viewer').classList.remove('show');
   document.getElementById('plist-viewer').classList.add('show');
   document.getElementById('plist-file-name').textContent=filename;
   try{
     const parsed=BPlistParser.parse(ab);const pretty=JSON.stringify(parsed,null,2);
-    document.getElementById('plist-content').textContent=pretty.slice(0,10000)+(pretty.length>10000?'\n…truncated':'');
+    document.getElementById('plist-content').textContent=pretty.slice(0,10000)+(pretty.length>10000?'\nÃ¢â¬Â¦truncated':'');
     attachedFileContent={type:'text',text:'[Binary plist: '+filename+']\n\n'+pretty.slice(0,50000),name:filename};
-    showAttachmentArea(filename,'Binary plist • '+Object.keys(parsed||{}).length+' keys','📋');
-    setAttachmentStatus('✅ Decoded','ok');
-  }catch(e){document.getElementById('plist-content').textContent='Parse error: '+e.message;setAttachmentStatus('❌ Parse error','err');}
+    showAttachmentArea(filename,'Binary plist Ã¢â¬Â¢ '+Object.keys(parsed||{}).length+' keys','Ã°Å¸ââ¹');
+    setAttachmentStatus('Ã¢Åâ¦ Decoded','ok');
+  }catch(e){document.getElementById('plist-content').textContent='Parse error: '+e.message;setAttachmentStatus('Ã¢ÂÅ Parse error','err');}
 }
 function openPlistXml(text,filename){
   document.getElementById('sqlite-viewer').classList.remove('show');
   document.getElementById('plist-viewer').classList.add('show');
   document.getElementById('plist-file-name').textContent=filename;
-  document.getElementById('plist-content').textContent=text.slice(0,10000)+(text.length>10000?'\n…truncated':'');
+  document.getElementById('plist-content').textContent=text.slice(0,10000)+(text.length>10000?'\nÃ¢â¬Â¦truncated':'');
   attachedFileContent={type:'text',text:'[XML plist: '+filename+']\n\n'+text.slice(0,50000),name:filename};
-  showAttachmentArea(filename,'XML plist','📋');setAttachmentStatus('✅ Loaded','ok');
+  showAttachmentArea(filename,'XML plist','Ã°Å¸ââ¹');setAttachmentStatus('Ã¢Åâ¦ Loaded','ok');
 }
 
-/* ════════════════════════════════════════════════════════════════════════════════════════
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
    FILE HANDLING
-════════════════════════════════════════════════════════════════════════════════════════ */
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 function getMime(ext){return{jpg:'image/jpeg',jpeg:'image/jpeg',png:'image/png',gif:'image/gif',webp:'image/webp',heic:'image/heic',heif:'image/heif',avif:'image/avif',bmp:'image/bmp',tiff:'image/tiff',mp4:'video/mp4',mov:'video/quicktime',avi:'video/x-msvideo',mkv:'video/x-matroska',webm:'video/webm',m4v:'video/mp4',mp3:'audio/mpeg',wav:'audio/wav',aac:'audio/aac',m4a:'audio/mp4',flac:'audio/flac',ogg:'audio/ogg',db:'application/x-sqlite3',sqlite:'application/x-sqlite3',sqlite3:'application/x-sqlite3',sqlitedb:'application/x-sqlite3',plist:'application/x-plist',json:'application/json',txt:'text/plain',csv:'text/csv',xml:'application/xml',html:'text/html',htm:'text/html',md:'text/markdown',js:'text/javascript',css:'text/css',py:'text/x-python',swift:'text/x-swift',kt:'text/x-kotlin'}[ext]||'application/octet-stream';}
 
 async function handleFile(inp){
@@ -1283,30 +1283,30 @@ async function handleFile(inp){
   try{
     const imgExts=['jpg','jpeg','png','gif','webp','heic','heif','avif','bmp','tiff'];
     if(mime.startsWith('image/')||imgExts.includes(ext)){
-      setAttachmentStatus('⏳ Reading…','loading');
+      setAttachmentStatus('Ã¢ÂÂ³ ReadingÃ¢â¬Â¦','loading');
       const b64=await toBase64(file);
       attachedFileContent={type:'image',data:b64,mime:mime||'image/jpeg',name:fname};
       const img=document.createElement('img');img.src='data:'+attachedFileContent.mime+';base64,'+b64;
       img.style.cssText='max-height:120px;border-radius:8px;display:block';
       document.getElementById('attachment-preview').appendChild(img);
-      showAttachmentArea(fname,formatSize(file.size)+' · '+ext.toUpperCase(),'🖼');setAttachmentStatus('✅ Ready','ok');return;
+      showAttachmentArea(fname,formatSize(file.size)+' ÃÂ· '+ext.toUpperCase(),'Ã°Å¸âÂ¼');setAttachmentStatus('Ã¢Åâ¦ Ready','ok');return;
     }
     if(mime.startsWith('video/')||['mp4','mov','avi','mkv','webm','m4v'].includes(ext)){
       const vid=document.createElement('video');vid.src=URL.createObjectURL(file);vid.controls=true;vid.style.cssText='max-height:100px;border-radius:8px;width:100%;display:block';
       document.getElementById('attachment-preview').appendChild(vid);
       attachedFileContent={type:'video',name:fname,mime:mime,size:file.size};
-      showAttachmentArea(fname,formatSize(file.size)+' · '+ext.toUpperCase(),'🎬');setAttachmentStatus('✅ Video attached','ok');return;
+      showAttachmentArea(fname,formatSize(file.size)+' ÃÂ· '+ext.toUpperCase(),'Ã°Å¸Å½Â¬');setAttachmentStatus('Ã¢Åâ¦ Video attached','ok');return;
     }
     if(mime.startsWith('audio/')||['mp3','wav','aac','m4a','flac','ogg'].includes(ext)){
       const aud=document.createElement('audio');aud.src=URL.createObjectURL(file);aud.controls=true;aud.style.cssText='width:100%;margin-top:6px';
       document.getElementById('attachment-preview').appendChild(aud);
       attachedFileContent={type:'audio',name:fname,mime:mime,size:file.size};
-      showAttachmentArea(fname,formatSize(file.size)+' · '+ext.toUpperCase(),'🎵');setAttachmentStatus('✅ Audio attached','ok');return;
+      showAttachmentArea(fname,formatSize(file.size)+' ÃÂ· '+ext.toUpperCase(),'Ã°Å¸Å½Âµ');setAttachmentStatus('Ã¢Åâ¦ Audio attached','ok');return;
     }
     const arrayBuffer=await readAsArrayBuffer(file);const bytes=new Uint8Array(arrayBuffer);
     const isSQLite=bytes.length>16&&bytes[0]===0x53&&bytes[1]===0x51&&bytes[2]===0x4c&&bytes[3]===0x69;
     if(isSQLite||['sqlite','db','sqlite3','sqlitedb'].includes(ext)){
-      setAttachmentStatus('⏳ Loading SQLite…','loading');showAttachmentArea(fname,'Loading database…','🗄');
+      setAttachmentStatus('Ã¢ÂÂ³ Loading SQLiteÃ¢â¬Â¦','loading');showAttachmentArea(fname,'Loading databaseÃ¢â¬Â¦','Ã°Å¸ââ');
       ensureSqlJs(()=>openSqliteDb(arrayBuffer,fname));return;
     }
     const isBPlist=bytes.length>6&&bytes[0]===0x62&&bytes[1]===0x70&&bytes[2]===0x6c&&bytes[3]===0x69&&bytes[4]===0x73&&bytes[5]===0x74;
@@ -1321,36 +1321,36 @@ async function handleFile(inp){
       for(let i=0;i<Math.min(bytes.length,65536);i++){const c=bytes[i];if(c>=32&&c<127){str+=String.fromCharCode(c);}else{if(str.length>4){readable+=str+'\n';}str='';}}
       if(str.length>4)readable+=str;
       attachedFileContent={type:'text',text:readable.slice(0,50000),name:fname};
-      const pre=document.createElement('pre');pre.textContent=readable.slice(0,500)+(readable.length>500?'\n…':'');
+      const pre=document.createElement('pre');pre.textContent=readable.slice(0,500)+(readable.length>500?'\nÃ¢â¬Â¦':'');
       document.getElementById('attachment-preview').appendChild(pre);
-      showAttachmentArea(fname,'iPhone backup • '+ext.toUpperCase(),'📱');setAttachmentStatus('✅ Strings extracted','ok');return;
+      showAttachmentArea(fname,'iPhone backup Ã¢â¬Â¢ '+ext.toUpperCase(),'Ã°Å¸âÂ±');setAttachmentStatus('Ã¢Åâ¦ Strings extracted','ok');return;
     }
     if(ext==='json'){
       try{
         const pretty=JSON.stringify(JSON.parse(text),null,2);attachedFileContent={type:'text',text:pretty.slice(0,50000),name:fname};
-        const pre=document.createElement('pre');pre.textContent=pretty.slice(0,500)+(pretty.length>500?'\n…':'');
+        const pre=document.createElement('pre');pre.textContent=pretty.slice(0,500)+(pretty.length>500?'\nÃ¢â¬Â¦':'');
         document.getElementById('attachment-preview').appendChild(pre);
-        showAttachmentArea(fname,formatSize(file.size)+' · JSON','{}');setAttachmentStatus('✅ JSON parsed','ok');
-      }catch(_){attachedFileContent={type:'text',text:text.slice(0,50000),name:fname};showAttachmentArea(fname,formatSize(file.size)+' · JSON (raw)','📄');setAttachmentStatus('✅ Loaded','ok');}
+        showAttachmentArea(fname,formatSize(file.size)+' ÃÂ· JSON','{}');setAttachmentStatus('Ã¢Åâ¦ JSON parsed','ok');
+      }catch(_){attachedFileContent={type:'text',text:text.slice(0,50000),name:fname};showAttachmentArea(fname,formatSize(file.size)+' ÃÂ· JSON (raw)','Ã°Å¸ââ');setAttachmentStatus('Ã¢Åâ¦ Loaded','ok');}
       return;
     }
     if(ext==='csv'){
-      const lines=text.split('\n').slice(0,5);const pre=document.createElement('pre');pre.textContent=lines.join('\n')+(text.split('\n').length>5?'\n…':'');
+      const lines=text.split('\n').slice(0,5);const pre=document.createElement('pre');pre.textContent=lines.join('\n')+(text.split('\n').length>5?'\nÃ¢â¬Â¦':'');
       document.getElementById('attachment-preview').appendChild(pre);attachedFileContent={type:'text',text:text.slice(0,50000),name:fname};
-      showAttachmentArea(fname,formatSize(file.size)+' · CSV · '+text.split('\n').length+' rows','📊');setAttachmentStatus('✅ CSV loaded','ok');return;
+      showAttachmentArea(fname,formatSize(file.size)+' ÃÂ· CSV ÃÂ· '+text.split('\n').length+' rows','Ã°Å¸âÅ ');setAttachmentStatus('Ã¢Åâ¦ CSV loaded','ok');return;
     }
     const isText=mime.startsWith('text/')||['txt','md','html','htm','xml','js','ts','css','py','java','swift','kt','rb','go','rs','sh','bat','json','yaml','yml','toml','ini','cfg','log'].includes(ext);
     if(isText||text.replace(/\s/g,'').length>0){
       attachedFileContent={type:'text',text:text.slice(0,50000),name:fname};
-      const pre=document.createElement('pre');pre.textContent=text.slice(0,400)+(text.length>400?'\n…':'');
+      const pre=document.createElement('pre');pre.textContent=text.slice(0,400)+(text.length>400?'\nÃ¢â¬Â¦':'');
       document.getElementById('attachment-preview').appendChild(pre);
-      showAttachmentArea(fname,formatSize(file.size)+' · '+ext.toUpperCase(),'📄');setAttachmentStatus('✅ File loaded','ok');return;
+      showAttachmentArea(fname,formatSize(file.size)+' ÃÂ· '+ext.toUpperCase(),'Ã°Å¸ââ');setAttachmentStatus('Ã¢Åâ¦ File loaded','ok');return;
     }
     let strings='[Binary: '+fname+']\n\nStrings:\n\n';let ss='';
     for(let i=0;i<Math.min(bytes.length,65536);i++){const c=bytes[i];if(c>=32&&c<127){ss+=String.fromCharCode(c);}else{if(ss.length>5){strings+=ss+'\n';}ss='';}}
     attachedFileContent={type:'text',text:strings.slice(0,50000),name:fname};
-    showAttachmentArea(fname,formatSize(file.size)+' · Binary','🔲');setAttachmentStatus('✅ Strings extracted','ok');
-  }catch(e){setAttachmentStatus('❌ '+e.message,'err');showAttachmentArea(fname,'Error reading file','⚠️');}
+    showAttachmentArea(fname,formatSize(file.size)+' ÃÂ· Binary','Ã°Å¸âÂ²');setAttachmentStatus('Ã¢Åâ¦ Strings extracted','ok');
+  }catch(e){setAttachmentStatus('Ã¢ÂÅ '+e.message,'err');showAttachmentArea(fname,'Error reading file','Ã¢Å¡Â Ã¯Â¸Â');}
 }
 
 function showAttachmentArea(name,meta,icon){
@@ -1375,9 +1375,9 @@ function onDragOver(e){e.preventDefault();document.getElementById('input-drop-zo
 function onDragLeave(e){document.getElementById('input-drop-zone').classList.remove('drag-over');}
 function onDrop(e){e.preventDefault();document.getElementById('input-drop-zone').classList.remove('drag-over');const file=e.dataTransfer.files[0];if(file)handleFile(file);}
 
-/* ════════════════════════════════════════════════════════════════════════════════════════
-   CHAT - WITH STREAMING
-════════════════════════════════════════════════════════════════════════════════════════ */
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
+   CHAT Ã¢â¬â WITH STREAMING
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 function addMsg(role,text){
   const div=document.createElement('div');div.className='msg '+role;
   if(role==='ai'&&text==='__thinking__'){
@@ -1405,7 +1405,7 @@ function renderMarkdown(el){
     .replace(/^### (.+)$/gm,'<strong style="font-size:13px;color:var(--accent-light)">$1</strong>')
     .replace(/^## (.+)$/gm,'<strong style="font-size:14px;color:var(--accent-light)">$1</strong>')
     .replace(/^# (.+)$/gm,'<strong style="font-size:15px;color:var(--accent-light)">$1</strong>')
-    .replace(/^[•\-\*] (.+)$/gm,'&bull; $1')
+    .replace(/^[Ã¢â¬Â¢\-\*] (.+)$/gm,'&bull; $1')
     .replace(/\n/g,'<br>');
   el.innerHTML=html;
 }
@@ -1419,7 +1419,7 @@ async function sendChat(){
   const key=getKey();if(!key){showToast('Save your API key first','err');return;}
   const model=document.getElementById('model-select').value;if(!model){showToast('Select a model first','err');return;}
   let userDisplay=text;
-  if(attachedFileContent)userDisplay=(text||'Please analyse this file:')+'\n\n📎 '+attachedFileContent.name;
+  if(attachedFileContent)userDisplay=(text||'Please analyse this file:')+'\n\nÃ°Å¸âÅ½ '+attachedFileContent.name;
   addMsg('user',userDisplay);
   inp.value='';inp.style.height='auto';document.getElementById('char-count').textContent='';
   const btn=document.getElementById('send-btn');btn.disabled=true;
@@ -1459,18 +1459,15 @@ async function sendChat(){
     clearFile();
   }catch(e){
     let msg = e.message;
-    // Provide a clearer error message for HF CORS/Loading issues
-    if(currentProvider === 'huggingface' && (msg.includes('Failed to fetch') || msg.includes('CORS') || msg.includes('NetworkError'))) {
-       msg = 'Model is loading (Cold Start) or requires PRO. Please wait ~30s and try again, or select a different model. (CORS blocked the exact loading status).';
-    } else if (msg.includes('Failed to fetch')) {
-        msg += ' (CORS blocked, network error, or invalid URL)';
+    if(currentProvider === 'huggingface' && msg.includes('Failed to fetch')) {
+       msg = 'Network error â model may need PRO or is unavailable. Try HuggingFaceH4/zephyr-7b-beta (free).';
     }
-    thinkingDiv.className='msg ai';thinkingDiv.textContent='❌ '+msg;
+    thinkingDiv.className='msg ai';thinkingDiv.textContent='Ã¢ÂÅ '+msg;
     thinkingDiv.style.background='var(--red-bg)';thinkingDiv.style.border='1px solid rgba(239,68,68,.2)';
   }finally{btn.disabled=false;}
 }
 
-/* ── STREAMING CHAT (OpenAI-compatible SSE) ── */
+/* Ã¢ââ¬Ã¢ââ¬ STREAMING CHAT (OpenAI-compatible SSE) Ã¢ââ¬Ã¢ââ¬ */
 async function chatCompletionStream(key,model,messages,systemPrompt,maxTokens,targetDiv){
   window.__lastTruncated=false;
   const base=currentProvider==='custom'?(savedKeys.__customBase||''):PROVIDER_BASES[currentProvider];
@@ -1480,51 +1477,40 @@ async function chatCompletionStream(key,model,messages,systemPrompt,maxTokens,ta
   streamAbortCtrl=new AbortController();
   
   let url=base+'/chat/completions';
-  
-  // HUGGING FACE SPECIFIC ROUTING & RETRY LOGIC
+
+  // HUGGING FACE: use global router â it has correct CORS headers and auto-routes to loaded models
   if(currentProvider==='huggingface'){
-    url='https://api-inference.huggingface.co/models/'+model+'/v1/chat/completions';
-    
-    // Attempt the request
-    try {
-        const r=await fetch(url,{
-            method:'POST',signal:streamAbortCtrl.signal,
-            headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
-            body:JSON.stringify({model,messages:msgs,max_tokens:maxTokens,stream:true})
-        });
-        
-        if(!r.ok){
-            // If it's a 503, it's almost certainly a cold start.
-            if(r.status === 503) {
-                 const errJson = await r.json().catch(()=>({}));
-                 const waitTime = errJson.estimated_time || 20;
-                 throw new Error(`Model warming up. Try again in ~${Math.ceil(waitTime)} seconds.`);
-            }
-            // For other non-200s
-            const e=await r.json().catch(()=>({}));
-            throw new Error(e.error?.message||'HTTP '+r.status);
-        }
-        
-        return await processStreamReader(r.body.getReader(), targetDiv);
-        
-    } catch(err) {
-        // If the fetch completely fails (TypeError: Failed to fetch), it's likely CORS blocking
-        // the 503 response from HF. We throw a specific error to be caught by sendChat.
-        if(err.name === 'TypeError' && err.message.includes('fetch')) {
-             throw new Error("Failed to fetch. (Model likely loading/cold-starting, try again in 30s)");
-        }
-        throw err;
-    }
+    url='https://api-inference.huggingface.co/v1/chat/completions';
   }
 
-  // STANDARD ROUTING FOR OTHER PROVIDERS
-  const r=await fetch(url,{
-    method:'POST',signal:streamAbortCtrl.signal,
-    headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
-    body:JSON.stringify({model,messages:msgs,max_tokens:maxTokens,stream:true})
-  });
-  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+r.status);}
-  return await processStreamReader(r.body.getReader(), targetDiv);
+  // Retry loop for HF cold starts (up to 3 attempts with backoff)
+  const maxAttempts = currentProvider==='huggingface' ? 3 : 1;
+  for(let attempt=1; attempt<=maxAttempts; attempt++){
+    let r;
+    try{
+      r=await fetch(url,{
+        method:'POST',signal:streamAbortCtrl.signal,
+        headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
+        body:JSON.stringify({model,messages:msgs,max_tokens:maxTokens,stream:true})
+      });
+    }catch(fetchErr){
+      if(attempt<maxAttempts){await new Promise(res=>setTimeout(res,5000*attempt));continue;}
+      if(currentProvider==='huggingface') throw new Error('Network error â model may be loading. Wait 30s and retry, or switch to a smaller model.');
+      throw fetchErr;
+    }
+    if(r.status===503 && currentProvider==='huggingface'){
+      const errJson=await r.json().catch(()=>({}));
+      const waitTime=Math.ceil(errJson.estimated_time||20);
+      if(attempt<maxAttempts){
+        targetDiv.className='msg ai';targetDiv.textContent=`â³ Model warming upâ¦ retrying in ${waitTime}s (attempt ${attempt}/${maxAttempts})`;
+        await new Promise(res=>setTimeout(res,waitTime*1000));
+        continue;
+      }
+      throw new Error(`Model still loading after ${maxAttempts} attempts. Try a smaller model like HuggingFaceH4/zephyr-7b-beta.`);
+    }
+    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||e.error||'HTTP '+r.status);}
+    return await processStreamReader(r.body.getReader(), targetDiv);
+  }
 }
 
 // Extracted stream processor for reuse
@@ -1562,7 +1548,7 @@ async function processStreamReader(reader, targetDiv) {
   return fullText;
 }
 
-/* ── NON-STREAMING (Anthropic + fallback) ── */
+/* Ã¢ââ¬Ã¢ââ¬ NON-STREAMING (Anthropic + fallback) Ã¢ââ¬Ã¢ââ¬ */
 async function chatCompletion(key,model,messages,systemPrompt,maxTokens=8192){
   window.__lastTruncated=false;
   if(currentProvider==='anthropic'){
@@ -1575,42 +1561,39 @@ async function chatCompletion(key,model,messages,systemPrompt,maxTokens=8192){
   
   const base=currentProvider==='custom'?(savedKeys.__customBase||''):PROVIDER_BASES[currentProvider];
   if(!base)throw new Error('No base URL set for Custom provider');
-  
+
+  // HUGGING FACE: global router with correct CORS headers
   let url = base+'/chat/completions';
+  if(currentProvider==='huggingface'){
+    url='https://api-inference.huggingface.co/v1/chat/completions';
+  }
+
   const msgs=systemPrompt?[{role:'system',content:systemPrompt},...messages]:messages;
 
-  // HUGGING FACE SPECIFIC ROUTING & RETRY LOGIC
-  if(currentProvider==='huggingface'){
-      url='https://api-inference.huggingface.co/models/'+model+'/v1/chat/completions';
-      
-      try {
-          const r=await fetch(url,{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,messages:msgs,max_tokens:maxTokens})});
-          
-          if(r.status === 503){
-              const errJson = await r.json().catch(()=>({}));
-              const waitTime = errJson.estimated_time || 20;
-              throw new Error(`Model warming up. Try again in ~${Math.ceil(waitTime)} seconds.`);
-          }
-          
-          const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
-          const choice=d.choices?.[0];window.__lastTruncated=choice?.finish_reason==='length';return choice?.message?.content||'';
-      } catch(err) {
-          if(err.name === 'TypeError' && err.message.includes('fetch')) {
-               throw new Error("Failed to fetch. (Model likely loading/cold-starting, try again in 30s)");
-          }
-          throw err;
-      }
+  const maxAttempts = currentProvider==='huggingface' ? 3 : 1;
+  for(let attempt=1; attempt<=maxAttempts; attempt++){
+    let r;
+    try{
+      r=await fetch(url,{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,messages:msgs,max_tokens:maxTokens})});
+    }catch(fetchErr){
+      if(attempt<maxAttempts){await new Promise(res=>setTimeout(res,5000*attempt));continue;}
+      if(currentProvider==='huggingface') throw new Error('Network error â model may be loading. Wait 30s and retry, or switch to a smaller model.');
+      throw fetchErr;
+    }
+    if(r.status===503 && currentProvider==='huggingface'){
+      const errJson=await r.json().catch(()=>({}));
+      const waitTime=Math.ceil(errJson.estimated_time||20);
+      if(attempt<maxAttempts){await new Promise(res=>setTimeout(res,waitTime*1000));continue;}
+      throw new Error(`Model still loading after ${maxAttempts} attempts (~${waitTime}s estimated). Try HuggingFaceH4/zephyr-7b-beta instead.`);
+    }
+    const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
+    const choice=d.choices?.[0];window.__lastTruncated=choice?.finish_reason==='length';return choice?.message?.content||'';
   }
-  
-  // STANDARD ROUTING FOR OTHER PROVIDERS
-  const r=await fetch(url,{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,messages:msgs,max_tokens:maxTokens})});
-  const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
-  const choice=d.choices?.[0];window.__lastTruncated=choice?.finish_reason==='length';return choice?.message?.content||'';
 }
 
 function appendTruncationNotice(div){
-  const note=document.createElement('div');note.style.cssText='margin-top:8px;font-size:11px;color:var(--text3)';note.textContent='⚠️ Hit the Max Tokens limit - reply may be cut off.';
-  const btn=document.createElement('button');btn.textContent='▶ Continue response';
+  const note=document.createElement('div');note.style.cssText='margin-top:8px;font-size:11px;color:var(--text3)';note.textContent='Ã¢Å¡Â Ã¯Â¸Â Hit the Max Tokens limit Ã¢â¬â reply may be cut off.';
+  const btn=document.createElement('button');btn.textContent='Ã¢âÂ¶ Continue response';
   btn.style.cssText='margin-top:6px;background:var(--bg4);border:1px solid var(--border2);color:var(--accent-light);padding:5px 12px;border-radius:8px;font-size:11px;cursor:pointer';
   btn.onclick=()=>{btn.disabled=true;continueResponse();};div.appendChild(note);div.appendChild(btn);
 }
@@ -1634,11 +1617,7 @@ async function continueResponse(){
     if(chatHistory.length>40)chatHistory=chatHistory.slice(-40);
     if(window.__lastTruncated)appendTruncationNotice(thinkingDiv);
   }catch(e){
-    let msg = e.message;
-    if(currentProvider === 'huggingface' && (msg.includes('Failed to fetch') || msg.includes('CORS'))) {
-       msg = 'Model is loading (Cold Start) or requires PRO. Please wait ~30s and try again. (CORS blocked the loading status).';
-    }
-    thinkingDiv.className='msg ai';thinkingDiv.textContent='❌ '+msg;
+    thinkingDiv.className='msg ai';thinkingDiv.textContent='❌ '+e.message;
   }
 }
 
@@ -1649,9 +1628,9 @@ function exportChat(){
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([lines.join('\n')],{type:'text/plain'}));a.download='chat-export.txt';a.click();
 }
 
-/* ════════════════════════════════════════════════════════════════════════════════════════
-   IMAGE GENERATION - uses img-model-select (own selector)
-════════════════════════════════════════════════════════════════════════════════════════ */
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
+   IMAGE GENERATION Ã¢â¬â uses img-model-select (own selector)
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 function chipSelect(el,group){document.querySelectorAll('#'+group+' .chip').forEach(c=>c.classList.remove('active'));el.classList.add('active');}
 
 async function generateImage(){
@@ -1664,19 +1643,19 @@ async function generateImage(){
   // Use the IMAGE TAB's own model selector
   const selectedModel=document.getElementById('img-model-select').value;
   const statusEl=document.getElementById('img-status');
-  statusEl.innerHTML='<span class="spinner"></span>Generating…';statusEl.className='status-msg info show';
+  statusEl.innerHTML='<span class="spinner"></span>GeneratingÃ¢â¬Â¦';statusEl.className='status-msg info show';
   try{
     if(currentProvider==='featherless'){
-      // Pollinations.ai - free, no key needed
+      // Pollinations.ai Ã¢â¬â free, no key needed
       const[w,h]=size.split('x').map(Number);const pw=w||1024;const ph=h||1024;
       const seed=Math.floor(Math.random()*999999);const enc=encodeURIComponent(prompt);
       const model=selectedModel||'flux';
       const sleep=ms=>new Promise(r=>setTimeout(r,ms));
       async function tryPoll(attempt){
         const url='https://image.pollinations.ai/prompt/'+enc+'?model='+model+'&width='+pw+'&height='+ph+'&nologo=true&safe=false&enhance=false&seed='+(seed+attempt);
-        statusEl.innerHTML='<span class="spinner"></span>Generating via Pollinations.ai ('+model+')…';statusEl.className='status-msg info show';
+        statusEl.innerHTML='<span class="spinner"></span>Generating via Pollinations.ai ('+model+')Ã¢â¬Â¦';statusEl.className='status-msg info show';
         const r=await fetch(url);
-        if(r.status===429){if(attempt<2){await sleep(8000*(attempt+1));return tryPoll(attempt+1);}throw new Error('Rate limited - wait 30s and try again');}
+        if(r.status===429){if(attempt<2){await sleep(8000*(attempt+1));return tryPoll(attempt+1);}throw new Error('Rate limited Ã¢â¬â wait 30s and try again');}
         if(!r.ok)throw new Error('HTTP '+r.status);
         const blob=await r.blob();if(blob.size<1000)throw new Error('Empty image returned');
         return URL.createObjectURL(blob);
@@ -1685,9 +1664,9 @@ async function generateImage(){
       document.getElementById('img-result').innerHTML=
         '<img src="'+objUrl+'" style="max-width:100%;border-radius:10px" alt="Generated"/>'+
         '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">'+
-        '<span style="font-size:12px;color:var(--text3)">Via Pollinations.ai ('+model+') - long-press to save</span>'+
-        '<button onclick="generateImage()" style="background:var(--accent);color:#fff;border:none;padding:3px 12px;border-radius:20px;font-size:11px;cursor:pointer">🔄 Regenerate</button></div>';
-      statusEl.textContent='✅ Image generated';statusEl.className='status-msg ok show';
+        '<span style="font-size:12px;color:var(--text3)">Via Pollinations.ai ('+model+') Ã¢â¬â long-press to save</span>'+
+        '<button onclick="generateImage()" style="background:var(--accent);color:#fff;border:none;padding:3px 12px;border-radius:20px;font-size:11px;cursor:pointer">Ã°Å¸ââ Regenerate</button></div>';
+      statusEl.textContent='Ã¢Åâ¦ Image generated';statusEl.className='status-msg ok show';
       return;
     }
 
@@ -1702,8 +1681,8 @@ async function generateImage(){
       if(!imgSrc)throw new Error('No image in Venice response');
       const src=imgSrc.startsWith('data:')?imgSrc:imgSrc;
       document.getElementById('img-result').innerHTML='<img src="'+src+'" style="max-width:100%;border-radius:10px" alt="Generated"/>'+
-        '<div style="margin-top:8px"><button onclick="generateImage()" style="background:var(--accent);color:#fff;border:none;padding:3px 12px;border-radius:20px;font-size:11px;cursor:pointer">🔄 Regenerate</button></div>';
-      statusEl.textContent='✅ Image generated via Venice.ai';statusEl.className='status-msg ok show';
+        '<div style="margin-top:8px"><button onclick="generateImage()" style="background:var(--accent);color:#fff;border:none;padding:3px 12px;border-radius:20px;font-size:11px;cursor:pointer">Ã°Å¸ââ Regenerate</button></div>';
+      statusEl.textContent='Ã¢Åâ¦ Image generated via Venice.ai';statusEl.className='status-msg ok show';
       return;
     }
 
@@ -1718,8 +1697,8 @@ async function generateImage(){
       if(!imgSrc&&imgData?.b64_json)imgSrc='data:image/png;base64,'+imgData.b64_json;
       if(!imgSrc)throw new Error('No image in Atlas Cloud response');
       document.getElementById('img-result').innerHTML='<img src="'+imgSrc+'" style="max-width:100%;border-radius:10px" alt="Generated"/>'+
-        '<div style="margin-top:8px"><button onclick="generateImage()" style="background:var(--accent);color:#fff;border:none;padding:3px 12px;border-radius:20px;font-size:11px;cursor:pointer">🔄 Regenerate</button></div>';
-      statusEl.textContent='✅ Image generated via Atlas Cloud';statusEl.className='status-msg ok show';
+        '<div style="margin-top:8px"><button onclick="generateImage()" style="background:var(--accent);color:#fff;border:none;padding:3px 12px;border-radius:20px;font-size:11px;cursor:pointer">Ã°Å¸ââ Regenerate</button></div>';
+      statusEl.textContent='Ã¢Åâ¦ Image generated via Atlas Cloud';statusEl.className='status-msg ok show';
       return;
     }
 
@@ -1742,20 +1721,20 @@ async function generateImage(){
             const waitTime = errJson.estimated_time || 20;
             throw new Error(`Model warming up. Try again in ~${Math.ceil(waitTime)} seconds.`);
         }
-        const err=await r.text().catch(()=>'');throw new Error('HTTP '+r.status+(err?' - '+err.slice(0,200):''));
+        const err=await r.text().catch(()=>'');throw new Error('HTTP '+r.status+(err?' Ã¢â¬â '+err.slice(0,200):''));
       }
       const blob=await r.blob();if(blob.size<1000)throw new Error('Empty image returned from Hugging Face');
       const objUrl=URL.createObjectURL(blob);
       document.getElementById('img-result').innerHTML=
         '<img src="'+objUrl+'" style="max-width:100%;border-radius:10px" alt="Generated"/>'+
         '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">'+
-        '<span style="font-size:12px;color:var(--text3)">Via Hugging Face ('+modelId+') - right-click to save</span>'+
-        '<button onclick="generateImage()" style="background:var(--accent);color:#fff;border:none;padding:3px 12px;border-radius:20px;font-size:11px;cursor:pointer">🔄 Regenerate</button></div>';
-      statusEl.textContent='✅ Image generated via Hugging Face';statusEl.className='status-msg ok show';
+        '<span style="font-size:12px;color:var(--text3)">Via Hugging Face ('+modelId+') Ã¢â¬â right-click to save</span>'+
+        '<button onclick="generateImage()" style="background:var(--accent);color:#fff;border:none;padding:3px 12px;border-radius:20px;font-size:11px;cursor:pointer">Ã°Å¸ââ Regenerate</button></div>';
+      statusEl.textContent='Ã¢Åâ¦ Image generated via Hugging Face';statusEl.className='status-msg ok show';
       return;
     }
 
-    // OpenAI / Custom - standard /images/generations
+    // OpenAI / Custom Ã¢â¬â standard /images/generations
     const base=currentProvider==='custom'?(savedKeys.__customBase||''):PROVIDER_BASES[currentProvider];
     const r=await fetch(base+'/images/generations',{
       method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
@@ -1767,8 +1746,8 @@ async function generateImage(){
     if(!imgSrc)throw new Error('No image in response');
     document.getElementById('img-result').innerHTML='<img src="'+imgSrc+'" style="max-width:100%;border-radius:10px" alt="Generated"/>'+
       (imgSrc.startsWith('data:')?'<span style="font-size:12px;color:var(--text3);margin-top:8px;display:block">Right-click to save</span>':
-      '<a href="'+imgSrc+'" target="_blank" style="font-size:12px;color:var(--accent-light);margin-top:8px;display:block">🔗 Open full size</a>');
-    statusEl.textContent='✅ Image generated';statusEl.className='status-msg ok show';
+      '<a href="'+imgSrc+'" target="_blank" style="font-size:12px;color:var(--accent-light);margin-top:8px;display:block">Ã°Å¸ââ Open full size</a>');
+    statusEl.textContent='Ã¢Åâ¦ Image generated';statusEl.className='status-msg ok show';
   }catch(e){
     let msg = e.message;
     if(currentProvider === 'huggingface' && (msg.includes('Failed to fetch') || msg.includes('CORS') || msg.includes('NetworkError'))) {
@@ -1776,14 +1755,14 @@ async function generateImage(){
     } else if (msg.includes('Failed to fetch')) {
         msg += ' (CORS blocked or network error)';
     }
-    statusEl.textContent='❌ '+msg;
+    statusEl.textContent='Ã¢ÂÅ '+msg;
     statusEl.className='status-msg err show';
   }
 }
 
-/* ════════════════════════════════════════════════════════════════════════════════════════
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
    EDIT
-════════════════════════════════════════════════════════════════════════════════════════ */
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 async function loadEditFile(inp){const file=inp.files[0];if(!file)return;document.getElementById('edit-source').value=await readAsText(file);}
 async function loadEditFileDrop(e){const file=e.dataTransfer?.files[0];if(!file)return;document.getElementById('edit-source').value=await readAsText(file);}
 async function runEdit(){
@@ -1791,65 +1770,65 @@ async function runEdit(){
   const model=document.getElementById('model-select').value;if(!model){showToast('Select a model','err');return;}
   const source=document.getElementById('edit-source').value.trim();const instruction=document.getElementById('edit-instruction').value.trim();
   if(!source){showToast('Paste text or upload a file','err');return;}if(!instruction){showToast('Enter an instruction','err');return;}
-  const statusEl=document.getElementById('edit-status');statusEl.innerHTML='<span class="spinner"></span>Processing…';statusEl.className='status-msg info show';
+  const statusEl=document.getElementById('edit-status');statusEl.innerHTML='<span class="spinner"></span>ProcessingÃ¢â¬Â¦';statusEl.className='status-msg info show';
   try{
     const msg='Here is the content to edit:\n\n'+source.slice(0,30000)+'\n\n---\nInstruction: '+instruction+'\n\nApply the instruction and return only the result.';
     const sysp=document.getElementById('system-prompt-input').value.trim();
     const maxTok=parseInt(document.getElementById('max-tokens-select').value)||8192;
     document.getElementById('edit-result').value=await chatCompletion(key,model,[{role:'user',content:msg}],sysp,maxTok);
-    statusEl.textContent='✅ Done';statusEl.className='status-msg ok show';
-  }catch(e){statusEl.textContent='❌ '+e.message;statusEl.className='status-msg err show';}
+    statusEl.textContent='Ã¢Åâ¦ Done';statusEl.className='status-msg ok show';
+  }catch(e){statusEl.textContent='Ã¢ÂÅ '+e.message;statusEl.className='status-msg err show';}
 }
 function copyEdit(){const v=document.getElementById('edit-result').value;if(v)navigator.clipboard.writeText(v).then(()=>showToast('Copied!'));}
 
-/* ════════════════════════════════════════════════════════════════════════════════════════
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
    COMBINE
-════════════════════════════════════════════════════════════════════════════════════════ */
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 async function loadCombineFiles(inp){
-  combineFilesData=[];const list=document.getElementById('combine-file-list');list.textContent='Loading…';
+  combineFilesData=[];const list=document.getElementById('combine-file-list');list.textContent='LoadingÃ¢â¬Â¦';
   for(const file of inp.files){try{combineFilesData.push({name:file.name,text:await readAsText(file)});}catch(e){combineFilesData.push({name:file.name,text:'[Error: '+e.message+']'});}}
-  list.innerHTML=combineFilesData.map(f=>'✅ '+esc(f.name)).join('<br>');
+  list.innerHTML=combineFilesData.map(f=>'Ã¢Åâ¦ '+esc(f.name)).join('<br>');
 }
 async function loadCombineFileDrop(e){
   const files=e.dataTransfer?.files;if(!files||!files.length)return;
   combineFilesData=[];
   for(const file of files){try{combineFilesData.push({name:file.name,text:await readAsText(file)});}catch(err){combineFilesData.push({name:file.name,text:'[Error: '+err.message+']'});}}
-  document.getElementById('combine-file-list').innerHTML=combineFilesData.map(f=>'✅ '+esc(f.name)).join('<br>');
+  document.getElementById('combine-file-list').innerHTML=combineFilesData.map(f=>'Ã¢Åâ¦ '+esc(f.name)).join('<br>');
 }
 async function runCombine(){
   const key=getKey();if(!key){showToast('Save API key first','err');return;}
   const model=document.getElementById('model-select').value;if(!model){showToast('Select a model','err');return;}
   if(!combineFilesData.length){showToast('Upload files first','err');return;}
   const instruction=document.getElementById('combine-instruction').value.trim();if(!instruction){showToast('Enter instructions','err');return;}
-  const statusEl=document.getElementById('combine-status');statusEl.innerHTML='<span class="spinner"></span>Combining…';statusEl.className='status-msg info show';
+  const statusEl=document.getElementById('combine-status');statusEl.innerHTML='<span class="spinner"></span>CombiningÃ¢â¬Â¦';statusEl.className='status-msg info show';
   try{
     let content='Instruction: '+instruction+'\n\n';
     combineFilesData.forEach((f,i)=>{content+='--- File '+(i+1)+': '+f.name+' ---\n'+f.text.slice(0,15000)+'\n\n';});
     const sysp=document.getElementById('system-prompt-input').value.trim();
     const maxTok=parseInt(document.getElementById('max-tokens-select').value)||8192;
     document.getElementById('combine-result').value=await chatCompletion(key,model,[{role:'user',content:content.slice(0,50000)}],sysp,maxTok);
-    statusEl.textContent='✅ Done';statusEl.className='status-msg ok show';
-  }catch(e){statusEl.textContent='❌ '+e.message;statusEl.className='status-msg err show';}
+    statusEl.textContent='Ã¢Åâ¦ Done';statusEl.className='status-msg ok show';
+  }catch(e){statusEl.textContent='Ã¢ÂÅ '+e.message;statusEl.className='status-msg err show';}
 }
 function copyCombine(){const v=document.getElementById('combine-result').value;if(v)navigator.clipboard.writeText(v).then(()=>showToast('Copied!'));}
 
-/* ════════════════════════════════════════════════════════════════════════════════════════
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
    VIDEO
-════════════════════════════════════════════════════════════════════════════════════════ */
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 function loadVideo(inp){const file=inp.files[0];if(!file)return;document.getElementById('video-preview').src=URL.createObjectURL(file);document.getElementById('video-preview-wrap').style.display='block';}
 async function runVideo(){
   const key=getKey();if(!key){showToast('Save API key first','err');return;}
   const model=document.getElementById('model-select').value;if(!model){showToast('Select a model','err');return;}
   const urlVal=document.getElementById('video-url').value.trim();
   const prompt=document.getElementById('video-prompt').value.trim()||'Please describe and analyse this content.';
-  const statusEl=document.getElementById('video-status');statusEl.innerHTML='<span class="spinner"></span>Analysing…';statusEl.className='status-msg info show';
+  const statusEl=document.getElementById('video-status');statusEl.innerHTML='<span class="spinner"></span>AnalysingÃ¢â¬Â¦';statusEl.className='status-msg info show';
   try{
     let msg=prompt;if(urlVal)msg+=' [Video URL: '+urlVal+']';
     const sysp=document.getElementById('system-prompt-input').value.trim();
     const maxTok=parseInt(document.getElementById('max-tokens-select').value)||8192;
     document.getElementById('video-result').value=await chatCompletion(key,model,[{role:'user',content:msg}],sysp,maxTok);
-    statusEl.textContent='✅ Done';statusEl.className='status-msg ok show';
-  }catch(e){statusEl.textContent='❌ '+e.message;statusEl.className='status-msg err show';}
+    statusEl.textContent='Ã¢Åâ¦ Done';statusEl.className='status-msg ok show';
+  }catch(e){statusEl.textContent='Ã¢ÂÅ '+e.message;statusEl.className='status-msg err show';}
 }
 
 async function generateAtlasVideo(){
@@ -1858,35 +1837,35 @@ async function generateAtlasVideo(){
   const model=document.getElementById('atlas-video-model').value||'wan-t2v';
   const duration=parseInt(document.getElementById('atlas-video-duration').value)||6;
   const statusEl=document.getElementById('atlas-video-status');const resultEl=document.getElementById('atlas-video-result');
-  statusEl.innerHTML='<span class="spinner"></span>Submitting video job… (1-3 minutes)';statusEl.className='status-msg info show';
-  resultEl.innerHTML='<div class="result-placeholder"><span class="ph-icon">⏳</span>Generating video…</div>';
+  statusEl.innerHTML='<span class="spinner"></span>Submitting video jobÃ¢â¬Â¦ (1Ã¢â¬â3 minutes)';statusEl.className='status-msg info show';
+  resultEl.innerHTML='<div class="result-placeholder"><span class="ph-icon">Ã¢ÂÂ³</span>Generating videoÃ¢â¬Â¦</div>';
   try{
     const r=await fetch('https://api.atlascloud.ai/v1/videos/generations',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,prompt,duration})});
     const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
     const directUrl=d.url||d.video_url||d.data?.[0]?.url;
     if(directUrl){
-      resultEl.innerHTML='<video src="'+directUrl+'" controls style="max-width:100%;border-radius:10px"></video><div style="margin-top:8px"><a href="'+directUrl+'" target="_blank" style="font-size:12px;color:var(--accent-light)">🔗 Download</a></div>';
-      statusEl.textContent='✅ Video generated!';statusEl.className='status-msg ok show';return;
+      resultEl.innerHTML='<video src="'+directUrl+'" controls style="max-width:100%;border-radius:10px"></video><div style="margin-top:8px"><a href="'+directUrl+'" target="_blank" style="font-size:12px;color:var(--accent-light)">Ã°Å¸ââ Download</a></div>';
+      statusEl.textContent='Ã¢Åâ¦ Video generated!';statusEl.className='status-msg ok show';return;
     }
     const jobId=d.id||d.job_id;if(!jobId)throw new Error('No video URL or job ID returned');
     let videoUrl=null;
     for(let i=0;i<60;i++){
       await new Promise(res=>setTimeout(res,3000));
-      statusEl.innerHTML='<span class="spinner"></span>Generating… '+((i+1)*3)+'s elapsed';
+      statusEl.innerHTML='<span class="spinner"></span>GeneratingÃ¢â¬Â¦ '+((i+1)*3)+'s elapsed';
       const pr=await fetch('https://api.atlascloud.ai/v1/videos/generations/'+jobId,{headers:{Authorization:'Bearer '+key}});
       const pd=await pr.json();
       if(pd.status==='completed'||pd.status==='succeeded'){videoUrl=pd.url||pd.video_url||pd.output?.url||pd.data?.[0]?.url;break;}
       if(pd.status==='failed')throw new Error('Video job failed: '+(pd.error||'unknown'));
     }
     if(!videoUrl)throw new Error('Timed out after 3 minutes');
-    resultEl.innerHTML='<video src="'+videoUrl+'" controls style="max-width:100%;border-radius:10px"></video><div style="margin-top:8px"><a href="'+videoUrl+'" target="_blank" style="font-size:12px;color:var(--accent-light)">🔗 Download</a></div>';
-    statusEl.textContent='✅ Video generated!';statusEl.className='status-msg ok show';
-  }catch(e){statusEl.textContent='❌ '+e.message;statusEl.className='status-msg err show';resultEl.innerHTML='<div class="result-placeholder"><span class="ph-icon">❌</span>Failed</div>';}
+    resultEl.innerHTML='<video src="'+videoUrl+'" controls style="max-width:100%;border-radius:10px"></video><div style="margin-top:8px"><a href="'+videoUrl+'" target="_blank" style="font-size:12px;color:var(--accent-light)">Ã°Å¸ââ Download</a></div>';
+    statusEl.textContent='Ã¢Åâ¦ Video generated!';statusEl.className='status-msg ok show';
+  }catch(e){statusEl.textContent='Ã¢ÂÅ '+e.message;statusEl.className='status-msg err show';resultEl.innerHTML='<div class="result-placeholder"><span class="ph-icon">Ã¢ÂÅ</span>Failed</div>';}
 }
 
-/* ════════════════════════════════════════════════════════════════════════════════════════
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
    UNIVERSAL API MODE
-════════════════════════════════════════════════════════════════════════════════════════ */
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 let uniMode='text';
 let uniInputImageB64=null;
 let uniInputImageMime=null;
@@ -1946,14 +1925,14 @@ async function uniHandleImageUpload(inp){
   try{
     uniInputImageB64=await toBase64(file);
     uniInputImageMime=file.type||'image/png';
-    document.getElementById('uni-img-file-name').textContent='✅ '+file.name+' loaded';
+    document.getElementById('uni-img-file-name').textContent='Ã¢Åâ¦ '+file.name+' loaded';
   }catch(e){showToast('Could not read image: '+e.message,'err');}
 }
 
 function uniApplyQuickFields(){
   let body;
   try{body=JSON.parse(document.getElementById('uni-body').value||'{}');}
-  catch(e){showToast('Body JSON is invalid - fix it before applying fields','err');return;}
+  catch(e){showToast('Body JSON is invalid Ã¢â¬â fix it before applying fields','err');return;}
   const prompt=document.getElementById('uni-img-prompt').value.trim();
   const width=parseInt(document.getElementById('uni-img-width').value)||null;
   const height=parseInt(document.getElementById('uni-img-height').value)||null;
@@ -1968,10 +1947,10 @@ function uniApplyQuickFields(){
     body.init_image=uniInputImageB64;
   }
   document.getElementById('uni-body').value=JSON.stringify(body,null,2);
-  showToast('Applied to body JSON - check the field names match your API');
+  showToast('Applied to body JSON Ã¢â¬â check the field names match your API');
 }
 
-/* ── TEMPLATES ── */
+/* Ã¢ââ¬Ã¢ââ¬ TEMPLATES Ã¢ââ¬Ã¢ââ¬ */
 function uniGetTemplates(){
   try{return JSON.parse(localStorage.getItem('ai-uni-templates')||'{}');}catch(_){return{};}
 }
@@ -1979,7 +1958,7 @@ function uniSaveTemplates(t){try{localStorage.setItem('ai-uni-templates',JSON.st
 function uniRefreshTemplateSelect(){
   const sel=document.getElementById('uni-template-select');if(!sel)return;
   const tpls=uniGetTemplates();
-  sel.innerHTML='<option value="">- saved templates -</option>';
+  sel.innerHTML='<option value="">Ã¢â¬â saved templates Ã¢â¬â</option>';
   Object.keys(tpls).forEach(name=>{const o=document.createElement('option');o.value=name;o.textContent=name;sel.appendChild(o);});
 }
 function uniSaveTemplate(){
@@ -1997,7 +1976,7 @@ function uniSaveTemplate(){
   uniRefreshTemplateSelect();
   document.getElementById('uni-template-select').value=name;
   document.getElementById('uni-template-name').value='';
-  showToast('✅ Template "'+name+'" saved');
+  showToast('Ã¢Åâ¦ Template "'+name+'" saved');
 }
 function uniLoadTemplate(){
   const name=document.getElementById('uni-template-select').value;if(!name)return;
@@ -2007,26 +1986,26 @@ function uniLoadTemplate(){
   document.getElementById('uni-headers').value=t.headers||'';
   document.getElementById('uni-body').value=t.body||'';
   uniSetMode(t.mode||'text');
-  showToast('✅ Template "'+name+'" loaded');
+  showToast('Ã¢Åâ¦ Template "'+name+'" loaded');
 }
 function uniDeleteTemplate(){
   const name=document.getElementById('uni-template-select').value;if(!name)return showToast('Select a template first','err');
   const tpls=uniGetTemplates();delete tpls[name];uniSaveTemplates(tpls);uniRefreshTemplateSelect();
-  showToast('🗑 Template "'+name+'" deleted');
+  showToast('Ã°Å¸ââ Template "'+name+'" deleted');
 }
 
-/* ── RAW RESPONSE TOGGLE ── */
+/* Ã¢ââ¬Ã¢ââ¬ RAW RESPONSE TOGGLE Ã¢ââ¬Ã¢ââ¬ */
 function uniToggleRaw(){
   const wrap=document.getElementById('uni-raw-response-wrap');
   const open=wrap.classList.toggle('show');
-  document.getElementById('uni-raw-toggle').textContent=(open?'▾ Hide raw response':'▸ Show raw response');
+  document.getElementById('uni-raw-toggle').textContent=(open?'Ã¢âÂ¾ Hide raw response':'Ã¢âÂ¸ Show raw response');
 }
 function uniCopyRaw(){
   const v=document.getElementById('uni-raw-response').value;
   if(v)navigator.clipboard.writeText(v).then(()=>showToast('Copied raw response!'));
 }
 
-/* ── helpers to pull text/url/base64 out of arbitrary JSON shapes ── */
+/* Ã¢ââ¬Ã¢ââ¬ helpers to pull text/url/base64 out of arbitrary JSON shapes Ã¢ââ¬Ã¢ââ¬ */
 function uniExtractText(d){
   if(typeof d==='string')return d;
   const paths=[
@@ -2070,7 +2049,7 @@ function uniExtractImage(d){
   return null;
 }
 
-/* ── SEND ── */
+/* Ã¢ââ¬Ã¢ââ¬ SEND Ã¢ââ¬Ã¢ââ¬ */
 async function uniSendRequest(){
   const url=document.getElementById('uni-url').value.trim();
   const method=document.getElementById('uni-method').value;
@@ -2085,19 +2064,19 @@ async function uniSendRequest(){
   let headers={};
   if(headersRaw){
     try{headers=JSON.parse(headersRaw);}
-    catch(e){statusEl.textContent='❌ Headers JSON is invalid: '+e.message;statusEl.className='status-msg err show';return;}
+    catch(e){statusEl.textContent='Ã¢ÂÅ Headers JSON is invalid: '+e.message;statusEl.className='status-msg err show';return;}
   }
 
   let bodyStr=undefined;
   if(method!=='GET'&&bodyRaw){
     try{JSON.parse(bodyRaw);}
-    catch(e){statusEl.textContent='❌ Body JSON is invalid: '+e.message;statusEl.className='status-msg err show';return;}
+    catch(e){statusEl.textContent='Ã¢ÂÅ Body JSON is invalid: '+e.message;statusEl.className='status-msg err show';return;}
     bodyStr=bodyRaw;
     if(!Object.keys(headers).some(h=>h.toLowerCase()==='content-type'))headers['Content-Type']='application/json';
   }
 
-  statusEl.innerHTML='<span class="spinner"></span>Sending…';statusEl.className='status-msg info show';
-  resultEl.innerHTML='<div class="result-placeholder"><span class="ph-icon">⏳</span>Waiting for response…</div>';
+  statusEl.innerHTML='<span class="spinner"></span>SendingÃ¢â¬Â¦';statusEl.className='status-msg info show';
+  resultEl.innerHTML='<div class="result-placeholder"><span class="ph-icon">Ã¢ÂÂ³</span>Waiting for responseÃ¢â¬Â¦</div>';
   rawEl.value='';
 
   try{
@@ -2107,7 +2086,7 @@ async function uniSendRequest(){
     if(!r.ok){
       let errText;
       try{errText=await r.text();}catch(_){errText='';}
-      throw new Error('HTTP '+r.status+' '+r.statusText+(errText?' - '+errText.slice(0,400):''));
+      throw new Error('HTTP '+r.status+' '+r.statusText+(errText?' Ã¢â¬â '+errText.slice(0,400):''));
     }
 
     // Binary image response (e.g. Stability AI with Accept: image/png)
@@ -2116,7 +2095,7 @@ async function uniSendRequest(){
       const objUrl=URL.createObjectURL(blob);
       resultEl.innerHTML='<img src="'+objUrl+'" style="max-width:100%;border-radius:10px" alt="Response image"/>';
       rawEl.value='[Binary image response: '+ct+', '+blob.size+' bytes]';
-      statusEl.textContent='✅ Image received';statusEl.className='status-msg ok show';
+      statusEl.textContent='Ã¢Åâ¦ Image received';statusEl.className='status-msg ok show';
       return;
     }
 
@@ -2128,7 +2107,7 @@ async function uniSendRequest(){
     if(!data){
       // Plain text response
       resultEl.innerHTML='<div style="font-size:13px;color:var(--text);white-space:pre-wrap;text-align:left;width:100%">'+esc(text.slice(0,4000))+'</div>';
-      statusEl.textContent='✅ Response received';statusEl.className='status-msg ok show';
+      statusEl.textContent='Ã¢Åâ¦ Response received';statusEl.className='status-msg ok show';
       return;
     }
     rawEl.value=JSON.stringify(data,null,2);
@@ -2143,11 +2122,11 @@ async function uniSendRequest(){
         }else{
           resultEl.innerHTML='<img src="data:image/png;base64,'+img.value+'" style="max-width:100%;border-radius:10px" alt="Generated"/>';
         }
-        statusEl.textContent='✅ Image generated';statusEl.className='status-msg ok show';
+        statusEl.textContent='Ã¢Åâ¦ Image generated';statusEl.className='status-msg ok show';
         return;
       }
-      resultEl.innerHTML='<div class="result-placeholder">No recognisable image field found in the response - check raw response below.</div>';
-      statusEl.textContent='⚠️ No image found - see raw response';statusEl.className='status-msg info show';
+      resultEl.innerHTML='<div class="result-placeholder">No recognisable image field found in the response Ã¢â¬â check raw response below.</div>';
+      statusEl.textContent='Ã¢Å¡Â Ã¯Â¸Â No image found Ã¢â¬â see raw response';statusEl.className='status-msg info show';
       return;
     }
 
@@ -2155,20 +2134,20 @@ async function uniSendRequest(){
     const txt=uniExtractText(data);
     if(txt){
       resultEl.innerHTML='<div style="font-size:13px;color:var(--text);white-space:pre-wrap;text-align:left;width:100%">'+esc(txt)+'</div>';
-      statusEl.textContent='✅ Response received';statusEl.className='status-msg ok show';
+      statusEl.textContent='Ã¢Åâ¦ Response received';statusEl.className='status-msg ok show';
     }else{
-      resultEl.innerHTML='<div class="result-placeholder">No recognisable text field found - check raw response below.</div>';
-      statusEl.textContent='⚠️ No text found - see raw response';statusEl.className='status-msg info show';
+      resultEl.innerHTML='<div class="result-placeholder">No recognisable text field found Ã¢â¬â check raw response below.</div>';
+      statusEl.textContent='Ã¢Å¡Â Ã¯Â¸Â No text found Ã¢â¬â see raw response';statusEl.className='status-msg info show';
     }
   }catch(e){
-    statusEl.textContent='❌ '+e.message;statusEl.className='status-msg err show';
-    resultEl.innerHTML='<div class="result-placeholder"><span class="ph-icon">❌</span>Request failed</div>';
+    statusEl.textContent='Ã¢ÂÅ '+e.message;statusEl.className='status-msg err show';
+    resultEl.innerHTML='<div class="result-placeholder"><span class="ph-icon">Ã¢ÂÅ</span>Request failed</div>';
   }
 }
 
-/* ════════════════════════════════════════════════════════════════════════════════════════
+/* Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â
    HELPERS
-════════════════════════════════════════════════════════════════════════════════════════ */
+Ã¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢ÂÃ¢â¢Â */
 function toBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});}
 function readAsText(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsText(file,'utf-8');});}
 function readAsArrayBuffer(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsArrayBuffer(file);});}
