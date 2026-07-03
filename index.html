@@ -438,7 +438,7 @@ window.addEventListener('DOMContentLoaded', () => {
       <button id="save-key-btn" onclick="saveKey()">Save</button>
     </div>
     <div id="custom-base-row">
-      <input id="custom-base-input" class="field" placeholder="Base URL e.g. https://your-api.com/v1" oninput="savedKeys.__customBase=this.value"/>
+      <input id="custom-base-input" class="field" placeholder="Base URL e.g. https://your-api.com/v1" oninput="savedKeys.__customBase=this.value;try{localStorage.setItem('ai-pro-keys',JSON.stringify(savedKeys));}catch(_){}"/>
     </div>
     <div id="model-row">
       <select id="model-select"><option value="">— Choose model —</option></select>
@@ -1064,6 +1064,7 @@ function onProviderChange(reset=true){
   document.getElementById('key-saved-badge').style.display=isFreeProvider?'none':(saved?'inline-block':'none');
   document.getElementById('provider-badge').textContent={featherless:'Featherless',venice:'Venice',atlascloud:'Atlas Cloud',openai:'OpenAI',anthropic:'Anthropic',huggingface:'Hugging Face',mistral:'Mistral',groq:'Groq',openrouter:'OpenRouter',deepseek:'DeepSeek',gemini:'Gemini',together:'Together AI',github:'GitHub AI',pollinations:'Pollinations',cerebras:'Cerebras',sambanova:'SambaNova',hyperbolic:'Hyperbolic',custom:'Custom'}[currentProvider]||currentProvider;
   document.getElementById('custom-base-row').style.display=currentProvider==='custom'?'block':'none';
+  if(currentProvider==='custom'){document.getElementById('custom-base-input').value=savedKeys.__customBase||'';}
   if(reset)populateDefaultModels();
   localStorage.setItem('ai-pro-provider',currentProvider);
   loadImgModels();
