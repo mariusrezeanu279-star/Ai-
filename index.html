@@ -425,6 +425,10 @@ window.addEventListener('DOMContentLoaded', () => {
           <option value="openrouter">OpenRouter</option>
           <option value="deepseek">DeepSeek</option>
           <option value="gemini">Google Gemini</option>
+          <option value="pollinations">Pollinations.ai (Free)</option>
+          <option value="cerebras">Cerebras (Free)</option>
+          <option value="sambanova">SambaNova (Free)</option>
+          <option value="hyperbolic">Hyperbolic</option>
           <option value="together">Together AI</option>
           <option value="github">GitHub AI (Models)</option>
           <option value="custom">Custom URL</option>
@@ -835,7 +839,9 @@ window.addEventListener('DOMContentLoaded', () => {
       <div class="settings-group-title">About</div>
       <div style="font-size:12px;color:var(--text3);line-height:1.7">
         <strong style="color:var(--text2)">Ai— Studio</strong> — single-file AI toolkit.<br/>
-        Supports Featherless, Venice, Atlas Cloud, OpenAI (via proxy), Anthropic, Hugging Face, GitHub AI Models, Mistral, Groq, OpenRouter, DeepSeek, Google Gemini, Together AI, and any OpenAI-compatible API.<br/>
+        Supports Featherless, Venice, Atlas Cloud, OpenAI (via proxy), Anthropic, Hugging Face, GitHub AI Models, Mistral, Groq, OpenRouter, DeepSeek, Google Gemini, Together AI, Pollinations.ai, Cerebras, SambaNova, Hyperbolic, and any OpenAI-compatible API.<br/>
+        <strong style="color:#22c55e">Pollinations.ai</strong> — 100% free, no API key required. Use it right away.<br/>
+        <strong style="color:#22c55e">Cerebras &amp; SambaNova</strong> — free-tier accounts available; fast open-source models.<br/>
         <strong style="color:#f97316">OpenAI requires a CORS proxy</strong> (use Universal API tab + your Cloudflare Worker). Hugging Face chat uses the Serverless Inference API.<br/>
         <strong style="color:#3b82f6">GitHub AI Models</strong> — use a GitHub Personal Access Token (PAT) with <em>Models: Read</em> permission from <a href="https://github.com/settings/tokens" target="_blank" style="color:var(--accent-light)">github.com/settings/tokens</a>.<br/>
         All data stays in your browser. No tracking, no accounts.
@@ -920,6 +926,10 @@ const PROVIDER_BASES={
   gemini:'https://generativelanguage.googleapis.com/v1beta/openai',
   together:'https://api.together.xyz/v1',
   github:'https://models.inference.ai.azure.com',
+  pollinations:'https://text.pollinations.ai/openai',
+  cerebras:'https://api.cerebras.ai/v1',
+  sambanova:'https://api.sambanova.ai/v1',
+  hyperbolic:'https://api.hyperbolic.xyz/v1',
   custom:''
 };
 
@@ -937,6 +947,10 @@ const PROVIDER_DEFAULTS={
   gemini:['gemini-2.5-pro','gemini-2.5-flash','gemini-2.0-flash'],
   together:['meta-llama/Llama-3.3-70B-Instruct-Turbo','mistralai/Mixtral-8x7B-Instruct-v0.1','deepseek-ai/DeepSeek-R1'],
   github:['gpt-4o','gpt-4o-mini','o1','o1-mini','o3-mini','o4-mini','DeepSeek-R1','Llama-3.3-70B-Instruct','Llama-3.2-90B-Vision-Instruct','Llama-3.1-8B-Instruct','Phi-4','Phi-4-mini-instruct','mistral-large-2411','mistral-small','Codestral-2501','AI21-Jamba-1.5-Large'],
+  pollinations:['openai-large','openai-reasoning','mistral','llama','qwen-coder','deepseek-r1','searchgpt','unity'],
+  cerebras:['llama-3.3-70b','llama3.1-70b','llama3.1-8b','qwen-3-32b'],
+  sambanova:['Meta-Llama-3.3-70B-Instruct','Meta-Llama-3.1-405B-Instruct','Qwen3-32B','DeepSeek-R1-0528'],
+  hyperbolic:['meta-llama/Llama-3.3-70B-Instruct','deepseek-ai/DeepSeek-R1','Qwen/Qwen2.5-72B-Instruct','meta-llama/Llama-3.1-8B-Instruct'],
   custom:[]
 };
 
@@ -983,6 +997,10 @@ const IMG_MODELS={
   gemini:[],
   together:['black-forest-labs/FLUX.1-schnell-Free'],
   github:[],
+  pollinations:[],
+  cerebras:[],
+  sambanova:[],
+  hyperbolic:[],
   huggingface:[
     {id:'black-forest-labs/FLUX.1-dev', name:'FLUX.1-dev — high quality'},
     {id:'black-forest-labs/FLUX.1-schnell', name:'FLUX.1-schnell — fast'},
@@ -1034,12 +1052,17 @@ function collapseHeader(){
 ╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬ */
 function onProviderChange(reset=true){
   currentProvider=document.getElementById('provider-select').value;
+  if(currentProvider==='pollinations'&&!savedKeys.pollinations){
+    savedKeys.pollinations='free';
+    try{localStorage.setItem('ai-pro-keys',JSON.stringify(savedKeys));}catch(_){}
+  }
   const saved=savedKeys[currentProvider]||'';
   const inp=document.getElementById('api-key-input');
-  inp.value=saved?'”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢':'';
-  inp.placeholder=saved?'Key saved — type to replace':'Paste API key”¦';
-  document.getElementById('key-saved-badge').style.display=saved?'inline-block':'none';
-  document.getElementById('provider-badge').textContent={featherless:'Featherless',venice:'Venice',atlascloud:'Atlas Cloud',openai:'OpenAI',anthropic:'Anthropic',huggingface:'Hugging Face',mistral:'Mistral',groq:'Groq',openrouter:'OpenRouter',deepseek:'DeepSeek',gemini:'Gemini',together:'Together AI',github:'GitHub AI',custom:'Custom'}[currentProvider]||currentProvider;
+  const isFreeProvider=currentProvider==='pollinations';
+  inp.value=isFreeProvider?'':(saved?'"¢"¢"¢"¢"¢"¢"¢"¢"¢"¢"¢"¢"¢"¢"¢"¢':'');
+  inp.placeholder=isFreeProvider?'No API key required — free!':(saved?'Key saved — type to replace':'Paste API key"¦');
+  document.getElementById('key-saved-badge').style.display=isFreeProvider?'none':(saved?'inline-block':'none');
+  document.getElementById('provider-badge').textContent={featherless:'Featherless',venice:'Venice',atlascloud:'Atlas Cloud',openai:'OpenAI',anthropic:'Anthropic',huggingface:'Hugging Face',mistral:'Mistral',groq:'Groq',openrouter:'OpenRouter',deepseek:'DeepSeek',gemini:'Gemini',together:'Together AI',github:'GitHub AI',pollinations:'Pollinations',cerebras:'Cerebras',sambanova:'SambaNova',hyperbolic:'Hyperbolic',custom:'Custom'}[currentProvider]||currentProvider;
   document.getElementById('custom-base-row').style.display=currentProvider==='custom'?'block':'none';
   if(reset)populateDefaultModels();
   localStorage.setItem('ai-pro-provider',currentProvider);
@@ -1124,13 +1147,15 @@ async function loadImgModels(){
   }else if(p==='atlascloud'){
     note.style.color='var(--green-text)';
     note.textContent='✅ Atlas Cloud — fully uncensored NSFW image gen. ~$0.005 NZD/image. Credits never expire.';
-  }else if(['openai','mistral','groq','openrouter','deepseek','gemini','github'].includes(p)){
+  }else if(['openai','mistral','groq','openrouter','deepseek','gemini','github','pollinations','cerebras','sambanova','hyperbolic'].includes(p)){
     note.style.color='var(--text2)';
     note.textContent= p === 'openai'
       ? 'OpenAI DALL·E — standard/HD quality, requires API key with image access'
       : p === 'github'
         ? 'ℹ️ GitHub AI Models (models.inference.ai.azure.com) does not support image generation. Switch to OpenAI, Venice, or Featherless for images.'
-        : 'This provider does not currently support image generation in this app.';
+        : ['pollinations','cerebras','sambanova','hyperbolic'].includes(p)
+          ? 'ℹ️ '+p.charAt(0).toUpperCase()+p.slice(1)+' does not support image generation. Switch to Featherless, Venice, or OpenAI for images.'
+          : 'This provider does not currently support image generation in this app.';
   }else if(p==='together'){
     note.style.color='var(--text2)';
     note.textContent='Together AI — fast open-source models, some image models available.';
@@ -1319,6 +1344,26 @@ async function loadModels(reset=true,autoAll=false){
         addMsg('system','✅ '+allModels.length+' Hugging Face default models.');
         return;
       }
+    }
+    if(currentProvider==='pollinations'){
+      if(reset)allModels=[];
+      try{
+        const r=await fetch('https://text.pollinations.ai/models');
+        if(r.ok){
+          const d=await r.json();
+          const chatModels=Array.isArray(d)?d.filter(m=>!m.type||m.type==='chat'):[];
+          chatModels.forEach(m=>{
+            const id=m.name||m.id;if(!id)return;
+            allModels.push({id,name:id,display:id+(m.description?' — '+m.description.slice(0,60):''),_cat:'standard'});
+          });
+        }
+      }catch(_){}
+      if(!allModels.length)allModels=PROVIDER_DEFAULTS.pollinations.map(id=>({id,name:id,display:id,_cat:'standard'}));
+      renderModelDropdown(allModels);
+      document.getElementById('model-count').textContent=allModels.length+' Pollinations models';
+      document.getElementById('model-search').style.display='block';
+      addMsg('system','✅ '+allModels.length+' Pollinations.ai models (free, no key needed).');
+      return;
     }
     let firstFetch = true;
     const perPage=currentProvider==='featherless'?1000:100;
