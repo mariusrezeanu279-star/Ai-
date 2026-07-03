@@ -420,6 +420,13 @@ window.addEventListener('DOMContentLoaded', () => {
           <option value="openai">OpenAI</option>
           <option value="anthropic">Anthropic</option>
           <option value="huggingface">Hugging Face</option>
+          <option value="mistral">Mistral</option>
+          <option value="groq">Groq</option>
+          <option value="openrouter">OpenRouter</option>
+          <option value="deepseek">DeepSeek</option>
+          <option value="gemini">Google Gemini</option>
+          <option value="together">Together AI</option>
+          <option value="github">GitHub Models</option>
           <option value="custom">Custom URL</option>
         </select>
       </div>
@@ -905,6 +912,13 @@ const PROVIDER_BASES={
   openai:'https://api.openai.com/v1',
   anthropic:'https://api.anthropic.com/v1',
   huggingface:'https://api-inference.huggingface.co',
+  mistral:'https://api.mistral.ai/v1',
+  groq:'https://api.groq.com/openai/v1',
+  openrouter:'https://openrouter.ai/api/v1',
+  deepseek:'https://api.deepseek.com',
+  gemini:'https://generativelanguage.googleapis.com/v1beta/openai',
+  together:'https://api.together.xyz/v1',
+  github:'https://models.inference.ai.azure.com',
   custom:''
 };
 
@@ -915,6 +929,13 @@ const PROVIDER_DEFAULTS={
   openai:['gpt-4o','gpt-4o-mini','gpt-4-turbo','o1-mini','gpt-3.5-turbo'],
   anthropic:['claude-opus-4-6','claude-sonnet-4-6','claude-haiku-4-5-20251001'],
   huggingface:['Qwen/Qwen3-8B','Qwen/Qwen2.5-7B-Instruct','meta-llama/Llama-3.1-8B-Instruct','microsoft/phi-3-mini-4k-instruct'],
+  mistral:['mistral-large-latest','mistral-small-latest','pixtral-large-latest','pixtral-12b-2409'],
+  groq:['llama-3.3-70b-versatile','llama-3.1-8b-instant','mixtral-8x7b-32768','gemma2-9b-it'],
+  openrouter:['google/gemini-2.5-pro','anthropic/claude-3.5-sonnet','meta-llama/llama-3.3-70b-instruct','deepseek/deepseek-r1'],
+  deepseek:['deepseek-chat','deepseek-reasoner'],
+  gemini:['gemini-2.5-pro','gemini-2.5-flash','gemini-2.0-flash'],
+  together:['meta-llama/Llama-3.3-70B-Instruct-Turbo','mistralai/Mixtral-8x7B-Instruct-v0.1','deepseek-ai/DeepSeek-R1'],
+  github:['gpt-4o','o1','DeepSeek-R1','Llama-3.3-70B-Instruct'],
   custom:[]
 };
 
@@ -953,9 +974,14 @@ const IMG_MODELS={
     {id:'dall-e-2',name:'DALL·E 2 — faster/cheaper'},
     {id:'gpt-image-1',name:'GPT Image 1 — latest'},
   ],
-  anthropic:[
-    // Anthropic has no image gen API — note shown instead
-  ],
+  anthropic:[],
+  mistral:[],
+  groq:[],
+  openrouter:[],
+  deepseek:[],
+  gemini:[],
+  together:['black-forest-labs/FLUX.1-schnell-Free'],
+  github:[],
   huggingface:[
     {id:'black-forest-labs/FLUX.1-dev', name:'FLUX.1-dev — high quality'},
     {id:'black-forest-labs/FLUX.1-schnell', name:'FLUX.1-schnell — fast'},
@@ -1012,7 +1038,7 @@ function onProviderChange(reset=true){
   inp.value=saved?'”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢':'';
   inp.placeholder=saved?'Key saved — type to replace':'Paste API key”¦';
   document.getElementById('key-saved-badge').style.display=saved?'inline-block':'none';
-  document.getElementById('provider-badge').textContent={featherless:'Featherless',venice:'Venice',atlascloud:'Atlas Cloud',openai:'OpenAI',anthropic:'Anthropic',huggingface:'Hugging Face',custom:'Custom'}[currentProvider]||currentProvider;
+  document.getElementById('provider-badge').textContent={featherless:'Featherless',venice:'Venice',atlascloud:'Atlas Cloud',openai:'OpenAI',anthropic:'Anthropic',huggingface:'Hugging Face',mistral:'Mistral',groq:'Groq',openrouter:'OpenRouter',deepseek:'DeepSeek',gemini:'Gemini',together:'Together AI',github:'GitHub',custom:'Custom'}[currentProvider]||currentProvider;
   document.getElementById('custom-base-row').style.display=currentProvider==='custom'?'block':'none';
   if(reset)populateDefaultModels();
   localStorage.setItem('ai-pro-provider',currentProvider);
@@ -1097,9 +1123,12 @@ async function loadImgModels(){
   }else if(p==='atlascloud'){
     note.style.color='var(--green-text)';
     note.textContent='✅ Atlas Cloud — fully uncensored NSFW image gen. ~$0.005 NZD/image. Credits never expire.';
-  }else if(p==='openai'){
+  }else if(['openai','mistral','groq','openrouter','deepseek','gemini','github'].includes(p)){
     note.style.color='var(--text2)';
-    note.textContent='OpenAI DALL·E — standard/HD quality, requires API key with image access';
+    note.textContent= p === 'openai' ? 'OpenAI DALL·E — standard/HD quality, requires API key with image access' : 'This provider does not currently support image generation in this app.';
+  }else if(p==='together'){
+    note.style.color='var(--text2)';
+    note.textContent='Together AI — fast open-source models, some image models available.';
   }else if(p==='huggingface'){
     note.style.color='var(--blue-text)';
     note.textContent='🤗 Hugging Face — uses Inference API. Supports Flux, SDXL, and many more. Requires HF token.';
@@ -1249,8 +1278,7 @@ async function loadModels(reset=true,autoAll=false){
         return;
       }
     }
-    if(reset){modelPage=1;allModels=[];}
-    // Featherless: per_page=1000 to get all 43k+ models
+    let firstFetch = true;
     const perPage=currentProvider==='featherless'?1000:100;
     let pages=0;
     do{
@@ -1261,6 +1289,14 @@ async function loadModels(reset=true,autoAll=false){
       const r=await fetchWithRetry(url,{headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'}});
       if(!r.ok)throw new Error('HTTP '+r.status);
       const data=await r.json();
+      
+      // If we got here, the fetch succeeded. Reset the models array if we are starting fresh.
+      if (firstFetch && reset) {
+         allModels = [];
+         modelPage = 1;
+      }
+      firstFetch = false;
+
       const newModels=(data.data||data.models||[]).map(m=>{
         const id=m.id||m.name;
         const name=m.name||m.id;
@@ -1295,7 +1331,17 @@ return{id,name,display:(tags.length?'['+tags.join('')+'] ':'')+name+info,_cat:ca
     moreBtn.classList.toggle('show',modelHasMore);
     if(autoAll){prog.style.width='100%';setTimeout(()=>{prog.classList.remove('show');prog.style.width='0%';},800);}
     if(reset)addMsg('system','✅ '+allModels.length+' models from '+currentProvider);
-  }catch(e){addMsg('system','❌ Model load error: '+e.message);}
+  }catch(e){
+    addMsg('system','❌ Model load error: '+e.message);
+    if(reset && allModels.length === 0) {
+      const defaults = PROVIDER_DEFAULTS[currentProvider];
+      if(defaults) {
+        allModels = defaults.map(id=>({id,name:id,display:id, _cat:'standard'}));
+        renderModelDropdown(allModels);
+        document.getElementById('model-count').textContent=allModels.length+' models (defaults)';
+      }
+    }
+  }
   finally{
     btn.disabled=false;allBtn.disabled=false;moreBtn.disabled=false;btn.textContent='⚡ Load';allBtn.textContent='🔄 All';
     if(allModels.length > 0) {
