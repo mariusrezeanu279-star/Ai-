@@ -37,6 +37,7 @@
 
       check('Core chat function exists', typeof win.sendChat==='function');
       check('Model load function exists', typeof win.loadModels==='function');
+      check('Tab switch function exists', typeof win.switchTab==='function');
       check('File handler exists', typeof win.handleFile==='function');
       check('Universal API sender exists', typeof win.uniSendRequest==='function');
 
@@ -58,6 +59,13 @@
         if(btn) btn.click();
       }
       check('Chat input receives preset text', (doc.getElementById('msg-input')?.value||'').length>0);
+
+      if(typeof win.switchTab === 'function'){
+        win.switchTab('settings');
+        check('Settings panel activates', !!doc.getElementById('panel-settings')?.classList.contains('active'));
+        win.switchTab('image');
+        check('Image panel activates', !!doc.getElementById('panel-image')?.classList.contains('active'));
+      }
 
       log(`\nResult: ${pass}/${total} checks passed.`, pass===total?'pass':'fail');
     });

@@ -1234,8 +1234,6 @@ async function loadModels(reset=true,autoAll=false){
     } catch(e){}
   }
 
-  const key=getKey();
-  if(!key)return showToast('Save your API key first','err');
   loadAllAbort=false;
   const btn=document.getElementById('load-models-btn');
   const allBtn=document.getElementById('load-all-btn');
