@@ -1,1 +1,66 @@
-<h1 style="color: white; background: black; padding: 20px;">Hello World</h1>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Studio Smoke Tests</title>
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#0b0b11;color:#f3f3f7;padding:16px}
+    .pass{color:#86efac}.fail{color:#fca5a5}.muted{color:#94a3b8}
+    pre{background:#111827;border:1px solid #1f2937;border-radius:8px;padding:10px;white-space:pre-wrap}
+    iframe{width:100%;height:520px;border:1px solid #334155;border-radius:8px;background:#000}
+  </style>
+</head>
+<body>
+  <h2>AI Studio critical flow smoke tests</h2>
+  <p class="muted">Runs basic automated checks for chat/model/file/API wiring and enhancement module availability.</p>
+  <iframe id="app" src="./index.html"></iframe>
+  <pre id="log">Running...</pre>
+  <script>
+    const log=(msg,cls='')=>{
+      const el=document.getElementById('log');
+      el.innerHTML += `\n<span class="${cls}">${msg}</span>`;
+    };
+
+    function assert(name,cond){
+      if(cond){ log('✅ '+name,'pass'); return true; }
+      log('❌ '+name,'fail'); return false;
+    }
+
+    document.getElementById('app').addEventListener('load', async ()=>{
+      const win=document.getElementById('app').contentWindow;
+      const doc=win.document;
+      document.getElementById('log').textContent='';
+
+      let pass=0, total=0;
+      const check=(name,cond)=>{ total++; if(assert(name,cond)) pass++; };
+
+      check('Core chat function exists', typeof win.sendChat==='function');
+      check('Model load function exists', typeof win.loadModels==='function');
+      check('File handler exists', typeof win.handleFile==='function');
+      check('Universal API sender exists', typeof win.uniSendRequest==='function');
+
+      check('First-run wizard injected', !!doc.getElementById('setup-wizard'));
+      check('Workspace memory section injected', !!doc.getElementById('workspace-memory'));
+      check('Request metrics widget injected', !!doc.getElementById('request-metrics'));
+      check('Automation chain UI injected', !!doc.getElementById('automation-chain-box'));
+      check('Batch media UI injected', !!doc.getElementById('video-batch-box'));
+
+      // Model defaults + preset controls
+      check('Chat preset UI injected', !!doc.getElementById('chat-preset'));
+      check('Image preset UI injected', !!doc.getElementById('image-preset'));
+
+      // Simulate quick preset apply
+      const preset=doc.getElementById('chat-preset');
+      if(preset){
+        preset.value = preset.options.length>1 ? preset.options[1].value : '';
+        const btn = preset.parentElement.querySelector('[data-apply]');
+        if(btn) btn.click();
+      }
+      check('Chat input receives preset text', (doc.getElementById('msg-input')?.value||'').length>0);
+
+      log(`\nResult: ${pass}/${total} checks passed.`, pass===total?'pass':'fail');
+    });
+  </script>
+</body>
+</html>
