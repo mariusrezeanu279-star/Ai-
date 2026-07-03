@@ -301,15 +301,35 @@ select.field{width:100%;background:var(--bg3);border:1px solid var(--border2);co
 }
 
 </style>
-<link rel="manifest" href="manifest.json" />
+<link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIkFpIFN0dWRpbyIsCiAgInNob3J0X25hbWUiOiAiQWkgU3R1ZGlvIiwKICAic3RhcnRfdXJsIjogIi4iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwNzA3MDkiLAogICJ0aGVtZV9jb2xvciI6ICIjMDcwNzA5IiwKICAiaWNvbnMiOiBbewogICAgInNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWwsPHN2ZyB4bWxucz0lMjJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyUyMiB2aWV3Qm94PSUyMjAgMCAxMDAgMTAwJTIyPjx0ZXh0IHk9JTIyLjllbSUyMiBmb250LXNpemU9JTIyOTAlMjI+4pyoPC90ZXh0Pjwvc3ZnPiIsCiAgICAic2l6ZXMiOiAiNTEyeDUxMiIsCiAgICAidHlwZSI6ICJpbWFnZS9zdmcreG1sIgogIH1dCn0=">
 <meta name="theme-color" content="#070709" />
+
+
 <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js');
+if ('serviceWorker' in navigator) {
+  const swCode = `
+const CACHE_NAME = 'ai-studio-cache-v1';
+self.addEventListener('install', event => {
+  self.skipWaiting();
+});
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request))
+  );
+});
+`;
+  const blob = new Blob([swCode], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(blob);
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(swUrl).catch(err => {
+      console.log('ServiceWorker registration failed: ', err);
     });
-  }
+  });
+}
 </script>
+
+
 </head>
 <body>
 
