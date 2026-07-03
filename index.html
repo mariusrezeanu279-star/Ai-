@@ -6,6 +6,17 @@
 <title>Ai— Studio</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
+
+:root.light {
+  --bg:#fafafa;--bg2:#f0f0f5;--bg3:#e5e5ec;--bg4:#dadae3;--bg5:#cfcfda;
+  --border:#e0e0eb;--border2:#d0d0dc;--border3:#c0c0cd;
+  --text:#11111a;--text2:#44445c;--text3:#77778c;--text4:#9999b0;
+  --accent:#7c3aed;--accent2:#6d28d9;--accent3:#5b21b6;
+  --accent-glow:rgba(124,58,237,0.15);--accent-light:#8b5cf6;
+  --error:#dc2626;--error-bg:rgba(220,38,38,0.1);
+  --success:#16a34a;--success-bg:rgba(22,163,74,0.1);
+}
+
 :root{
   --bg:#070709;--bg2:#0e0e12;--bg3:#16161c;--bg4:#1e1e26;--bg5:#252530;
   --border:#1f1f2b;--border2:#2a2a38;--border3:#363648;
@@ -267,7 +278,58 @@ select.field{width:100%;background:var(--bg3);border:1px solid var(--border2);co
 #uni-raw-response-wrap{display:none}
 #uni-raw-response-wrap.show{display:block}
 .uni-hint{font-size:11px;color:var(--text3);line-height:1.5;margin-top:-6px;margin-bottom:14px}
+
+.skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.skeleton-line {
+  height: 12px;
+  background: var(--bg3);
+  border-radius: 4px;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+.skeleton-line:nth-child(1) { width: 80%; }
+.skeleton-line:nth-child(2) { width: 100%; }
+.skeleton-line:nth-child(3) { width: 60%; }
+@keyframes pulse {
+  0% { opacity: 0.5; }
+  50% { opacity: 1; }
+  100% { opacity: 0.5; }
+}
+
 </style>
+<link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIkFpIFN0dWRpbyIsCiAgInNob3J0X25hbWUiOiAiQWkgU3R1ZGlvIiwKICAic3RhcnRfdXJsIjogIi4iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwNzA3MDkiLAogICJ0aGVtZV9jb2xvciI6ICIjMDcwNzA5IiwKICAiaWNvbnMiOiBbewogICAgInNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWwsPHN2ZyB4bWxucz0lMjJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyUyMiB2aWV3Qm94PSUyMjAgMCAxMDAgMTAwJTIyPjx0ZXh0IHk9JTIyLjllbSUyMiBmb250LXNpemU9JTIyOTAlMjI+4pyoPC90ZXh0Pjwvc3ZnPiIsCiAgICAic2l6ZXMiOiAiNTEyeDUxMiIsCiAgICAidHlwZSI6ICJpbWFnZS9zdmcreG1sIgogIH1dCn0=">
+<meta name="theme-color" content="#070709" />
+
+
+<script>
+if ('serviceWorker' in navigator) {
+  const swCode = `
+const CACHE_NAME = 'ai-studio-cache-v1';
+self.addEventListener('install', event => {
+  self.skipWaiting();
+});
+self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
+  event.respondWith(
+    fetch(event.request).catch(() => caches.match(event.request))
+  );
+});
+`;
+  const blob = new Blob([swCode], { type: 'application/javascript' });
+  const swUrl = URL.createObjectURL(blob);
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register(swUrl).catch(err => {
+      console.log('ServiceWorker registration failed: ', err);
+    });
+  });
+}
+</script>
+
+
 </head>
 <body>
 
@@ -291,6 +353,48 @@ function ensureSqlJs(cb){
   s.onerror=()=>{sqlJsLoading=false;if(banner)banner.textContent='❌ Could not load sql.js';};
   document.head.appendChild(s);
 }
+
+function toggleTheme() {
+  document.documentElement.classList.toggle('light');
+  if(navigator.vibrate) navigator.vibrate(50);
+  localStorage.setItem('theme', document.documentElement.classList.contains('light') ? 'light' : 'dark');
+}
+
+window.addEventListener('click', (e) => {
+  if(e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+    if(navigator.vibrate) navigator.vibrate(20);
+  }
+});
+
+
+window.addEventListener('keydown', (e) => {
+  if((e.ctrlKey || e.metaKey) && e.key === 'f') {
+    const s = document.getElementById('chat-search');
+    if(s && document.getElementById('panel-chat').classList.contains('active')) {
+      e.preventDefault();
+      s.focus();
+    }
+  }
+});
+
+
+// Remember scroll positions
+window.addEventListener('DOMContentLoaded', () => {
+  const chatMsgs = document.getElementById('chat-messages');
+  if(chatMsgs) {
+    chatMsgs.addEventListener('scroll', () => {
+      sessionStorage.setItem('scroll_chat', chatMsgs.scrollTop);
+    }, {passive:true});
+    const saved = sessionStorage.getItem('scroll_chat');
+    if(saved) chatMsgs.scrollTop = parseFloat(saved);
+  }
+});
+
+window.addEventListener('DOMContentLoaded', () => {
+  setTimeout(()=>document.getElementById('msg-input')?.focus(), 100);
+  if(localStorage.getItem('theme') === 'light') document.documentElement.classList.add('light');
+});
+
 </script>
 
 <div id="sqljs-banner"></div>
@@ -303,6 +407,7 @@ function ensureSqlJs(cb){
       <span class="badge provider" id="provider-badge">Featherless</span>
       <span class="badge key-saved" id="key-saved-badge" style="display:none">🏿“ Key saved</span>
     </div>
+    <button id="theme-toggle" onclick="toggleTheme()" style="background:transparent;border:none;color:var(--text2);cursor:pointer;font-size:16px;">🌓</button>
     <button id="header-toggle" onclick="toggleHeader()">Settings ▼</button>
   </div>
   <div id="header-body" class="expanded">
@@ -315,6 +420,13 @@ function ensureSqlJs(cb){
           <option value="openai">OpenAI</option>
           <option value="anthropic">Anthropic</option>
           <option value="huggingface">Hugging Face</option>
+          <option value="mistral">Mistral</option>
+          <option value="groq">Groq</option>
+          <option value="openrouter">OpenRouter</option>
+          <option value="deepseek">DeepSeek</option>
+          <option value="gemini">Google Gemini</option>
+          <option value="together">Together AI</option>
+          <option value="github">GitHub Models</option>
           <option value="custom">Custom URL</option>
         </select>
       </div>
@@ -351,6 +463,9 @@ function ensureSqlJs(cb){
 
 <!-- CHAT -->
 <div id="panel-chat" class="panel active">
+  <div style="padding:4px 10px;background:var(--bg3);border-bottom:1px solid var(--border);">
+    <input type="text" id="chat-search" class="field" style="padding:6px;font-size:12px;" placeholder="🔍 Search chat... (Ctrl+F)" oninput="filterChat(this.value)" />
+  </div>
   <div id="chat-messages">
     <div class="msg system">👋 Save your API key above, load models, then start chatting. Drop any file to analyse it — images, videos, .sqlite, .db, .plist, iPhone backups, and more.</div>
   </div>
@@ -390,6 +505,7 @@ function ensureSqlJs(cb){
     <div id="input-drop-zone" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
       <div id="input-top">
         <textarea id="msg-input" rows="1" placeholder="Message”¦ (Shift+Enter for new line)" oninput="autoResize(this);updateCharCount()" onkeydown="chatKey(event)"></textarea>
+        <div style="font-size:10px;color:var(--text3);margin-left:8px;align-self:center;">Hints: <b>Enter</b> send &bull; <b>Shift+Enter</b> new line &bull; <b>Ctrl+F</b> search</div>
         <div id="input-actions">
           <button id="attach-btn" title="Attach file" onclick="document.getElementById('file-input').click()">📄Ž</button>
           <button id="send-btn" onclick="sendChat()" title="Send (Enter)">
@@ -425,6 +541,14 @@ function ensureSqlJs(cb){
       <div class="section-label">Prompt</div>
       <div class="field-group">
         <textarea class="field" id="img-prompt" rows="3" placeholder="Describe the image you want to create in detail”¦"></textarea>
+      </div>
+      <div class="section-label">Negative Prompt</div>
+      <div class="field-group">
+        <textarea class="field" id="img-negative-prompt" rows="2" placeholder="What to avoid..."></textarea>
+      </div>
+      <div class="section-label">Seed</div>
+      <div class="field-group">
+        <input type="number" class="field" id="img-seed" placeholder="Random by default" />
       </div>
       <div class="section-label">Style</div>
       <div class="chip-row" id="style-chips">
@@ -519,7 +643,7 @@ function ensureSqlJs(cb){
     <div id="atlas-video-section" style="display:none">
       <div class="info-card" style="border-color:var(--green);background:var(--green-bg)">
         <strong style="color:var(--green-text)">🎬 Atlas Cloud Video Generation</strong>
-        <p style="color:var(--green-text);opacity:.8">Generate AI videos from text prompts. wan-t2v (~$0.05 NZD) Â· kling-v1 (~$0.09 NZD). No monthly fee.</p>
+        <p style="color:var(--green-text);opacity:.8">Generate AI videos from text prompts. wan-t2v (~$0.05 NZD) · kling-v1 (~$0.09 NZD). No monthly fee.</p>
       </div>
       <div class="section-label">Video Model</div>
       <select class="field" id="atlas-video-model" style="margin-bottom:10px">
@@ -585,7 +709,7 @@ function ensureSqlJs(cb){
       <div class="chip" onclick="uniLoadExample('mistral')">Mistral text</div>
       <div class="chip" onclick="uniLoadExample('openai-text')">OpenAI text</div>
       <div class="chip" onclick="uniLoadExample('stability')">Stability AI image</div>
-      <div class="chip" onclick="uniLoadExample('dalle')">DALLÂ·E image</div>
+      <div class="chip" onclick="uniLoadExample('dalle')">DALL·E image</div>
       <div class="chip" onclick="uniLoadExample('localsd')">Local Stable Diffusion</div>
       <div class="chip" onclick="uniLoadExample('blank')">Blank</div>
     </div>
@@ -712,7 +836,7 @@ function ensureSqlJs(cb){
       <div style="font-size:12px;color:var(--text3);line-height:1.7">
         <strong style="color:var(--text2)">Ai— Studio</strong> — single-file AI toolkit.<br/>
         Supports Featherless, Venice, Atlas Cloud, OpenAI (via proxy), Anthropic, Hugging Face, and any OpenAI-compatible API.<br/>
-        <strong style="color:#f97316">OpenAI requires a CORS proxy</strong> (use Universal API tab + your Cloudflare Worker). Hugging Face chat now uses the official router.<br/>
+        <strong style="color:#f97316">OpenAI requires a CORS proxy</strong> (use Universal API tab + your Cloudflare Worker). Hugging Face chat uses the Serverless Inference API.<br/>
         All data stays in your browser. No tracking, no accounts.
       </div>
     </div>
@@ -788,6 +912,13 @@ const PROVIDER_BASES={
   openai:'https://api.openai.com/v1',
   anthropic:'https://api.anthropic.com/v1',
   huggingface:'https://api-inference.huggingface.co',
+  mistral:'https://api.mistral.ai/v1',
+  groq:'https://api.groq.com/openai/v1',
+  openrouter:'https://openrouter.ai/api/v1',
+  deepseek:'https://api.deepseek.com',
+  gemini:'https://generativelanguage.googleapis.com/v1beta/openai',
+  together:'https://api.together.xyz/v1',
+  github:'https://models.inference.ai.azure.com',
   custom:''
 };
 
@@ -798,6 +929,13 @@ const PROVIDER_DEFAULTS={
   openai:['gpt-4o','gpt-4o-mini','gpt-4-turbo','o1-mini','gpt-3.5-turbo'],
   anthropic:['claude-opus-4-6','claude-sonnet-4-6','claude-haiku-4-5-20251001'],
   huggingface:['Qwen/Qwen3-8B','Qwen/Qwen2.5-7B-Instruct','meta-llama/Llama-3.1-8B-Instruct','microsoft/phi-3-mini-4k-instruct'],
+  mistral:['mistral-large-latest','mistral-small-latest','pixtral-large-latest','pixtral-12b-2409'],
+  groq:['llama-3.3-70b-versatile','llama-3.1-8b-instant','mixtral-8x7b-32768','gemma2-9b-it'],
+  openrouter:['google/gemini-2.5-pro','anthropic/claude-3.5-sonnet','meta-llama/llama-3.3-70b-instruct','deepseek/deepseek-r1'],
+  deepseek:['deepseek-chat','deepseek-reasoner'],
+  gemini:['gemini-2.5-pro','gemini-2.5-flash','gemini-2.0-flash'],
+  together:['meta-llama/Llama-3.3-70B-Instruct-Turbo','mistralai/Mixtral-8x7B-Instruct-v0.1','deepseek-ai/DeepSeek-R1'],
+  github:['gpt-4o','o1','DeepSeek-R1','Llama-3.3-70B-Instruct'],
   custom:[]
 };
 
@@ -832,13 +970,18 @@ const IMG_MODELS={
     {id:'z-image-turbo',name:'Z-Image Turbo'},
   ],
   openai:[
-    {id:'dall-e-3',name:'DALLÂ·E 3 — best quality'},
-    {id:'dall-e-2',name:'DALLÂ·E 2 — faster/cheaper'},
+    {id:'dall-e-3',name:'DALL·E 3 — best quality'},
+    {id:'dall-e-2',name:'DALL·E 2 — faster/cheaper'},
     {id:'gpt-image-1',name:'GPT Image 1 — latest'},
   ],
-  anthropic:[
-    // Anthropic has no image gen API — note shown instead
-  ],
+  anthropic:[],
+  mistral:[],
+  groq:[],
+  openrouter:[],
+  deepseek:[],
+  gemini:[],
+  together:['black-forest-labs/FLUX.1-schnell-Free'],
+  github:[],
   huggingface:[
     {id:'black-forest-labs/FLUX.1-dev', name:'FLUX.1-dev — high quality'},
     {id:'black-forest-labs/FLUX.1-schnell', name:'FLUX.1-schnell — fast'},
@@ -850,7 +993,7 @@ const IMG_MODELS={
     {id:'wavymulder/Analog-Diffusion', name:'Analog Diffusion — vintage'},
   ],
   custom:[
-    {id:'dall-e-3',name:'DALLÂ·E 3 (if endpoint supports it)'},
+    {id:'dall-e-3',name:'DALL·E 3 (if endpoint supports it)'},
     {id:'stable-diffusion-xl-1024-v1-0',name:'SDXL (if endpoint supports it)'},
   ]
 };
@@ -895,7 +1038,7 @@ function onProviderChange(reset=true){
   inp.value=saved?'”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢':'';
   inp.placeholder=saved?'Key saved — type to replace':'Paste API key”¦';
   document.getElementById('key-saved-badge').style.display=saved?'inline-block':'none';
-  document.getElementById('provider-badge').textContent={featherless:'Featherless',venice:'Venice',atlascloud:'Atlas Cloud',openai:'OpenAI',anthropic:'Anthropic',huggingface:'Hugging Face',custom:'Custom'}[currentProvider]||currentProvider;
+  document.getElementById('provider-badge').textContent={featherless:'Featherless',venice:'Venice',atlascloud:'Atlas Cloud',openai:'OpenAI',anthropic:'Anthropic',huggingface:'Hugging Face',mistral:'Mistral',groq:'Groq',openrouter:'OpenRouter',deepseek:'DeepSeek',gemini:'Gemini',together:'Together AI',github:'GitHub',custom:'Custom'}[currentProvider]||currentProvider;
   document.getElementById('custom-base-row').style.display=currentProvider==='custom'?'block':'none';
   if(reset)populateDefaultModels();
   localStorage.setItem('ai-pro-provider',currentProvider);
@@ -956,6 +1099,10 @@ async function loadImgModels(){
     if(key){
       try{
         const r=await fetch('https://api.venice.ai/api/v1/models?type=image',{headers:{Authorization:'Bearer '+key}});
+        if(!r.ok) {
+            if(r.status === 401) throw new Error('Invalid Hugging Face token (HTTP 401)');
+            throw new Error('HTTP '+r.status);
+        }
         if(r.ok){
           const d=await r.json();
           const existing=new Set([...sel.options].map(o=>o.value));
@@ -976,9 +1123,12 @@ async function loadImgModels(){
   }else if(p==='atlascloud'){
     note.style.color='var(--green-text)';
     note.textContent='✅ Atlas Cloud — fully uncensored NSFW image gen. ~$0.005 NZD/image. Credits never expire.';
-  }else if(p==='openai'){
+  }else if(['openai','mistral','groq','openrouter','deepseek','gemini','github'].includes(p)){
     note.style.color='var(--text2)';
-    note.textContent='OpenAI DALLÂ·E — standard/HD quality, requires API key with image access';
+    note.textContent= p === 'openai' ? 'OpenAI DALL·E — standard/HD quality, requires API key with image access' : 'This provider does not currently support image generation in this app.';
+  }else if(p==='together'){
+    note.style.color='var(--text2)';
+    note.textContent='Together AI — fast open-source models, some image models available.';
   }else if(p==='huggingface'){
     note.style.color='var(--blue-text)';
     note.textContent='🤗 Hugging Face — uses Inference API. Supports Flux, SDXL, and many more. Requires HF token.';
@@ -1038,6 +1188,24 @@ document.getElementById('model-select').addEventListener('change',function(){
 async function loadModels(reset=true,autoAll=false){
   const key=getKey();
   if(!key)return showToast('Save your API key first','err');
+  
+  const cacheKey = 'models_cache_' + currentProvider;
+  if(reset && !autoAll) {
+    try {
+      const cached = JSON.parse(localStorage.getItem(cacheKey));
+      if(cached && Date.now() - cached.time < 3600000) { // 1 hour
+        allModels = cached.models;
+        renderModelDropdown(allModels);
+        document.getElementById('model-count').textContent=allModels.length+' models (cached)';
+        document.getElementById('model-search').style.display='block';
+        addMsg('system','✅ Loaded ' + allModels.length + ' models from cache.');
+        return;
+      }
+    } catch(e){}
+  }
+
+  const key=getKey();
+  if(!key)return showToast('Save your API key first','err');
   loadAllAbort=false;
   const btn=document.getElementById('load-models-btn');
   const allBtn=document.getElementById('load-all-btn');
@@ -1069,6 +1237,10 @@ async function loadModels(reset=true,autoAll=false){
         const r=await fetch('https://huggingface.co/api/models?limit=200&sort=downloads&direction=-1',{
           headers:{Authorization:'Bearer '+key}
         });
+        if(!r.ok) {
+            if(r.status === 401) throw new Error('Invalid Hugging Face token (HTTP 401)');
+            throw new Error('HTTP '+r.status);
+        }
         if(r.ok){
           const d=await r.json();
           const validTags=['text-generation','conversational'];
@@ -1096,6 +1268,7 @@ async function loadModels(reset=true,autoAll=false){
           return;
         }
       }catch(e){
+        if(e.message.includes('401')) throw e;
         // fallback to defaults
         allModels=PROVIDER_DEFAULTS.huggingface.map(id=>({id,name:id,display:id, _cat:'text-generation'}));
         renderModelDropdown(allModels);
@@ -1105,8 +1278,7 @@ async function loadModels(reset=true,autoAll=false){
         return;
       }
     }
-    if(reset){modelPage=1;allModels=[];}
-    // Featherless: per_page=1000 to get all 43k+ models
+    let firstFetch = true;
     const perPage=currentProvider==='featherless'?1000:100;
     let pages=0;
     do{
@@ -1114,9 +1286,17 @@ async function loadModels(reset=true,autoAll=false){
       const url=currentProvider==='featherless'
         ?'https://api.featherless.ai/v1/models?page='+modelPage+'&per_page='+perPage
         :PROVIDER_BASES[currentProvider]+'/models';
-      const r=await fetch(url,{headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'}});
+      const r=await fetchWithRetry(url,{headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'}});
       if(!r.ok)throw new Error('HTTP '+r.status);
       const data=await r.json();
+      
+      // If we got here, the fetch succeeded. Reset the models array if we are starting fresh.
+      if (firstFetch && reset) {
+         allModels = [];
+         modelPage = 1;
+      }
+      firstFetch = false;
+
       const newModels=(data.data||data.models||[]).map(m=>{
         const id=m.id||m.name;
         const name=m.name||m.id;
@@ -1129,7 +1309,12 @@ async function loadModels(reset=true,autoAll=false){
         const isVision=idLow.includes('vision')||idLow.includes('-vl')||idLow.includes('llava')||
           (m.modalities&&(m.modalities.includes('image')||m.modalities.includes('vision')));
         if(isVision&&cat==='standard'){tags.push('🖼️ï¸');cat='vision';}
-        return{id,name,display:tags.length?'['+tags.join('')+'] '+name:name,_cat:cat};
+        
+let info = '';
+if(m.context_length) info += ' ['+Math.round(m.context_length/1024)+'k]';
+if(m.parameter_count) info += ' ['+Math.round(m.parameter_count/1e9)+'B]';
+return{id,name,display:(tags.length?'['+tags.join('')+'] ':'')+name+info,_cat:cat};
+
       }).filter(m=>m.id);
       const existIds=new Set(allModels.map(m=>m.id));
       newModels.forEach(m=>{if(!existIds.has(m.id)){allModels.push(m);existIds.add(m.id);}});
@@ -1146,8 +1331,25 @@ async function loadModels(reset=true,autoAll=false){
     moreBtn.classList.toggle('show',modelHasMore);
     if(autoAll){prog.style.width='100%';setTimeout(()=>{prog.classList.remove('show');prog.style.width='0%';},800);}
     if(reset)addMsg('system','✅ '+allModels.length+' models from '+currentProvider);
-  }catch(e){addMsg('system','❌ Model load error: '+e.message);}
-  finally{btn.disabled=false;allBtn.disabled=false;moreBtn.disabled=false;btn.textContent='⚡ Load';allBtn.textContent='🔄 All';}
+  }catch(e){
+    addMsg('system','❌ Model load error: '+e.message);
+    if(reset && allModels.length === 0) {
+      const defaults = PROVIDER_DEFAULTS[currentProvider];
+      if(defaults) {
+        allModels = defaults.map(id=>({id,name:id,display:id, _cat:'standard'}));
+        renderModelDropdown(allModels);
+        document.getElementById('model-count').textContent=allModels.length+' models (defaults)';
+      }
+    }
+  }
+  finally{
+    btn.disabled=false;allBtn.disabled=false;moreBtn.disabled=false;btn.textContent='⚡ Load';allBtn.textContent='🔄 All';
+    if(allModels.length > 0) {
+      try {
+        localStorage.setItem('models_cache_' + currentProvider, JSON.stringify({time: Date.now(), models: allModels}));
+      } catch(e){}
+    }
+}
 }
 
 /* ╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬
@@ -1290,19 +1492,19 @@ async function handleFile(inp){
       const img=document.createElement('img');img.src='data:'+attachedFileContent.mime+';base64,'+b64;
       img.style.cssText='max-height:120px;border-radius:8px;display:block';
       document.getElementById('attachment-preview').appendChild(img);
-      showAttachmentArea(fname,formatSize(file.size)+' Â· '+ext.toUpperCase(),'🖼️');setAttachmentStatus('✅ Ready','ok');return;
+      showAttachmentArea(fname,formatSize(file.size)+' · '+ext.toUpperCase(),'🖼️');setAttachmentStatus('✅ Ready','ok');return;
     }
     if(mime.startsWith('video/')||['mp4','mov','avi','mkv','webm','m4v'].includes(ext)){
       const vid=document.createElement('video');vid.src=URL.createObjectURL(file);vid.controls=true;vid.style.cssText='max-height:100px;border-radius:8px;width:100%;display:block';
       document.getElementById('attachment-preview').appendChild(vid);
       attachedFileContent={type:'video',name:fname,mime:mime,size:file.size};
-      showAttachmentArea(fname,formatSize(file.size)+' Â· '+ext.toUpperCase(),'🎬');setAttachmentStatus('✅ Video attached','ok');return;
+      showAttachmentArea(fname,formatSize(file.size)+' · '+ext.toUpperCase(),'🎬');setAttachmentStatus('✅ Video attached','ok');return;
     }
     if(mime.startsWith('audio/')||['mp3','wav','aac','m4a','flac','ogg'].includes(ext)){
       const aud=document.createElement('audio');aud.src=URL.createObjectURL(file);aud.controls=true;aud.style.cssText='width:100%;margin-top:6px';
       document.getElementById('attachment-preview').appendChild(aud);
       attachedFileContent={type:'audio',name:fname,mime:mime,size:file.size};
-      showAttachmentArea(fname,formatSize(file.size)+' Â· '+ext.toUpperCase(),'🎵');setAttachmentStatus('✅ Audio attached','ok');return;
+      showAttachmentArea(fname,formatSize(file.size)+' · '+ext.toUpperCase(),'🎵');setAttachmentStatus('✅ Audio attached','ok');return;
     }
     const arrayBuffer=await readAsArrayBuffer(file);const bytes=new Uint8Array(arrayBuffer);
     const isSQLite=bytes.length>16&&bytes[0]===0x53&&bytes[1]===0x51&&bytes[2]===0x4c&&bytes[3]===0x69;
@@ -1331,26 +1533,26 @@ async function handleFile(inp){
         const pretty=JSON.stringify(JSON.parse(text),null,2);attachedFileContent={type:'text',text:pretty.slice(0,50000),name:fname};
         const pre=document.createElement('pre');pre.textContent=pretty.slice(0,500)+(pretty.length>500?'\n”¦':'');
         document.getElementById('attachment-preview').appendChild(pre);
-        showAttachmentArea(fname,formatSize(file.size)+' Â· JSON','{}');setAttachmentStatus('✅ JSON parsed','ok');
-      }catch(_){attachedFileContent={type:'text',text:text.slice(0,50000),name:fname};showAttachmentArea(fname,formatSize(file.size)+' Â· JSON (raw)','📄„');setAttachmentStatus('✅ Loaded','ok');}
+        showAttachmentArea(fname,formatSize(file.size)+' · JSON','{}');setAttachmentStatus('✅ JSON parsed','ok');
+      }catch(_){attachedFileContent={type:'text',text:text.slice(0,50000),name:fname};showAttachmentArea(fname,formatSize(file.size)+' · JSON (raw)','📄„');setAttachmentStatus('✅ Loaded','ok');}
       return;
     }
     if(ext==='csv'){
       const lines=text.split('\n').slice(0,5);const pre=document.createElement('pre');pre.textContent=lines.join('\n')+(text.split('\n').length>5?'\n”¦':'');
       document.getElementById('attachment-preview').appendChild(pre);attachedFileContent={type:'text',text:text.slice(0,50000),name:fname};
-      showAttachmentArea(fname,formatSize(file.size)+' Â· CSV Â· '+text.split('\n').length+' rows','📄Š');setAttachmentStatus('✅ CSV loaded','ok');return;
+      showAttachmentArea(fname,formatSize(file.size)+' · CSV · '+text.split('\n').length+' rows','📄Š');setAttachmentStatus('✅ CSV loaded','ok');return;
     }
     const isText=mime.startsWith('text/')||['txt','md','html','htm','xml','js','ts','css','py','java','swift','kt','rb','go','rs','sh','bat','json','yaml','yml','toml','ini','cfg','log'].includes(ext);
     if(isText||text.replace(/\s/g,'').length>0){
       attachedFileContent={type:'text',text:text.slice(0,50000),name:fname};
       const pre=document.createElement('pre');pre.textContent=text.slice(0,400)+(text.length>400?'\n”¦':'');
       document.getElementById('attachment-preview').appendChild(pre);
-      showAttachmentArea(fname,formatSize(file.size)+' Â· '+ext.toUpperCase(),'📄„');setAttachmentStatus('✅ File loaded','ok');return;
+      showAttachmentArea(fname,formatSize(file.size)+' · '+ext.toUpperCase(),'📄„');setAttachmentStatus('✅ File loaded','ok');return;
     }
     let strings='[Binary: '+fname+']\n\nStrings:\n\n';let ss='';
     for(let i=0;i<Math.min(bytes.length,65536);i++){const c=bytes[i];if(c>=32&&c<127){ss+=String.fromCharCode(c);}else{if(ss.length>5){strings+=ss+'\n';}ss='';}}
     attachedFileContent={type:'text',text:strings.slice(0,50000),name:fname};
-    showAttachmentArea(fname,formatSize(file.size)+' Â· Binary','🔍²');setAttachmentStatus('✅ Strings extracted','ok');
+    showAttachmentArea(fname,formatSize(file.size)+' · Binary','🔍²');setAttachmentStatus('✅ Strings extracted','ok');
   }catch(e){setAttachmentStatus('❌ '+e.message,'err');showAttachmentArea(fname,'Error reading file','⚠️');}
 }
 
@@ -1381,12 +1583,55 @@ function onDrop(e){e.preventDefault();document.getElementById('input-drop-zone')
 ╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬ */
 function addMsg(role,text){
   const div=document.createElement('div');div.className='msg '+role;
+  // Add index for branching
+  const msgIdx = chatHistory.length + (role==='ai'?1:0);
+  div.dataset.index = msgIdx;
+
   if(role==='ai'&&text==='__thinking__'){
-    div.className+=' thinking';div.innerHTML='<div class="typing-dots"><span></span><span></span><span></span></div>';
+    div.className+=' thinking';div.innerHTML='<div class="skeleton"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div>';
   }else{
     div.textContent=text;
     if(settings.markdown&&role==='ai')renderMarkdown(div);
-    if(settings.timestamps){const t=document.createElement('span');t.className='msg-time';t.textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});div.appendChild(t);}
+    
+    // Actions container
+    const act = document.createElement('div');
+    act.style.cssText = 'margin-top:6px;display:flex;gap:8px;font-size:11px;opacity:0.5;';
+    
+    if(role==='ai'){
+      const copy = document.createElement('span');
+      copy.textContent = '📋 Copy';
+      copy.style.cursor = 'pointer';
+      copy.onclick = () => { navigator.clipboard.writeText(text); copy.textContent='✅ Copied'; setTimeout(()=>copy.textContent='📋 Copy',2000); if(navigator.vibrate) navigator.vibrate(20);};
+      act.appendChild(copy);
+    }
+    if(role==='user') {
+      const edit = document.createElement('span');
+      edit.textContent = '✏️ Edit / Fork';
+      edit.style.cursor = 'pointer';
+      edit.onclick = () => {
+        const inp = document.getElementById('msg-input');
+        inp.value = text;
+        inp.focus();
+        updateCharCount();
+        autoResize(inp);
+        // Truncate history
+        const realIdx = parseInt(div.dataset.index);
+        if(!isNaN(realIdx)) {
+          chatHistory = chatHistory.slice(0, realIdx);
+          // Remove all DOM elements after and including this one
+          let curr = div;
+          while(curr) {
+            let next = curr.nextElementSibling;
+            curr.remove();
+            curr = next;
+          }
+        }
+      };
+      act.appendChild(edit);
+    }
+    
+    if(settings.timestamps){const t=document.createElement('span');t.textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});act.appendChild(t);}
+    div.appendChild(act);
   }
   const msgs=document.getElementById('chat-messages');msgs.appendChild(div);
   if(settings.autoscroll){
@@ -1394,6 +1639,20 @@ function addMsg(role,text){
     else{msgs.scrollTop=msgs.scrollHeight;}
   }
   return div;
+}
+
+
+function filterChat(term) {
+  const msgs = document.querySelectorAll('#chat-messages .msg');
+  term = term.toLowerCase();
+  msgs.forEach(m => {
+    if(!term || m.textContent.toLowerCase().includes(term)) {
+      m.style.display = 'block';
+      // simple highlight could be done, but keeping display block is enough
+    } else {
+      m.style.display = 'none';
+    }
+  });
 }
 
 function renderMarkdown(el){
@@ -1411,7 +1670,7 @@ function renderMarkdown(el){
   el.innerHTML=html;
 }
 function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,140)+'px';}
-function updateCharCount(){const len=document.getElementById('msg-input').value.length;document.getElementById('char-count').textContent=len>0?len+' chars':'';}
+function updateCharCount(){const len=document.getElementById('msg-input').value.length;document.getElementById('char-count').textContent=len>0?len+' chars (~'+Math.ceil(len/4)+' tokens)':'';}
 function chatKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}}
 
 async function sendChat(){
@@ -1457,6 +1716,7 @@ async function sendChat(){
     chatHistory.push({role:'assistant',content:respText});
     if(chatHistory.length>40)chatHistory=chatHistory.slice(-40);
     if(window.__lastTruncated)appendTruncationNotice(thinkingDiv);
+    setTimeout(()=>document.getElementById('msg-input')?.focus(), 50);
     clearFile();
   }catch(e){
     let msg = e.message;
@@ -1469,6 +1729,30 @@ async function sendChat(){
     thinkingDiv.className='msg ai';thinkingDiv.textContent='❌ '+msg;
     thinkingDiv.style.background='var(--red-bg)';thinkingDiv.style.border='1px solid rgba(239,68,68,.2)';
   }finally{btn.disabled=false;}
+}
+
+
+async function fetchWithRetry(url, options, maxRetries=3) {
+  let retries = 0;
+  while(true) {
+    try {
+      const res = await fetch(url, options);
+      if(!res.ok && res.status >= 500 && retries < maxRetries) {
+        throw new Error('Server error ' + res.status);
+      }
+      if(res.status === 429 && retries < maxRetries) {
+        throw new Error('Rate limited');
+      }
+      return res;
+    } catch(e) {
+      if(e.name === 'AbortError') throw e;
+      if(retries >= maxRetries) throw e;
+      const delay = Math.pow(2, retries) * 1000 + Math.random()*500;
+      console.warn(`Fetch failed (${e.message}), retrying in ${delay}ms...`);
+      await new Promise(r => setTimeout(r, delay));
+      retries++;
+    }
+  }
 }
 
 /* ─€─€ STREAMING CHAT (OpenAI-compatible SSE) ─€─€ */
@@ -1484,9 +1768,9 @@ async function chatCompletionStream(key,model,messages,systemPrompt,maxTokens,ta
   
   // HUGGING FACE: chat-completions router endpoint, model in body
   if(currentProvider==='huggingface'){
-    url='https://router.huggingface.co/v1/chat/completions';
+    url='https://api-inference.huggingface.co/models/'+model+'/v1/chat/completions';
     try {
-        const r=await fetch(url,{
+        const r=await fetchWithRetry(url,{
             method:'POST',signal:streamAbortCtrl.signal,
             headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
             body:JSON.stringify({model,messages:msgs,max_tokens:maxTokens,stream:true})
@@ -1501,14 +1785,14 @@ async function chatCompletionStream(key,model,messages,systemPrompt,maxTokens,ta
         return await processStreamReader(r.body.getReader(), targetDiv);
     } catch(err) {
         if(err.name === 'TypeError' && err.message.includes('fetch')) {
-             throw new Error("Failed to fetch — network error reaching router.huggingface.co. Check your connection or try the Universal API tab.");
+             throw new Error("Failed to fetch — network error reaching api-inference.huggingface.co. Check your connection or try the Universal API tab.");
         }
         throw err;
     }
   }
 
   // STANDARD ROUTING FOR OTHER PROVIDERS
-  const r=await fetch(url,{
+  const r=await fetchWithRetry(url,{
     method:'POST',signal:streamAbortCtrl.signal,
     headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
     body:JSON.stringify({model,messages:msgs,max_tokens:maxTokens,stream:true})
@@ -1557,7 +1841,7 @@ async function chatCompletion(key,model,messages,systemPrompt,maxTokens=8192){
   window.__lastTruncated=false;
   if(currentProvider==='anthropic'){
     const body={model,max_tokens:maxTokens,messages};if(systemPrompt)body.system=systemPrompt;
-    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json'},body:JSON.stringify(body)});
+    const r=await fetchWithRetry('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json'},body:JSON.stringify(body)});
     const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
     const fullText=(d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
     window.__lastTruncated=d.stop_reason==='max_tokens';return fullText;
@@ -1568,13 +1852,13 @@ async function chatCompletion(key,model,messages,systemPrompt,maxTokens=8192){
   
   let url = base+'/chat/completions';
   if(currentProvider === 'huggingface'){
-       url = 'https://router.huggingface.co/v1/chat/completions';
+       url = 'https://api-inference.huggingface.co/models/'+model+'/v1/chat/completions';
   }
 
   const msgs=systemPrompt?[{role:'system',content:systemPrompt},...messages]:messages;
 
   try {
-      const r=await fetch(url,{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,messages:msgs,max_tokens:maxTokens})});
+      const r=await fetchWithRetry(url,{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,messages:msgs,max_tokens:maxTokens})});
 
       if(!r.ok){
           const e=await r.json().catch(()=>({}));
@@ -1588,7 +1872,7 @@ async function chatCompletion(key,model,messages,systemPrompt,maxTokens=8192){
       const choice=d.choices?.[0];window.__lastTruncated=choice?.finish_reason==='length';return choice?.message?.content||'';
   } catch(err) {
       if(currentProvider === 'huggingface' && err.name === 'TypeError' && err.message.includes('fetch')) {
-             throw new Error("Failed to fetch — network error reaching router.huggingface.co.");
+             throw new Error("Failed to fetch — network error reaching api-inference.huggingface.co.");
       }
       if(currentProvider === 'openai' && err.name === 'TypeError' && err.message.includes('fetch')) {
           throw new Error("OpenAI blocks browser requests (CORS). Route through a proxy — see the Universal API tab.");
@@ -1622,6 +1906,7 @@ async function continueResponse(){
     chatHistory.push({role:'user',content:continuePrompt});chatHistory.push({role:'assistant',content:respText});
     if(chatHistory.length>40)chatHistory=chatHistory.slice(-40);
     if(window.__lastTruncated)appendTruncationNotice(thinkingDiv);
+    setTimeout(()=>document.getElementById('msg-input')?.focus(), 50);
   }catch(e){
     let msg = e.message;
     if(currentProvider === 'huggingface' && (msg.includes('Failed to fetch') || msg.includes('CORS'))) {
@@ -1650,6 +1935,9 @@ async function generateImage(){
   if(style&&style!=='None')prompt+=', '+style+' style';
   const size=document.getElementById('img-size').value;
   const quality=document.getElementById('img-quality').value;
+  const negPrompt=document.getElementById('img-negative-prompt').value.trim();
+  const seedInput=document.getElementById('img-seed').value.trim();
+  const useSeed = seedInput ? parseInt(seedInput) : Math.floor(Math.random()*999999);
   // Use the IMAGE TAB's own model selector
   const selectedModel=document.getElementById('img-model-select').value;
   const statusEl=document.getElementById('img-status');
@@ -1658,11 +1946,11 @@ async function generateImage(){
     if(currentProvider==='featherless'){
       // Pollinations.ai — free, no key needed
       const[w,h]=size.split('x').map(Number);const pw=w||1024;const ph=h||1024;
-      const seed=Math.floor(Math.random()*999999);const enc=encodeURIComponent(prompt);
+      const enc=encodeURIComponent(prompt); let extra = ''; if(negPrompt) extra+='&nologo=true&negative_prompt='+encodeURIComponent(negPrompt);
       const model=selectedModel||'flux';
       const sleep=ms=>new Promise(r=>setTimeout(r,ms));
       async function tryPoll(attempt){
-        const url='https://image.pollinations.ai/prompt/'+enc+'?model='+model+'&width='+pw+'&height='+ph+'&nologo=true&safe=false&enhance=false&seed='+(seed+attempt);
+        const url='https://image.pollinations.ai/prompt/'+enc+'?model='+model+'&width='+pw+'&height='+ph+'&safe=false&enhance=false&seed='+(useSeed+attempt)+extra;
         statusEl.innerHTML='<span class="spinner"></span>Generating via Pollinations.ai ('+model+')”¦';statusEl.className='status-msg info show';
         const r=await fetch(url);
         if(r.status===429){if(attempt<2){await sleep(8000*(attempt+1));return tryPoll(attempt+1);}throw new Error('Rate limited — wait 30s and try again');}
@@ -1684,7 +1972,7 @@ async function generateImage(){
       const[w,h]=size.split('x').map(Number);
       const r=await fetch('https://api.venice.ai/api/v1/image/generate',{
         method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
-        body:JSON.stringify({model:selectedModel||'fluently-xl',prompt,width:w||1024,height:h||1024,steps:30,safe:false})
+        body:JSON.stringify({model:selectedModel||'fluently-xl',prompt,negative_prompt:negPrompt,seed:useSeed,width:w||1024,height:h||1024,steps:30,safe:false})
       });
       const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
       const imgSrc=d.images?.[0]||d.data?.[0]?.url||d.url;
@@ -1700,7 +1988,7 @@ async function generateImage(){
       const[w,h]=size.split('x').map(Number);
       const r=await fetch('https://api.atlascloud.ai/v1/images/generations',{
         method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
-        body:JSON.stringify({model:selectedModel||'flux-schnell',prompt,width:w||1024,height:h||1024,num_images:1})
+        body:JSON.stringify({model:selectedModel||'flux-schnell',prompt,negative_prompt:negPrompt,seed:useSeed,width:w||1024,height:h||1024,num_images:1})
       });
       const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
       const imgData=d.data?.[0];let imgSrc=imgData?.url||d.url;
@@ -2090,7 +2378,7 @@ async function uniSendRequest(){
   rawEl.value='';
 
   try{
-    const r=await fetch(url,{method,headers,body:bodyStr});
+    const r=await fetchWithRetry(url,{method,headers,body:bodyStr});
     const ct=r.headers.get('content-type')||'';
 
     if(!r.ok){
