@@ -426,7 +426,7 @@ window.addEventListener('DOMContentLoaded', () => {
           <option value="deepseek">DeepSeek</option>
           <option value="gemini">Google Gemini</option>
           <option value="together">Together AI</option>
-          <option value="github">GitHub Models</option>
+          <option value="github">GitHub AI (Models)</option>
           <option value="custom">Custom URL</option>
         </select>
       </div>
@@ -835,8 +835,9 @@ window.addEventListener('DOMContentLoaded', () => {
       <div class="settings-group-title">About</div>
       <div style="font-size:12px;color:var(--text3);line-height:1.7">
         <strong style="color:var(--text2)">Ai— Studio</strong> — single-file AI toolkit.<br/>
-        Supports Featherless, Venice, Atlas Cloud, OpenAI (via proxy), Anthropic, Hugging Face, and any OpenAI-compatible API.<br/>
+        Supports Featherless, Venice, Atlas Cloud, OpenAI (via proxy), Anthropic, Hugging Face, GitHub AI Models, Mistral, Groq, OpenRouter, DeepSeek, Google Gemini, Together AI, and any OpenAI-compatible API.<br/>
         <strong style="color:#f97316">OpenAI requires a CORS proxy</strong> (use Universal API tab + your Cloudflare Worker). Hugging Face chat uses the Serverless Inference API.<br/>
+        <strong style="color:#3b82f6">GitHub AI Models</strong> — use a GitHub Personal Access Token (PAT) with <em>Models: Read</em> permission from <a href="https://github.com/settings/tokens" target="_blank" style="color:var(--accent-light)">github.com/settings/tokens</a>.<br/>
         All data stays in your browser. No tracking, no accounts.
       </div>
     </div>
@@ -935,7 +936,7 @@ const PROVIDER_DEFAULTS={
   deepseek:['deepseek-chat','deepseek-reasoner'],
   gemini:['gemini-2.5-pro','gemini-2.5-flash','gemini-2.0-flash'],
   together:['meta-llama/Llama-3.3-70B-Instruct-Turbo','mistralai/Mixtral-8x7B-Instruct-v0.1','deepseek-ai/DeepSeek-R1'],
-  github:['gpt-4o','o1','DeepSeek-R1','Llama-3.3-70B-Instruct'],
+  github:['gpt-4o','gpt-4o-mini','o1','o1-mini','o3-mini','o4-mini','DeepSeek-R1','Llama-3.3-70B-Instruct','Llama-3.2-90B-Vision-Instruct','Llama-3.1-8B-Instruct','Phi-4','Phi-4-mini-instruct','mistral-large-2411','mistral-small','Codestral-2501','AI21-Jamba-1.5-Large'],
   custom:[]
 };
 
@@ -1038,7 +1039,7 @@ function onProviderChange(reset=true){
   inp.value=saved?'”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢”¢':'';
   inp.placeholder=saved?'Key saved — type to replace':'Paste API key”¦';
   document.getElementById('key-saved-badge').style.display=saved?'inline-block':'none';
-  document.getElementById('provider-badge').textContent={featherless:'Featherless',venice:'Venice',atlascloud:'Atlas Cloud',openai:'OpenAI',anthropic:'Anthropic',huggingface:'Hugging Face',mistral:'Mistral',groq:'Groq',openrouter:'OpenRouter',deepseek:'DeepSeek',gemini:'Gemini',together:'Together AI',github:'GitHub',custom:'Custom'}[currentProvider]||currentProvider;
+  document.getElementById('provider-badge').textContent={featherless:'Featherless',venice:'Venice',atlascloud:'Atlas Cloud',openai:'OpenAI',anthropic:'Anthropic',huggingface:'Hugging Face',mistral:'Mistral',groq:'Groq',openrouter:'OpenRouter',deepseek:'DeepSeek',gemini:'Gemini',together:'Together AI',github:'GitHub AI',custom:'Custom'}[currentProvider]||currentProvider;
   document.getElementById('custom-base-row').style.display=currentProvider==='custom'?'block':'none';
   if(reset)populateDefaultModels();
   localStorage.setItem('ai-pro-provider',currentProvider);
@@ -1125,7 +1126,11 @@ async function loadImgModels(){
     note.textContent='✅ Atlas Cloud — fully uncensored NSFW image gen. ~$0.005 NZD/image. Credits never expire.';
   }else if(['openai','mistral','groq','openrouter','deepseek','gemini','github'].includes(p)){
     note.style.color='var(--text2)';
-    note.textContent= p === 'openai' ? 'OpenAI DALL·E — standard/HD quality, requires API key with image access' : 'This provider does not currently support image generation in this app.';
+    note.textContent= p === 'openai'
+      ? 'OpenAI DALL·E — standard/HD quality, requires API key with image access'
+      : p === 'github'
+        ? 'ℹ️ GitHub AI Models (models.inference.ai.azure.com) does not support image generation. Switch to OpenAI, Venice, or Featherless for images.'
+        : 'This provider does not currently support image generation in this app.';
   }else if(p==='together'){
     note.style.color='var(--text2)';
     note.textContent='Together AI — fast open-source models, some image models available.';
@@ -1219,6 +1224,43 @@ async function loadModels(reset=true,autoAll=false){
       allModels=PROVIDER_DEFAULTS.anthropic.map(id=>({id,name:id,display:id}));
       renderModelDropdown(allModels);document.getElementById('model-count').textContent=allModels.length+' models';
       document.getElementById('model-search').style.display='block';addMsg('system','✅ Anthropic models listed.');return;
+    }
+    if(currentProvider==='github'){
+      if(reset)allModels=[];
+      try{
+        const r=await fetchWithRetry('https://models.inference.ai.azure.com/models',{
+          headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'}
+        });
+        if(!r.ok){
+          if(r.status===401)throw new Error('Invalid GitHub token — create a PAT with Models read permission at github.com/settings/tokens');
+          throw new Error('HTTP '+r.status);
+        }
+        const d=await r.json();
+        const items=d.data||d||[];
+        items.forEach(m=>{
+          const id=m.id||m.name;
+          if(!id)return;
+          const tags=[];
+          const idLow=id.toLowerCase();
+          if(idLow.includes('vision')||idLow.includes('vl'))tags.push('🖼️');
+          const ctx=m.context_length?(' ['+Math.round(m.context_length/1024)+'k]'):'';
+          allModels.push({id,name:id,display:(tags.length?'['+tags.join('')+'] ':'')+id+ctx,_cat:'standard'});
+        });
+        if(allModels.length===0)throw new Error('Empty model list from GitHub');
+        renderModelDropdown(allModels);
+        document.getElementById('model-count').textContent=allModels.length+' GitHub AI models';
+        document.getElementById('model-search').style.display='block';
+        addMsg('system','✅ '+allModels.length+' GitHub AI models loaded.');
+        return;
+      }catch(e){
+        // Fall back to defaults
+        allModels=PROVIDER_DEFAULTS.github.map(id=>({id,name:id,display:id,_cat:'standard'}));
+        renderModelDropdown(allModels);
+        document.getElementById('model-count').textContent=allModels.length+' GitHub AI models (defaults)';
+        document.getElementById('model-search').style.display='block';
+        addMsg('system','ℹ️ Using default GitHub AI model list. Error: '+e.message);
+        return;
+      }
     }
     if(currentProvider==='venice'){
       if(reset)allModels=[];
