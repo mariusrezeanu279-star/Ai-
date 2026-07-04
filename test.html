@@ -70,5 +70,141 @@
       log(`\nResult: ${pass}/${total} checks passed.`, pass===total?'pass':'fail');
     });
   </script>
+
+  <h3 style="margin-top:24px;margin-bottom:12px">Prompt Alchemist API Tests</h3>
+  <button id="run-api-tests" style="background:#7c3aed;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600">Run API Tests</button>
+  <pre id="api-log" style="margin-top:12px">Click button to run API endpoint tests...</pre>
+
+  <script>
+    document.getElementById('run-api-tests').onclick = async () => {
+      const apiLog = document.getElementById('api-log');
+      apiLog.textContent = 'Running Prompt Alchemist API tests...\n';
+
+      let pass = 0, total = 0;
+      const logApi = (msg, cls='') => {
+        apiLog.innerHTML += `\n<span class="${cls}">${msg}</span>`;
+      };
+
+      const assertApi = (name, cond) => {
+        total++;
+        if(cond) { logApi('✅ ' + name, 'pass'); pass++; return true; }
+        logApi('❌ ' + name, 'fail'); return false;
+      };
+
+      try {
+        // Test 1: Generate Prompt
+        logApi('\n--- Testing /generate-prompt ---');
+        const genRes = await fetch('/generate-prompt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: 'cinematic video of a woman in a luxurious bath',
+            ai_model: 'grok',
+            video_quality: '720p',
+            duration: 10,
+            image_count: 'auto',
+            mode: 'stealth'
+          })
+        });
+
+        assertApi('Generate endpoint returns 200', genRes.ok);
+        const genData = await genRes.json();
+        assertApi('Response has original_prompt', !!genData.original_prompt);
+        assertApi('Response has optimized_prompt', !!genData.optimized_prompt);
+        assertApi('Response has success_tips array', Array.isArray(genData.success_tips));
+        assertApi('Response has is_video_prompt field', typeof genData.is_video_prompt === 'boolean');
+        assertApi('Video detected for Grok video prompt', genData.is_video_prompt === true);
+        assertApi('Optimized prompt contains video quality', genData.optimized_prompt.includes('720p'));
+        assertApi('Optimized prompt contains duration', genData.optimized_prompt.includes('10-second'));
+
+        // Test 2: Get supported models
+        logApi('\n--- Testing /supported-models ---');
+        const modelsRes = await fetch('/supported-models');
+        assertApi('Models endpoint returns 200', modelsRes.ok);
+        const modelsData = await modelsRes.json();
+        assertApi('Returns array of models', Array.isArray(modelsData));
+        assertApi('Includes grok', modelsData.includes('grok'));
+        assertApi('Includes midjourney', modelsData.includes('midjourney'));
+        assertApi('Includes stable_diffusion', modelsData.includes('stable_diffusion'));
+        assertApi('Includes dalle', modelsData.includes('dalle'));
+
+        // Test 3: Get model config
+        logApi('\n--- Testing /model-config/{model} ---');
+        const configRes = await fetch('/model-config/grok');
+        assertApi('Model config endpoint returns 200', configRes.ok);
+        const configData = await configRes.json();
+        assertApi('Config has video_qualities', Array.isArray(configData.video_qualities));
+        assertApi('Config has durations', Array.isArray(configData.durations));
+        assertApi('Grok has video support', configData.has_video_support === true);
+
+        // Test 4: Test different model (MidJourney)
+        logApi('\n--- Testing MidJourney generation ---');
+        const mjRes = await fetch('/generate-prompt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompt: 'artistic portrait of a woman',
+            ai_model: 'midjourney',
+            mode: 'stealth'
+          })
+        });
+        assertApi('MidJourney prompt returns 200', mjRes.ok);
+        const mjData = await mjRes.json();
+        assertApi('MidJourney prompt not marked as video', mjData.is_video_prompt === false);
+        assertApi('MidJourney has success tips', mjData.success_tips.length > 0);
+
+        // Test 5: Batch generation
+        logApi('\n--- Testing /generate-batch ---');
+        const batchRes = await fetch('/generate-batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            prompts: [
+              { prompt: 'test 1', ai_model: 'grok' },
+              { prompt: 'test 2', ai_model: 'dalle' }
+            ]
+          })
+        });
+        assertApi('Batch endpoint returns 200', batchRes.ok);
+        const batchData = await batchRes.json();
+        assertApi('Batch returns results array', Array.isArray(batchData.results));
+        assertApi('Batch has 2 results', batchData.results.length === 2);
+
+        // Test 6: Test different modes
+        logApi('\n--- Testing stealth vs bold modes ---');
+        const stealthRes = await fetch('/generate-prompt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: 'sensual scene', ai_model: 'grok', mode: 'stealth' })
+        });
+        const stealthData = await stealthRes.json();
+
+        const boldRes = await fetch('/generate-prompt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: 'sensual scene', ai_model: 'grok', mode: 'bold' })
+        });
+        const boldData = await boldRes.json();
+
+        assertApi('Stealth mode has different prefix', stealthData.optimized_prompt.includes('Cinematic'));
+        assertApi('Bold mode has collage style', boldData.optimized_prompt.includes('collage'));
+
+        // Test 7: Invalid model
+        logApi('\n--- Testing error handling ---');
+        const invalidRes = await fetch('/generate-prompt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: 'test', ai_model: 'invalid_model' })
+        });
+        assertApi('Invalid model returns 400', invalidRes.status === 400);
+
+        // Final result
+        logApi(`\n\n=== Result: ${pass}/${total} checks passed ===`, pass===total?'pass':'fail');
+
+      } catch (err) {
+        logApi(`\n❌ Test suite failed: ${err.message}`, 'fail');
+      }
+    };
+  </script>
 </body>
 </html>
