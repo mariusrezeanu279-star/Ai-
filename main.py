@@ -1,3 +1,4 @@
+import re
 from typing import Dict, List, Literal
 
 from fastapi import FastAPI, HTTPException
@@ -141,23 +142,22 @@ MODE_CUES: Dict[str, str] = {
 }
 
 VIDEO_HINTS = (
-    "video",
-    "clip",
-    "animation",
-    "trailer",
-    "scene",
-    "motion",
-    "camera",
+    r"\bvideo\b",
+    r"\bvideo clip\b",
+    r"\banimation\b",
+    r"\banimated\b",
+    r"\btrailer\b",
+    r"\bcamera (?:motion|movement|move)\b",
+    r"\bstoryboard\b",
 )
 IMAGE_HINTS = (
-    "image",
-    "photo",
-    "photograph",
-    "portrait",
-    "illustration",
-    "poster",
-    "render",
-    "concept art",
+    r"\bimage\b",
+    r"\bphoto(?:graph)?\b",
+    r"\bportrait\b",
+    r"\billustration\b",
+    r"\bposter\b",
+    r"\brender(?:ing)?\b",
+    r"\bconcept art\b",
 )
 
 
@@ -173,6 +173,7 @@ class PromptRequest(BaseModel):
 class PromptResponse(BaseModel):
     original_prompt: str
     optimized_prompt: str
+    ai_model: str
     requested_model: str
     routed_model: str
     content_type: Literal["text", "image", "video"]
@@ -209,9 +210,9 @@ def resolve_model(model_name: str) -> str:
 
 def detect_content_type(prompt: str) -> Literal["text", "image", "video"]:
     lowered = prompt.lower()
-    if any(hint in lowered for hint in VIDEO_HINTS):
+    if any(re.search(pattern, lowered) for pattern in VIDEO_HINTS):
         return CONTENT_TYPE_VIDEO
-    if any(hint in lowered for hint in IMAGE_HINTS):
+    if any(re.search(pattern, lowered) for pattern in IMAGE_HINTS):
         return CONTENT_TYPE_IMAGE
     return CONTENT_TYPE_TEXT
 
@@ -281,6 +282,7 @@ def generate_prompt(payload: PromptRequest) -> PromptResponse:
     return PromptResponse(
         original_prompt=payload.prompt,
         optimized_prompt=optimized,
+        ai_model=payload.ai_model,
         requested_model=payload.ai_model,
         routed_model=routed_model,
         content_type=content_type,
