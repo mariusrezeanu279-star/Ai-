@@ -4,15 +4,142 @@ from typing import Dict, List, Optional
 from datetime import datetime
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse, Response
 from pydantic import BaseModel, Field
 from supabase import create_client, Client
+import httpx
 
 
 app = FastAPI(title="Prompt Alchemist API")
 
+# ── CORS ──
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# ── Supabase ──
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "") or os.environ.get("SUPABASE_ANON_KEY", "")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
+
+# ── AI Provider Keys (set in Vercel env vars) ──
+VENICE_KEY = os.environ.get("VENICE_API_KEY", "")
+FEATHERLESS_KEY = os.environ.get("FEATHERLESS_API_KEY", "")
+
+PROVIDER_URLS = {
+    "venice": "https://api.venice.ai/api/v1",
+    "featherless": "https://api.featherless.ai/v1",
+}
+
+
+def get_provider_key(provider: str) -> str:
+    if provider == "venice":
+        return VENICE_KEY
+    elif provider == "featherless":
+        return FEATHERLESS_KEY
+    raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
+
+
+# ===================================================================
+#  AI PROVIDER PROXY ROUTES (what the frontend calls)
+# ===================================================================
+
+@app.post("/api/chat/completions")
+async def api_chat_completions(body: dict):
+    provider = body.pop("provider", "venice")
+    key = get_provider_key(provider)
+    base = PROVIDER_URLS[provider]
+
+    async with httpx.AsyncClient(timeout=120) as client:
+        res = await client.post(
+            f"{base}/chat/completions",
+            json=body,
+            headers={"Authorization": f"Bearer {key}"}
+        )
+        if res.status_code != 200:
+            raise HTTPException(status_code=res.status_code, detail=res.text)
+        return res.json()
+
+
+@app.post("/api/image/generate")
+async def api_image_generate(body: dict):
+    provider = body.pop("provider", "venice")
+    key = get_provider_key(provider)
+    base = PROVIDER_URLS[provider]
+
+    async with httpx.AsyncClient(timeout=120) as client:
+        res = await client.post(
+            f"{base}/image/generate",
+            json=body,
+            headers={"Authorization": f"Bearer {key}"}
+        )
+        if res.status_code != 200:
+            raise HTTPException(status_code=res.status_code, detail=res.text)
+        return res.json()
+
+
+@app.post("/api/video/generate")
+async def api_video_generate(body: dict):
+    provider = body.pop("provider", "venice")
+    key = get_provider_key(provider)
+    base = PROVIDER_URLS[provider]
+
+    async with httpx.AsyncClient(timeout=120) as client:
+        res = await client.post(
+            f"{base}/video/generate",
+            json=body,
+            headers={"Authorization": f"Bearer {key}"}
+        )
+        if res.status_code != 200:
+            raise HTTPException(status_code=res.status_code, detail=res.text)
+        return res.json()
+
+
+@app.post("/api/audio/speech")
+async def api_audio_speech(body: dict):
+    provider = body.pop("provider", "venice")
+    key = get_provider_key(provider)
+    base = PROVIDER_URLS[provider]
+
+    async with httpx.AsyncClient(timeout=120) as client:
+        res = await client.post(
+            f"{base}/audio/speech",
+            json=body,
+            headers={"Authorization": f"Bearer {key}"}
+        )
+        if res.status_code != 200:
+            raise HTTPException(status_code=res.status_code, detail=res.text)
+        return Response(content=res.content, media_type="audio/mpeg")
+
+
+@app.get("/api/models")
+async def api_list_models(provider: str = "venice"):
+    key = get_provider_key(provider)
+    base = PROVIDER_URLS[provider]
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        res = await client.get(
+            f"{base}/models",
+            headers={"Authorization": f"Bearer {key}"}
+        )
+        if res.status_code != 200:
+            raise HTTPException(status_code=res.status_code, detail=res.text)
+        return res.json()
+
+
+@app.get("/api/health")
+async def api_health():
+    return {"status": "ok"}
+
+
+# ===================================================================
+#  PROMPT ALCHEMIST ROUTES (under /api/ for frontend, originals kept)
+# ===================================================================
 
 AI_BYPASS_RULES: Dict[str, Dict[str, object]] = {
     "grok": {
@@ -275,6 +402,8 @@ def get_success_tips(ai_model: str) -> List[str]:
     return tips + general_tips
 
 
+# ── Original routes (kept for backward compat) ──
+
 @app.post("/generate-prompt", response_model=PromptResponse)
 def generate_prompt(payload: PromptRequest) -> PromptResponse:
     optimized = build_nsfw_prompt(payload)
@@ -478,10 +607,23 @@ def upvote_community_prompt(prompt_id: str) -> Dict[str, bool]:
     return {"success": True}
 
 
-@app.middleware("http")
-async def add_cors_headers(request, call_next):
-    response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, DELETE, PATCH, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
-    return response
+# ── /api/ aliases for frontend ──
+
+@app.post("/api/generate-prompt", response_model=PromptResponse)
+def api_generate_prompt(payload: PromptRequest) -> PromptResponse:
+    return generate_prompt(payload)
+
+
+@app.post("/api/generate-batch", response_model=BatchPromptResponse)
+def api_generate_batch(payload: BatchPromptRequest) -> BatchPromptResponse:
+    return generate_batch(payload)
+
+
+@app.get("/api/supported-models")
+def api_get_supported_models() -> List[str]:
+    return get_supported_models()
+
+
+@app.get("/api/model-config/{model_name}")
+def api_get_model_config(model_name: str) -> Dict[str, object]:
+    return get_model_config(model_name)
