@@ -96,7 +96,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 .panel.active{display:flex}
 
 /* CHAT */
-#chat-messages{flex:1;overflow-y:auto;padding:16px 14px 10px;display:flex;flex-direction:column;gap:12px;min-height:0;}
+#chat-messages{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 14px 10px;display:flex;flex-direction:column;gap:12px;min-height:0;}
 .msg{max-width:86%;padding:11px 14px;border-radius:var(--radius2);font-size:14px;line-height:1.55;word-break:break-word;animation:msgIn .18s ease;}
 @keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .msg.user{background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);color:#fff;align-self:flex-end;border-bottom-right-radius:4px;box-shadow:0 2px 12px rgba(139,92,246,.25);}
@@ -166,7 +166,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 .sqlite-chip{background:var(--bg4);border:1px solid var(--border2);color:var(--text2);padding:3px 10px;border-radius:20px;font-size:11px;cursor:pointer;transition:all .15s;}
 .sqlite-chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
 .sqlite-chip:hover:not(.active){background:var(--bg5);color:var(--text)}
-#sqlite-table-data{max-height:180px;overflow:auto;font-size:11px;margin-bottom:6px}
+#sqlite-table-data{max-height:180px;overflow:auto;-webkit-overflow-scrolling:touch;font-size:11px;margin-bottom:6px}
 #sqlite-table-data table{width:100%;border-collapse:collapse}
 #sqlite-table-data th{background:rgba(139,92,246,.2);padding:4px 8px;text-align:left;border-bottom:1px solid var(--border2);font-weight:600;white-space:nowrap;position:sticky;top:0;}
 #sqlite-table-data td{padding:4px 8px;border-bottom:1px solid var(--border);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
@@ -182,10 +182,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 #plist-viewer.show{display:block;animation:msgIn .15s ease}
 #plist-viewer-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 #plist-viewer-header h4{font-size:12px;font-weight:600;color:var(--accent-light);flex:1}
-#plist-content{max-height:160px;overflow:auto;font-size:11px;font-family:'SF Mono',Monaco,Consolas,monospace;color:var(--text2);white-space:pre-wrap;background:var(--bg4);padding:10px;border-radius:8px;line-height:1.5;}
+#plist-content{max-height:160px;overflow:auto;-webkit-overflow-scrolling:touch;font-size:11px;font-family:'SF Mono',Monaco,Consolas,monospace;color:var(--text2);white-space:pre-wrap;background:var(--bg4);padding:10px;border-radius:8px;line-height:1.5;}
 
 /* TAB CONTENT */
-.tab-scroll{flex:1;overflow-y:auto;min-height:0}
+.tab-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;min-height:0}
 .tab-content{padding:16px 14px;max-width:600px;margin:0 auto;width:100%}
 .section-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;margin-top:16px;}
 .section-label:first-child{margin-top:0}
@@ -224,7 +224,7 @@ select.field{width:100%;background:var(--bg3);border:1px solid var(--border2);co
 .result-card img{max-width:100%;border-radius:var(--radius);display:block}
 .result-placeholder{color:var(--text3);font-size:13px;text-align:center;line-height:1.6}
 .result-placeholder .ph-icon{font-size:32px;margin-bottom:8px;display:block}
-.combine-file-list{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px;font-size:12px;color:var(--text2);line-height:1.8;min-height:40px;margin-bottom:12px;max-height:120px;overflow-y:auto;}
+.combine-file-list{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px;font-size:12px;color:var(--text2);line-height:1.8;min-height:40px;margin-bottom:12px;max-height:120px;overflow-y:auto;-webkit-overflow-scrolling:touch;}
 .info-card{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius2);padding:14px;margin-bottom:14px;}
 .info-card strong{color:var(--accent-light);display:block;margin-bottom:4px;font-size:13px}
 .info-card p{font-size:12px;color:var(--text2);line-height:1.6}
