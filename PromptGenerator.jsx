@@ -6,7 +6,19 @@ const API_URL = "/generate-prompt";
 const MODE_OPTIONS = ["stealth", "cinematic", "studio"];
 const QUALITY_OPTIONS = ["720p", "1080p", "4k"];
 const IMAGE_COUNT_OPTIONS = ["auto", "1", "2", "4", "8"];
-const MODEL_OPTIONS = ["grok", "dalle", "default"];
+const MODEL_OPTIONS = [
+  "auto",
+  "grok",
+  "dalle",
+  "midjourney",
+  "stable-diffusion",
+  "leonardo",
+  "flux",
+  "gemini",
+  "claude",
+  "openai",
+  "default",
+];
 
 export default function PromptGenerator() {
   const [form, setForm] = useState({
@@ -18,6 +30,7 @@ export default function PromptGenerator() {
     mode: "stealth",
   });
   const [optimizedPrompt, setOptimizedPrompt] = useState("");
+  const [routingInfo, setRoutingInfo] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const canSubmit = useMemo(() => form.prompt.trim().length > 0, [form.prompt]);
@@ -38,8 +51,13 @@ export default function PromptGenerator() {
         duration: Number(form.duration),
       });
       setOptimizedPrompt(data.optimized_prompt || "");
+      setRoutingInfo({
+        routedModel: data.routed_model || "",
+        contentType: data.content_type || "",
+      });
     } catch (err) {
       setError("Unable to generate prompt. Please check backend availability.");
+      setRoutingInfo(null);
     } finally {
       setLoading(false);
     }
@@ -113,6 +131,12 @@ export default function PromptGenerator() {
       {optimizedPrompt ? (
         <div style={styles.outputWrap}>
           <h3 style={styles.subtitle}>Optimized Prompt</h3>
+          {routingInfo?.routedModel ? (
+            <p style={styles.meta}>
+              Routed to <strong>{routingInfo.routedModel}</strong>
+              {routingInfo.contentType ? ` for ${routingInfo.contentType}` : ""}
+            </p>
+          ) : null}
           <textarea readOnly value={optimizedPrompt} rows={6} style={styles.output} />
           <button type="button" style={styles.copyButton} onClick={copyPrompt}>
             Copy to Clipboard
@@ -169,6 +193,11 @@ const styles = {
   },
   subtitle: {
     marginBottom: 8,
+  },
+  meta: {
+    margin: "0 0 4px",
+    color: "#cbd5e1",
+    fontSize: 14,
   },
   form: {
     display: "grid",
