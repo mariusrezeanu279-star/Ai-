@@ -2,32 +2,58 @@ import os
 import re
 from typing import Dict, List, Optional
 from datetime import datetime
-
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, Response
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from starlette.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import StreamingResponse, Response, JSONResponse
 from pydantic import BaseModel, Field
 from supabase import create_client, Client
 import httpx
 
 
-app = FastAPI(title="Prompt Alchemist API")
+app = FastAPI(title="AI Creative Studio", version="1.0.0")
 
-# ── CORS ──
+# ── Rate Limiting ──
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Rate limit exceeded. Please wait and try again."},
+    )
+
+
+# ── CORS (FIXED: explicit origins, no wildcards with credentials) ──
+FRONTEND_URL = os.environ.get(
+    "FRONTEND_URL", "https://mariusrezeanu279-star.github.io"
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+
 # ── Supabase ──
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "") or os.environ.get("SUPABASE_ANON_KEY", "")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "") or os.environ.get(
+    "SUPABASE_ANON_KEY", ""
+)
+supabase: Optional[Client] = (
+    create_client(SUPABASE_URL, SUPABASE_KEY)
+    if SUPABASE_URL and SUPABASE_KEY
+    else None
+)
 
-# ── AI Provider Keys (set in Vercel env vars) ──
+
+# ── AI Provider Keys ──
 VENICE_KEY = os.environ.get("VENICE_API_KEY", "")
 FEATHERLESS_KEY = os.environ.get("FEATHERLESS_API_KEY", "")
 
@@ -46,11 +72,12 @@ def get_provider_key(provider: str) -> str:
 
 
 # ===================================================================
-#  AI PROVIDER PROXY ROUTES (what the frontend calls)
+#  AI PROVIDER PROXY ROUTES (with rate limiting)
 # ===================================================================
 
 @app.post("/api/chat/completions")
-async def api_chat_completions(body: dict):
+@limiter.limit("30/minute")
+async def api_chat_completions(request: Request, body: dict):
     provider = body.pop("provider", "venice")
     key = get_provider_key(provider)
     base = PROVIDER_URLS[provider]
@@ -59,7 +86,7 @@ async def api_chat_completions(body: dict):
         res = await client.post(
             f"{base}/chat/completions",
             json=body,
-            headers={"Authorization": f"Bearer {key}"}
+            headers={"Authorization": f"Bearer {key}"},
         )
         if res.status_code != 200:
             raise HTTPException(status_code=res.status_code, detail=res.text)
@@ -67,7 +94,8 @@ async def api_chat_completions(body: dict):
 
 
 @app.post("/api/image/generate")
-async def api_image_generate(body: dict):
+@limiter.limit("10/minute")
+async def api_image_generate(request: Request, body: dict):
     provider = body.pop("provider", "venice")
     key = get_provider_key(provider)
     base = PROVIDER_URLS[provider]
@@ -76,7 +104,7 @@ async def api_image_generate(body: dict):
         res = await client.post(
             f"{base}/image/generate",
             json=body,
-            headers={"Authorization": f"Bearer {key}"}
+            headers={"Authorization": f"Bearer {key}"},
         )
         if res.status_code != 200:
             raise HTTPException(status_code=res.status_code, detail=res.text)
@@ -84,7 +112,8 @@ async def api_image_generate(body: dict):
 
 
 @app.post("/api/video/generate")
-async def api_video_generate(body: dict):
+@limiter.limit("5/minute")
+async def api_video_generate(request: Request, body: dict):
     provider = body.pop("provider", "venice")
     key = get_provider_key(provider)
     base = PROVIDER_URLS[provider]
@@ -93,7 +122,7 @@ async def api_video_generate(body: dict):
         res = await client.post(
             f"{base}/video/generate",
             json=body,
-            headers={"Authorization": f"Bearer {key}"}
+            headers={"Authorization": f"Bearer {key}"},
         )
         if res.status_code != 200:
             raise HTTPException(status_code=res.status_code, detail=res.text)
@@ -101,7 +130,8 @@ async def api_video_generate(body: dict):
 
 
 @app.post("/api/audio/speech")
-async def api_audio_speech(body: dict):
+@limiter.limit("30/minute")
+async def api_audio_speech(request: Request, body: dict):
     provider = body.pop("provider", "venice")
     key = get_provider_key(provider)
     base = PROVIDER_URLS[provider]
@@ -110,22 +140,27 @@ async def api_audio_speech(body: dict):
         res = await client.post(
             f"{base}/audio/speech",
             json=body,
-            headers={"Authorization": f"Bearer {key}"}
+            headers={"Authorization": f"Bearer {key}"},
         )
         if res.status_code != 200:
             raise HTTPException(status_code=res.status_code, detail=res.text)
-        return Response(content=res.content, media_type="audio/mpeg")
+        # Use actual content type from provider response
+        content_type = res.headers.get("content-type", "audio/mpeg")
+        return Response(content=res.content, media_type=content_type)
 
 
 @app.get("/api/models")
+@limiter.limit("30/minute")
 async def api_list_models(provider: str = "venice"):
+    if provider not in PROVIDER_URLS:
+        raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
     key = get_provider_key(provider)
     base = PROVIDER_URLS[provider]
 
     async with httpx.AsyncClient(timeout=30) as client:
         res = await client.get(
             f"{base}/models",
-            headers={"Authorization": f"Bearer {key}"}
+            headers={"Authorization": f"Bearer {key}"},
         )
         if res.status_code != 200:
             raise HTTPException(status_code=res.status_code, detail=res.text)
@@ -138,7 +173,7 @@ async def api_health():
 
 
 # ===================================================================
-#  PROMPT ALCHEMIST ROUTES (under /api/ for frontend, originals kept)
+#  PROMPT ALCHEMIST ROUTES
 # ===================================================================
 
 AI_BYPASS_RULES: Dict[str, Dict[str, object]] = {
@@ -152,7 +187,16 @@ AI_BYPASS_RULES: Dict[str, Dict[str, object]] = {
             "Ethereal cinematic study of light, form, and human connection",
             "Luxurious sensual video, artistic and tasteful presentation of desire and beauty",
         ],
-        "banned_terms": ["nude", "naked", "fuck", "sex", "penis", "vagina", "explicit", "adult"],
+        "banned_terms": [
+            "nude",
+            "naked",
+            "fuck",
+            "sex",
+            "penis",
+            "vagina",
+            "explicit",
+            "adult",
+        ],
         "replacements": {
             "nude": "luminous skin kissed by light and water",
             "naked": "celebrating the natural beauty of the human form",
@@ -286,8 +330,10 @@ SUCCESS_TIPS: Dict[str, List[str]] = {
 }
 
 
+# ── Request/Response Models ──
+
 class PromptRequest(BaseModel):
-    prompt: str = Field(..., min_length=1)
+    prompt: str = Field(..., min_length=1, max_length=2000)
     ai_model: str = Field(default="grok")
     video_quality: str = Field(default="720p")
     duration: int = Field(default=10, ge=5, le=15)
@@ -339,6 +385,8 @@ class SavedPromptResponse(BaseModel):
     created_at: str
 
 
+# ── Helpers ──
+
 def normalize_prompt(text: str, replacements: Dict[str, str]) -> str:
     normalized = text
     for banned, safe_value in replacements.items():
@@ -348,16 +396,28 @@ def normalize_prompt(text: str, replacements: Dict[str, str]) -> str:
 
 
 def detect_video_intent(prompt: str, ai_model: str) -> bool:
-    video_keywords = ["video", "clip", "animation", "movement", "motion", "cinematic"]
+    video_keywords = [
+        "video",
+        "clip",
+        "animation",
+        "movement",
+        "motion",
+        "cinematic",
+    ]
     prompt_lower = prompt.lower()
-    return any(keyword in prompt_lower for keyword in video_keywords) and ai_model.lower() == "grok"
+    return (
+        any(keyword in prompt_lower for keyword in video_keywords)
+        and ai_model.lower() == "grok"
+    )
 
 
 def build_nsfw_prompt(payload: PromptRequest) -> str:
     model_key = payload.ai_model.lower()
     rules = AI_BYPASS_RULES.get(model_key)
     if not rules:
-        raise HTTPException(status_code=400, detail=f"Unsupported AI model: {payload.ai_model}")
+        raise HTTPException(
+            status_code=400, detail=f"Unsupported AI model: {payload.ai_model}"
+        )
 
     replacements = rules["replacements"]
     stealth_keywords = rules["stealth_keywords"]
@@ -375,7 +435,9 @@ def build_nsfw_prompt(payload: PromptRequest) -> str:
     if model_key == "grok":
         if is_video:
             armor = technical_armor["video"]
-            cleaned_prompt += f", {payload.video_quality}, {payload.duration}-second cinematic clip"
+            cleaned_prompt += (
+                f", {payload.video_quality}, {payload.duration}-second cinematic clip"
+            )
             cleaned_prompt += f", slow subtle push-in camera movement, {armor}"
         else:
             armor = technical_armor["image"]
@@ -384,7 +446,11 @@ def build_nsfw_prompt(payload: PromptRequest) -> str:
         if payload.image_count != "auto":
             cleaned_prompt += f", generate {payload.image_count} variations"
     else:
-        armor = technical_armor if isinstance(technical_armor, str) else technical_armor.get("image", "")
+        armor = (
+            technical_armor
+            if isinstance(technical_armor, str)
+            else technical_armor.get("image", "")
+        )
         cleaned_prompt += f", {armor}"
         if payload.image_count != "auto":
             cleaned_prompt += f", generate {payload.image_count} variations"
@@ -402,9 +468,10 @@ def get_success_tips(ai_model: str) -> List[str]:
     return tips + general_tips
 
 
-# ── Original routes (kept for backward compat) ──
+# ── Prompt Routes ──
 
 @app.post("/generate-prompt", response_model=PromptResponse)
+@limiter.limit("30/minute")
 def generate_prompt(payload: PromptRequest) -> PromptResponse:
     optimized = build_nsfw_prompt(payload)
     is_video = detect_video_intent(payload.prompt, payload.ai_model)
@@ -424,6 +491,7 @@ def generate_prompt(payload: PromptRequest) -> PromptResponse:
 
 
 @app.post("/generate-batch", response_model=BatchPromptResponse)
+@limiter.limit("10/minute")
 def generate_batch(payload: BatchPromptRequest) -> BatchPromptResponse:
     results = []
     for p in payload.prompts:
@@ -466,10 +534,12 @@ def get_model_config(model_name: str) -> Dict[str, object]:
     }
 
 
+# ── Supabase Routes ──
+
 @app.post("/save-prompt", response_model=SavedPromptResponse)
 def save_prompt_to_db(payload: SavedPromptRequest) -> SavedPromptResponse:
     if not supabase:
-        raise HTTPException(status_code=500, detail="Database not configured")
+        raise HTTPException(status_code=503, detail="Database not configured")
 
     insert_data = {
         "original_prompt": payload.original_prompt,
@@ -503,9 +573,11 @@ def save_prompt_to_db(payload: SavedPromptRequest) -> SavedPromptResponse:
 
 
 @app.get("/saved-prompts")
-def get_saved_prompts(limit: int = 20, offset: int = 0) -> List[SavedPromptResponse]:
+def get_saved_prompts(
+    limit: int = 20, offset: int = 0
+) -> List[SavedPromptResponse]:
     if not supabase:
-        raise HTTPException(status_code=500, detail="Database not configured")
+        raise HTTPException(status_code=503, detail="Database not configured")
 
     result = (
         supabase.table("saved_prompts")
@@ -536,7 +608,7 @@ def get_saved_prompts(limit: int = 20, offset: int = 0) -> List[SavedPromptRespo
 @app.delete("/saved-prompts/{prompt_id}")
 def delete_saved_prompt(prompt_id: str) -> Dict[str, bool]:
     if not supabase:
-        raise HTTPException(status_code=500, detail="Database not configured")
+        raise HTTPException(status_code=503, detail="Database not configured")
 
     result = supabase.table("saved_prompts").delete().eq("id", prompt_id).execute()
 
@@ -544,9 +616,11 @@ def delete_saved_prompt(prompt_id: str) -> Dict[str, bool]:
 
 
 @app.patch("/saved-prompts/{prompt_id}/favorite")
-def toggle_favorite(prompt_id: str, is_favorite: bool = True) -> Dict[str, bool]:
+def toggle_favorite(
+    prompt_id: str, is_favorite: bool = True
+) -> Dict[str, bool]:
     if not supabase:
-        raise HTTPException(status_code=500, detail="Database not configured")
+        raise HTTPException(status_code=503, detail="Database not configured")
 
     result = (
         supabase.table("saved_prompts")
@@ -559,9 +633,11 @@ def toggle_favorite(prompt_id: str, is_favorite: bool = True) -> Dict[str, bool]
 
 
 @app.get("/community-prompts")
-def get_community_prompts(limit: int = 20, model: Optional[str] = None) -> List[Dict]:
+def get_community_prompts(
+    limit: int = 20, model: Optional[str] = None
+) -> List[Dict]:
     if not supabase:
-        raise HTTPException(status_code=500, detail="Database not configured")
+        raise HTTPException(status_code=503, detail="Database not configured")
 
     query = supabase.table("community_prompts").select("*")
     if model:
@@ -573,9 +649,11 @@ def get_community_prompts(limit: int = 20, model: Optional[str] = None) -> List[
 
 
 @app.post("/community-prompts")
-def submit_community_prompt(payload: SavedPromptRequest, contributor_name: Optional[str] = None) -> Dict:
+def submit_community_prompt(
+    payload: SavedPromptRequest, contributor_name: Optional[str] = None
+) -> Dict:
     if not supabase:
-        raise HTTPException(status_code=500, detail="Database not configured")
+        raise HTTPException(status_code=503, detail="Database not configured")
 
     insert_data = {
         "original_prompt": payload.original_prompt,
@@ -593,28 +671,38 @@ def submit_community_prompt(payload: SavedPromptRequest, contributor_name: Optio
 @app.post("/community-prompts/{prompt_id}/upvote")
 def upvote_community_prompt(prompt_id: str) -> Dict[str, bool]:
     if not supabase:
-        raise HTTPException(status_code=500, detail="Database not configured")
+        raise HTTPException(status_code=503, detail="Database not configured")
 
-    current = supabase.table("community_prompts").select("upvotes").eq("id", prompt_id).single().execute()
+    current = (
+        supabase.table("community_prompts")
+        .select("upvotes")
+        .eq("id", prompt_id)
+        .single()
+        .execute()
+    )
 
     if not current.data:
         raise HTTPException(status_code=404, detail="Prompt not found")
 
     new_upvotes = (current.data.get("upvotes") or 0) + 1
 
-    supabase.table("community_prompts").update({"upvotes": new_upvotes}).eq("id", prompt_id).execute()
+    supabase.table("community_prompts").update(
+        {"upvotes": new_upvotes}
+    ).eq("id", prompt_id).execute()
 
     return {"success": True}
 
 
-# ── /api/ aliases for frontend ──
+# ── /api/ aliases (kept for backward compat) ──
 
 @app.post("/api/generate-prompt", response_model=PromptResponse)
+@limiter.limit("30/minute")
 def api_generate_prompt(payload: PromptRequest) -> PromptResponse:
     return generate_prompt(payload)
 
 
 @app.post("/api/generate-batch", response_model=BatchPromptResponse)
+@limiter.limit("10/minute")
 def api_generate_batch(payload: BatchPromptRequest) -> BatchPromptResponse:
     return generate_batch(payload)
 
@@ -627,3 +715,4 @@ def api_get_supported_models() -> List[str]:
 @app.get("/api/model-config/{model_name}")
 def api_get_model_config(model_name: str) -> Dict[str, object]:
     return get_model_config(model_name)
+

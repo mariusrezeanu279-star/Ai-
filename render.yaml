@@ -1,0 +1,22 @@
+services:
+  ai-studio-api:
+    type: web
+    name: ai-studio-api
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: FRONTEND_URL
+        value: https://mariusrezeanu279-star.github.io
+      - key: VENICE_API_KEY
+        sync: false
+      - key: FEATHERLESS_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
