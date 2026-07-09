@@ -183,10 +183,23 @@ body,#header,#header-top,#header-badges,#header-body,#api-row,#model-row,#model-
 #attachment-preview pre{font-size:11px;font-family:monospace;color:var(--text2);white-space:pre-wrap;max-height:100px;overflow:auto;background:var(--bg4);padding:8px;border-radius:8px;}
 #input-drop-zone{border:1px solid var(--border2);border-radius:var(--radius2);overflow:hidden;transition:border-color .2s;width:100%;max-width:100%;box-sizing:border-box;}
 #input-drop-zone.drag-over{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
-#input-top{display:flex;flex-direction:row;align-items:flex-end;gap:0;background:var(--bg3);width:100%;min-width:0;box-sizing:border-box;}
-/* Flex child wrapper: min-width:0 is required or the textarea collapses to ~1ch */
-.input-container{display:flex;flex:1 1 auto;min-width:0;min-height:0;width:100%;max-width:100%;}
-/* Global form field sizing — prevents 1-char-per-line collapse */
+#input-top{display:flex;flex-direction:row;align-items:stretch;gap:0;background:var(--bg3);width:100%;min-width:0;box-sizing:border-box;}
+/*
+  Message input layout:
+  - field-sizing:content was sizing the textarea to content width (~1ch) → one char per line.
+  - Container must be a flex grower with min-width:0; stretch so the field fills the row.
+*/
+.input-container{
+  display:flex;
+  flex:1 1 auto;
+  min-width:0;
+  min-height:0;
+  width:auto;
+  max-width:100%;
+  align-items:stretch;
+  align-self:stretch;
+}
+/* Global form field sizing — do NOT use field-sizing:content on these */
 textarea,
 input[type="text"],
 input[type="password"],
@@ -198,31 +211,36 @@ input:not([type]){
   white-space:pre-wrap;
   word-wrap:break-word;
   overflow-wrap:break-word;
-  resize:none;
+  field-sizing:fixed;
 }
 #msg-input{
+  display:block;
+  width:100% !important;
+  max-width:100% !important;
+  min-width:0 !important;
   flex:1 1 auto;
-  min-width:0;
-  width:100%;
-  max-width:100%;
-  box-sizing:border-box;
+  align-self:stretch;
+  box-sizing:border-box !important;
   background:transparent;
   border:none;
   color:var(--text);
   padding:11px 14px;
-  font-size:14px;
+  font-size:16px; /* 16px avoids iOS focus zoom; still readable */
   resize:none;
   max-height:140px;
   min-height:44px;
+  height:44px;
   font-family:var(--font);
   outline:none;
   line-height:1.5;
-  white-space:pre-wrap;
+  white-space:pre-wrap !important;
   word-wrap:break-word;
-  overflow-wrap:break-word;
+  overflow-wrap:break-word !important;
+  word-break:normal;
   overflow-x:hidden;
   overflow-y:auto;
-  field-sizing:content;
+  /* field-sizing:content was the bug — it sized width to ~1 character */
+  field-sizing:fixed !important;
 }
 #msg-input::placeholder{color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #input-hints{display:none;font-size:10px;color:var(--text3);padding:0 10px 8px;line-height:1.4}
@@ -597,7 +615,7 @@ window.addEventListener('DOMContentLoaded', () => {
     <div id="input-drop-zone" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
       <div id="input-top">
         <div class="input-container">
-          <textarea id="msg-input" rows="1" placeholder="Message… (Shift+Enter for new line)" oninput="autoResize(this);updateCharCount()" onkeydown="chatKey(event)"></textarea>
+          <textarea id="msg-input" rows="2" cols="40" placeholder="Message… (Shift+Enter for new line)" oninput="autoResize(this);updateCharCount()" onkeydown="chatKey(event)"></textarea>
         </div>
         <div id="input-actions">
           <button id="attach-btn" title="Attach file" onclick="document.getElementById('file-input').click()">📎</button>
@@ -2003,7 +2021,14 @@ function renderMarkdown(el){
     .replace(/\n/g,'<br>');
   el.innerHTML=html;
 }
-function autoResize(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,140)+'px';}
+function autoResize(el){
+  if(!el)return;
+  // Never touch width — only grow height. field-sizing/content + width hacks cause 1-char lines.
+  el.style.width='';
+  el.style.removeProperty('width');
+  el.style.height='auto';
+  el.style.height=Math.min(el.scrollHeight,140)+'px';
+}
 function updateCharCount(){const len=document.getElementById('msg-input').value.length;document.getElementById('char-count').textContent=len>0?len+' chars (~'+Math.ceil(len/4)+' tokens)':'';}
 function chatKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}}
 
