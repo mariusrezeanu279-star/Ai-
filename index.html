@@ -32,11 +32,12 @@
   --font:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
 }
 html,body{height:100%;overflow:hidden}
-body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;display:flex;flex-direction:column}
-::-webkit-scrollbar{width:4px;height:4px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border3);border-radius:4px}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;display:flex;flex-direction:column;min-height:0}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:var(--bg3)}
+::-webkit-scrollbar-thumb{background:var(--border3);border-radius:8px}
 ::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+*{scrollbar-width:thin;scrollbar-color:var(--border3) var(--bg3)}
 
 /* HEADER */
 #header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 14px 8px;flex-shrink:0;position:relative;}
@@ -50,7 +51,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 #header-toggle:hover{background:var(--bg5);color:var(--text)}
 #header-body{overflow:hidden;transition:max-height .25s cubic-bezier(.4,0,.2,1),opacity .2s}
 #header-body.collapsed{max-height:0;opacity:0;pointer-events:none}
-#header-body.expanded{max-height:300px;opacity:1}
+#header-body.expanded{max-height:min(52vh,460px);opacity:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 #api-row{display:flex;gap:6px;align-items:center;margin-bottom:7px;flex-wrap:wrap}
 .provider-pill{display:flex;gap:0;border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden;}
 .provider-pill select{background:var(--bg3);border:none;color:var(--text);padding:7px 10px;font-size:12px;cursor:pointer;outline:none;min-width:110px;}
@@ -79,6 +80,12 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 #load-more-btn.show{display:inline-block}
 #load-progress{position:absolute;bottom:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent),var(--accent-light));width:0%;transition:width .3s;display:none;}
 #load-progress.show{display:block}
+#model-desc{display:none;margin-top:6px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);font-size:12px;color:var(--text2);line-height:1.45;max-height:110px;overflow-y:auto}
+#model-desc.show{display:block}
+#model-desc .md-title{font-weight:600;color:var(--text);margin-bottom:4px}
+#model-desc .md-tags{font-size:11px;color:var(--accent-light);margin-bottom:4px}
+#chat-messages{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+
 #sqljs-banner{background:var(--blue-bg);color:var(--blue-text);font-size:11px;padding:5px 14px;text-align:center;display:none;border-bottom:1px solid rgba(59,130,246,.15);flex-shrink:0;}
 #sqljs-banner.show{display:block}
 
@@ -93,7 +100,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 /* PANELS */
 #panels{flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0}
 .panel{display:none;flex:1;flex-direction:column;overflow:hidden;min-height:0}
-.panel.active{display:flex}
+.panel.active{display:flex;min-height:0}
 
 /* CHAT */
 #chat-messages{flex:1;overflow-y:auto;padding:16px 14px 10px;display:flex;flex-direction:column;gap:12px;min-height:0;}
@@ -185,7 +192,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:14
 #plist-content{max-height:160px;overflow:auto;font-size:11px;font-family:'SF Mono',Monaco,Consolas,monospace;color:var(--text2);white-space:pre-wrap;background:var(--bg4);padding:10px;border-radius:8px;line-height:1.5;}
 
 /* TAB CONTENT */
-.tab-scroll{flex:1;overflow-y:auto;min-height:0}
+.tab-scroll{flex:1;overflow-y:auto;min-height:0;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .tab-content{padding:16px 14px;max-width:600px;margin:0 auto;width:100%}
 .section-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;margin-top:16px;}
 .section-label:first-child{margin-top:0}
@@ -442,14 +449,15 @@ window.addEventListener('DOMContentLoaded', () => {
     </div>
     <div id="model-row">
       <select id="model-select"><option value="">— Choose model —</option></select>
-      <button class="model-btn" id="load-models-btn" onclick="loadModels(true,false)">⚡ Load</button>
-      <button class="model-btn primary" id="load-all-btn" onclick="loadModels(true,true)">🔄 All</button>
+      <button class="model-btn" id="load-models-btn" onclick="loadModels(true,false)" title="Load 500 models">⚡ Load 500</button>
+      <button class="model-btn primary" id="load-all-btn" onclick="loadModels(true,true)" title="Load entire catalogue (paginated 500/page)">🔄 Load All</button>
     </div>
     <input id="model-search" placeholder="🔍 Search models”¦"/>
     <div id="model-footer">
       <span id="model-count"></span>
       <button id="load-more-btn" onclick="loadModels(false,false)">⬇ More</button>
     </div>
+    <div id="model-desc" aria-live="polite"></div>
   </div>
 </div>
 
@@ -820,8 +828,8 @@ window.addEventListener('DOMContentLoaded', () => {
         <select class="field" id="max-tokens-select" style="width:100px;padding:5px 8px;font-size:12px">
           <option value="1024">1 024</option>
           <option value="2048">2 048</option>
-          <option value="4096">4 096</option>
-          <option value="8192" selected>8 192</option>
+          <option value="4096" selected>4 096 (half burn)</option>
+          <option value="8192">8 192</option>
           <option value="16384">16 384</option>
           <option value="32000">32 000</option>
         </select>
@@ -1180,20 +1188,151 @@ function populateDefaultModels(){
   modelPage=1;allModels=[];modelHasMore=false;loadAllAbort=false;
   const search=document.getElementById('model-search');search.style.display='none';search.value='';
   document.getElementById('load-more-btn').classList.remove('show');
+  const desc=document.getElementById('model-desc');if(desc){desc.classList.remove('show');desc.innerHTML='';}
   const sel=document.getElementById('model-select');
   sel.innerHTML='<option value="">— Choose model —</option>';
   const defaults=PROVIDER_DEFAULTS[currentProvider]||[];
-  defaults.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;sel.appendChild(o);});
+  defaults.forEach(m=>{
+    const meta=enrichModelMeta({id:m,name:m});
+    const o=document.createElement('option');o.value=meta.id;o.textContent=meta.display;sel.appendChild(o);
+  });
   const saved=localStorage.getItem('ai-pro-model');
-  if(saved&&[...sel.options].some(o=>o.value===saved))sel.value=saved;
-  document.getElementById('model-count').textContent=defaults.length?defaults.length+' defaults — tap Load':'';
+  if(saved&&[...sel.options].some(o=>o.value===saved)){sel.value=saved;showModelDescription(saved);}
+  document.getElementById('model-count').textContent=defaults.length?defaults.length+' defaults — tap Load (500) or All':'';
+}
+
+/* Model intelligence: emojis, tags, descriptions, priority sort */
+const TOP_UNRESTRICTED=[
+  'nousresearch/hermes-3-llama-3.1-70b','nousresearch/hermes-3-llama-3.1-8b','nousresearch/hermes-2-pro-llama-3-8b',
+  'teknium/openhermes-2.5-mistral-7b','teknium/openhermes-2-mistral-7b',
+  'cognitivecomputations/dolphin-2.9.1-llama-3-70b','cognitivecomputations/dolphin-2.9.1-llama-3-8b',
+  'cognitivecomputations/dolphin-2.9-llama3.1-70b','cognitivecomputations/dolphin-llama3-70b',
+  'cognitivecomputations/dolphin-2.6-mixtral-8x7b','cognitivecomputations/dolphin-2.8-mistral-7b-v02',
+  'undi95/toppy-m-7b','koboldai/psyfighter-2-13b','neverleep/noromaid-v0.4-mixtral-8x7b',
+  'lizpreciatior/lzlv-70b-fp16-hf','sao10k/l3-8b-lunaris','sao10k/l3-8b-stheno-v3.2',
+  'nothingiisreal/lumimaid-v0.2-8b','nothingiisreal/lumimaid-v0.2-70b',
+  'aetherwiing/mn-starcannon-12b','nbeerbower/llama3.1-gutenberg-erne-8b',
+  'thedrummer/rocinante-12b-v1.1','thedrummer/unslopnemo-12b','thedrummer/gemmasue-2-9b',
+  'mistralai/mistral-nemo-instruct-2407','mistralai/mixtral-8x22b-instruct-v0.1',
+  'qwen/qwen2.5-72b-instruct','qwen/qwen2.5-32b-instruct','deepseek-ai/deepseek-r1',
+  'meta-llama/llama-3.3-70b-instruct','meta-llama/meta-llama-3.1-70b-instruct',
+  'huggingfaceh4/zephyr-7b-beta','openchat/openchat-3.5-0106','abacusai/smaug-72b-v0.1',
+  'sophosympatheia/midnight-miqu-70b-v1.5','anthracite-org/magnum-v4-72b','anthracite-org/magnum-v2-72b',
+  'eva-unit-01/eva-qwen2.5-72b','eva-unit-01/eva-llama-3.33-70b','neversleep/llama-3-lumimaid-70b',
+  'neversleep/llama-3-lumimaid-8b','neversleep/noromaid-20b','grimulkan/theory-of-mind-14b',
+  'infermatic/mn-12b-inferor-v0.0','inflatebot/mn-12b-mag-mell-r1','alpindale/magnum-72b',
+  'nousresearch/nous-hermes-2-mixtral-8x7b-dpo','nousresearch/nous-hermes-2-yi-34b',
+  'microsoft/wizardlm-2-8x22b','microsoft/wizardlm-2-7b'
+];
+
+function enrichModelMeta(m){
+  const rawId=m.id||m.name||'';
+  const id=String(rawId);
+  const idLow=id.toLowerCase();
+  const name=String(m.name||m.id||'');
+  const nameLow=name.toLowerCase();
+  const blob=idLow+' '+nameLow+' '+String(m.training||'')+' '+String((m.tags||[]).join(' ')).toLowerCase();
+
+  let score=500;
+  const tags=[];
+  let emoji='🤖';
+  let isNsfw=false;
+  let isHermes=false;
+  let isJail=false;
+  let isVision=false;
+  let description='';
+
+  const topIdx=TOP_UNRESTRICTED.findIndex(p=>idLow.includes(p)||p.includes(idLow));
+  if(topIdx>=0) score=Math.min(score, topIdx);
+
+  isHermes=/hermes|openhermes/.test(blob);
+  isJail=/jailbreak|uncensored|abliterated|unfiltered|unrestricted|heretic|dolphin|noromaid|lumimaid|stheno|lunaris|toppy|psyfighter|magnum|midnight-miqu|rocinante|unslop|gutenberg|inferor|mag-mell/.test(blob);
+  isNsfw=/nsfw|erotic|adult|r18|sensual|sex|porn|hentai|lust|lewd/.test(blob) || isJail;
+  isVision=/vision|-vl|llava|image/.test(blob) || (Array.isArray(m.modalities)&&(m.modalities.includes('image')||m.modalities.includes('vision')));
+
+  if(isHermes){
+    emoji='✨'; tags.push('HERMES'); score=Math.min(score, 5);
+    description='Hermes / OpenHermes family: strong instruction following with lighter refusal tendencies. Excellent for creative writing, roleplay, multi-step instructions, storytelling, and character work. Great default when you want capability + creative freedom.';
+  }
+  if(isJail && !isHermes){
+    emoji='🔓'; tags.push('UNRESTRICTED'); score=Math.min(score, 20);
+    description='Uncensored / less-restricted fine-tune (Dolphin, abliterated, jailbroken-style, RP uncensored, etc.). Best for adult creative writing, erotic roleplay, dark fiction, and prompts where stock safety layers get in the way. Still obeys your system prompt — write clear character sheets.';
+  }
+  if(isNsfw){
+    if(emoji==='🤖') emoji='🔞';
+    if(!tags.includes('R18')) tags.push('R18');
+    score=Math.min(score, isHermes?5:15);
+    if(!description){
+      description='Adult / NSFW-oriented model variant. Suited for R18 roleplay, sensual storytelling, and unrestricted creative scenes. Pair with a strong system prompt for consistent character behavior.';
+    }
+  }
+  if(topIdx>=0 && topIdx<50){
+    if(!tags.includes('TOP50')) tags.unshift('TOP50');
+    if(emoji==='🤖') emoji='⭐';
+    score=Math.min(score, topIdx);
+  }
+  if(isVision){
+    if(!tags.includes('VISION')) tags.push('VISION');
+    if(emoji==='🤖') emoji='🖼️';
+  }
+
+  if(!description){
+    if(/code|coder|deepseek-coder|starcoder|codellama/.test(blob)){
+      description='Coding-oriented model. Best for programming help, refactoring, debugging, and technical explanations.';
+      if(emoji==='🤖') emoji='💻';
+    }else if(/r1|reason|qwq|thinking/.test(blob)){
+      description='Reasoning-focused model. Best for multi-step logic, analysis, planning, and hard problems.';
+      if(emoji==='🤖') emoji='🧠';
+    }else if(/llama|meta-llama/.test(blob)){
+      description='Llama-family general chat model. Solid all-rounder for conversation, writing, and Q&A.';
+    }else if(/qwen|qwen2/.test(blob)){
+      description='Qwen-family model. Strong multilingual chat, reasoning, and long-context tasks.';
+    }else if(/mistral|mixtral|nemo/.test(blob)){
+      description='Mistral-family model. Fast, capable chat and instruction following; good balance of quality and speed.';
+    }else if(/gemma|phi-|yi-|command|claude|gpt|gemini/.test(blob)){
+      description='General-purpose instruction model. Good for everyday chat, summarization, and creative tasks.';
+    }else{
+      description='General-purpose LLM. Good for chat, reasoning, and creative tasks. Select a model after Load/All for catalogue-specific notes.';
+    }
+  }
+
+  const seen=new Set();
+  const cleanTags=tags.filter(t=>{if(seen.has(t))return false;seen.add(t);return true;});
+
+  const ctx=m.context_length?(' ['+Math.round(m.context_length/1024)+'k]'):'';
+  const tagPrefix=cleanTags.length?('['+emoji+' '+cleanTags.join('·')+'] '):(emoji!=='🤖'?('['+emoji+'] '):'');
+  const display=tagPrefix+name+ctx;
+
+  description += m.context_length?(' Context window ≈ '+m.context_length+' tokens.'):'';
+
+  return{
+    id,name,display,description,emoji,tags:cleanTags,
+    is_nsfw:!!(isNsfw||isJail),is_hermes:!!isHermes,is_jailbreak:!!isJail,
+    context_length:m.context_length||null,
+    _score:score,_cat:isNsfw||isHermes||isJail?'priority':(isVision?'vision':'standard')
+  };
+}
+
+function showModelDescription(modelId){
+  const box=document.getElementById('model-desc');
+  if(!box)return;
+  if(!modelId){box.classList.remove('show');box.innerHTML='';return;}
+  const m=allModels.find(x=>x.id===modelId) || enrichModelMeta({id:modelId,name:modelId});
+  const tagStr=(m.tags&&m.tags.length)?m.tags.join(' · '):'General';
+  box.innerHTML='<div class="md-title">'+(m.emoji||'🤖')+' '+esc(m.id||modelId)+'</div>'+
+    '<div class="md-tags">'+esc(tagStr)+'</div>'+
+    '<div>'+esc(m.description||'No description available.')+'</div>';
+  box.classList.add('show');
 }
 
 document.getElementById('model-search').addEventListener('input',function(){
   clearTimeout(searchTimeout);
   searchTimeout=setTimeout(()=>{
     const term=this.value.toLowerCase().trim();
-    const filtered=term?allModels.filter(m=>(m.display||m.name||m.id).toLowerCase().includes(term)):allModels;
+    const filtered=term?allModels.filter(m=>{
+      const hay=((m.display||'')+' '+(m.name||'')+' '+(m.id||'')+' '+(m.description||'')+' '+(m.tags||[]).join(' ')).toLowerCase();
+      return hay.includes(term);
+    }):allModels;
     renderModelDropdown(filtered);
   },150);
 });
@@ -1206,30 +1345,42 @@ function renderModelDropdown(models){
   models.forEach(m=>{
     const o=document.createElement('option');
     o.value=m.id;o.textContent=m.display||m.name||m.id;
+    o.title=m.description||m.id;
     frag.appendChild(o);
   });
   sel.innerHTML='';sel.appendChild(frag);
-  if(saved)sel.value=saved;
+  if(saved && [...sel.options].some(o=>o.value===saved)){sel.value=saved;showModelDescription(saved);}
+  else if(sel.value){showModelDescription(sel.value);}
+  else{showModelDescription('');}
 }
 
 document.getElementById('model-select').addEventListener('change',function(){
   if(this.value)try{localStorage.setItem('ai-pro-model',this.value);}catch(_){}
+  showModelDescription(this.value);
 });
 
 async function loadModels(reset=true,autoAll=false){
   const key=getKey();
-  if(!key)return showToast('Save your API key first','err');
-  
+  // Featherless /models can work without a key; other providers need auth
+  if(!key && currentProvider!=='featherless' && currentProvider!=='pollinations'){
+    return showToast('Save your API key first','err');
+  }
+
   const cacheKey = 'models_cache_' + currentProvider;
-  if(reset && !autoAll) {
+  // Use cache only when list is empty (first Load). Click Load again to force network refresh.
+  if(reset && !autoAll && allModels.length===0) {
     try {
       const cached = JSON.parse(localStorage.getItem(cacheKey));
-      if(cached && Date.now() - cached.time < 3600000) { // 1 hour
-        allModels = cached.models;
+      if(cached && Date.now() - cached.time < 3600000 && Array.isArray(cached.models) && cached.models.length) {
+        allModels = cached.models.map(m=>m.description?m:enrichModelMeta(m));
+        allModels.sort((a,b)=>(a._score??500)-(b._score??500) || String(a.id).localeCompare(String(b.id)));
         renderModelDropdown(allModels);
-        document.getElementById('model-count').textContent=allModels.length+' models (cached)';
+        document.getElementById('model-count').textContent=allModels.length+' models (cached) — click Load again to refresh from API';
         document.getElementById('model-search').style.display='block';
-        addMsg('system','✅ Loaded ' + allModels.length + ' models from cache.');
+        modelHasMore=!!cached.hasMore;
+        modelPage=cached.nextPage||1;
+        document.getElementById('load-more-btn').classList.toggle('show', modelHasMore);
+        addMsg('system','✅ Loaded '+allModels.length+' models from cache (priority/uncensored first). Click Load again to refresh.');
         return;
       }
     } catch(e){}
@@ -1241,11 +1392,13 @@ async function loadModels(reset=true,autoAll=false){
   const moreBtn=document.getElementById('load-more-btn');
   const prog=document.getElementById('load-progress');
   btn.disabled=true;allBtn.disabled=true;moreBtn.disabled=true;
-  if(autoAll){allBtn.textContent='⏳ Loading”¦';prog.style.width='5%';prog.classList.add('show');}
-  else{btn.textContent='⏳';}
+  if(autoAll){allBtn.textContent='⏳ All…';prog.style.width='5%';prog.classList.add('show');}
+  else if(reset){btn.textContent='⏳';}
+  else{moreBtn.textContent='⏳';}
+
   try{
     if(currentProvider==='anthropic'){
-      allModels=PROVIDER_DEFAULTS.anthropic.map(id=>({id,name:id,display:id}));
+      allModels=PROVIDER_DEFAULTS.anthropic.map(id=>enrichModelMeta({id,name:id}));
       renderModelDropdown(allModels);document.getElementById('model-count').textContent=allModels.length+' models';
       document.getElementById('model-search').style.display='block';addMsg('system','✅ Anthropic models listed.');return;
     }
@@ -1262,23 +1415,18 @@ async function loadModels(reset=true,autoAll=false){
         const d=await r.json();
         const items=d.data||d||[];
         items.forEach(m=>{
-          const id=m.id||m.name;
-          if(!id)return;
-          const tags=[];
-          const idLow=id.toLowerCase();
-          if(idLow.includes('vision')||idLow.includes('vl'))tags.push('🖼️');
-          const ctx=m.context_length?(' ['+Math.round(m.context_length/1024)+'k]'):'';
-          allModels.push({id,name:id,display:(tags.length?'['+tags.join('')+'] ':'')+id+ctx,_cat:'standard'});
+          const id=m.id||m.name; if(!id)return;
+          allModels.push(enrichModelMeta(Object.assign({}, m, {id:id, name:id, context_length:m.context_length||m.context_window})));
         });
         if(allModels.length===0)throw new Error('Empty model list from GitHub');
+        allModels.sort((a,b)=>(a._score??500)-(b._score??500));
         renderModelDropdown(allModels);
         document.getElementById('model-count').textContent=allModels.length+' GitHub AI models';
         document.getElementById('model-search').style.display='block';
         addMsg('system','✅ '+allModels.length+' GitHub AI models loaded.');
         return;
       }catch(e){
-        // Fall back to defaults
-        allModels=PROVIDER_DEFAULTS.github.map(id=>({id,name:id,display:id,_cat:'standard'}));
+        allModels=PROVIDER_DEFAULTS.github.map(id=>enrichModelMeta({id,name:id}));
         renderModelDropdown(allModels);
         document.getElementById('model-count').textContent=allModels.length+' GitHub AI models (defaults)';
         document.getElementById('model-search').style.display='block';
@@ -1291,9 +1439,15 @@ async function loadModels(reset=true,autoAll=false){
       for(const t of['text','image','video']){
         try{
           const r=await fetch('https://api.venice.ai/api/v1/models?type='+t,{headers:{Authorization:'Bearer '+key}});
-          if(r.ok){const d=await r.json();(d.data||[]).forEach(m=>{m._type=t;allModels.push({id:m.id,name:m.id,display:m.id+(t!=='text'?' ['+t+']':''),_cat:t});});}
+          if(r.ok){const d=await r.json();(d.data||[]).forEach(m=>{
+            const meta=enrichModelMeta(Object.assign({}, m, {id:m.id, name:m.id}));
+            meta.display=meta.display+(t!=='text'?' ['+t+']':'');
+            meta._cat=t==='text'?meta._cat:t;
+            allModels.push(meta);
+          });}
         }catch(_){}
       }
+      allModels.sort((a,b)=>(a._score??500)-(b._score??500));
       renderModelDropdown(allModels);document.getElementById('model-count').textContent=allModels.length+' models';
       document.getElementById('model-search').style.display='block';addMsg('system','✅ '+allModels.length+' Venice models.');return;
     }
@@ -1313,20 +1467,13 @@ async function loadModels(reset=true,autoAll=false){
           d.forEach(m=>{
             const id=m.modelId||m.id;
             if(id && validTags.includes(m.pipeline_tag)){
-              allModels.push({
-                id:id,
-                name:id,
-                display:id+' ['+(m.pipeline_tag||'chat')+']',
-                _cat:m.pipeline_tag||'chat'
-              });
+              allModels.push(enrichModelMeta({id,name:id,tags:[m.pipeline_tag]}));
             }
           });
           if(allModels.length===0){
-            // fallback if filter yields nothing
-            PROVIDER_DEFAULTS.huggingface.forEach(id=>{
-              allModels.push({id:id,name:id,display:id, _cat:'text-generation'});
-            });
+            PROVIDER_DEFAULTS.huggingface.forEach(id=>{ allModels.push(enrichModelMeta({id,name:id})); });
           }
+          allModels.sort((a,b)=>(a._score??500)-(b._score??500));
           renderModelDropdown(allModels);
           document.getElementById('model-count').textContent=allModels.length+' Hugging Face chat models';
           document.getElementById('model-search').style.display='block';
@@ -1334,9 +1481,8 @@ async function loadModels(reset=true,autoAll=false){
           return;
         }
       }catch(e){
-        if(e.message.includes('401')) throw e;
-        // fallback to defaults
-        allModels=PROVIDER_DEFAULTS.huggingface.map(id=>({id,name:id,display:id, _cat:'text-generation'}));
+        if(String(e.message||'').includes('401')) throw e;
+        allModels=PROVIDER_DEFAULTS.huggingface.map(id=>enrichModelMeta({id,name:id}));
         renderModelDropdown(allModels);
         document.getElementById('model-count').textContent=allModels.length+' Hugging Face (defaults)';
         document.getElementById('model-search').style.display='block';
@@ -1353,89 +1499,94 @@ async function loadModels(reset=true,autoAll=false){
           const chatModels=Array.isArray(d)?d.filter(m=>!m.type||m.type==='chat'):[];
           chatModels.forEach(m=>{
             const id=m.name||m.id;if(!id)return;
-            allModels.push({id,name:id,display:id+(m.description?' — '+m.description.slice(0,60):''),_cat:'standard'});
+            const meta=enrichModelMeta({id,name:id});
+            if(m.description) meta.description=m.description;
+            allModels.push(meta);
           });
         }
       }catch(_){}
-      if(!allModels.length)allModels=PROVIDER_DEFAULTS.pollinations.map(id=>({id,name:id,display:id,_cat:'standard'}));
+      if(!allModels.length)allModels=PROVIDER_DEFAULTS.pollinations.map(id=>enrichModelMeta({id,name:id}));
+      allModels.sort((a,b)=>(a._score??500)-(b._score??500));
       renderModelDropdown(allModels);
       document.getElementById('model-count').textContent=allModels.length+' Pollinations models';
       document.getElementById('model-search').style.display='block';
       addMsg('system','✅ '+allModels.length+' Pollinations.ai models (free, no key needed).');
       return;
     }
-    let firstFetch = true;
-    const perPage=currentProvider==='featherless'?1000:100;
+
+    // Generic OpenAI-compatible + Featherless pagination
+    // Load = 500/page; Load All = every page until exhausted
+    const perPage = currentProvider==='featherless' ? 500 : 100;
+    if(reset){ allModels=[]; modelPage=1; modelHasMore=false; }
+
     let pages=0;
+    let firstFetch=true;
+    const headers={};
+    if(key){ headers['Authorization']='Bearer '+key; headers['Content-Type']='application/json'; }
+
     do{
       if(loadAllAbort)break;
-      const url=currentProvider==='featherless'
-        ?'https://api.featherless.ai/v1/models?page='+modelPage+'&per_page='+perPage
-        :PROVIDER_BASES[currentProvider]+'/models';
-      const r=await fetchWithRetry(url,{headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'}});
-      if(!r.ok)throw new Error('HTTP '+r.status);
-      const data=await r.json();
-      
-      // If we got here, the fetch succeeded. Reset the models array if we are starting fresh.
-      if (firstFetch && reset) {
-         allModels = [];
-         modelPage = 1;
+      let url;
+      if(currentProvider==='featherless'){
+        url='https://api.featherless.ai/v1/models?page='+modelPage+'&per_page='+perPage+'&sort=-popularity';
+      }else{
+        url=(PROVIDER_BASES[currentProvider]||'')+'/models';
       }
-      firstFetch = false;
+      const r=await fetchWithRetry(url,{headers});
+      if(!r.ok){
+        if(r.status===401||r.status===403){
+          const body=await r.text().catch(()=> '');
+          throw new Error('Auth/plan error HTTP '+r.status+'. For chat, Featherless needs a valid API key with API access enabled on your plan. Details: '+body.slice(0,180));
+        }
+        throw new Error('HTTP '+r.status);
+      }
+      const data=await r.json();
+      if(firstFetch && reset){ allModels=[]; }
+      firstFetch=false;
 
-      const newModels=(data.data||data.models||[]).map(m=>{
-        const id=m.id||m.name;
-        const name=m.name||m.id;
-        const idLow=id.toLowerCase();
-        const tags=[];
-        let cat='standard';
-        const isNsfw=idLow.includes('abliterated')||idLow.includes('uncensored')||idLow.includes('dolphin')||
-          idLow.includes('nsfw')||m.training==='uncensored'||m.training==='abliterated';
-        if(isNsfw){tags.push('🔍ž');cat='priority';}
-        const isVision=idLow.includes('vision')||idLow.includes('-vl')||idLow.includes('llava')||
-          (m.modalities&&(m.modalities.includes('image')||m.modalities.includes('vision')));
-        if(isVision&&cat==='standard'){tags.push('🖼️ï¸');cat='vision';}
-        
-let info = '';
-if(m.context_length) info += ' ['+Math.round(m.context_length/1024)+'k]';
-if(m.parameter_count) info += ' ['+Math.round(m.parameter_count/1e9)+'B]';
-return{id,name,display:(tags.length?'['+tags.join('')+'] ':'')+name+info,_cat:cat};
-
-      }).filter(m=>m.id);
+      const batch=(data.data||data.models||[]).map(m=>enrichModelMeta(m)).filter(m=>m.id);
       const existIds=new Set(allModels.map(m=>m.id));
-      newModels.forEach(m=>{if(!existIds.has(m.id)){allModels.push(m);existIds.add(m.id);}});
-      // Sort: NSFW first, then vision, then standard
-      const ord={priority:0,vision:1,standard:2};
-      allModels.sort((a,b)=>(ord[a._cat]??2)-(ord[b._cat]??2));
-      modelHasMore=newModels.length===perPage;pages++;modelPage++;
-      document.getElementById('model-count').textContent=allModels.length+' models'+(modelHasMore?' (page '+pages+'”¦)':' ✅');
+      batch.forEach(m=>{ if(!existIds.has(m.id)){ allModels.push(m); existIds.add(m.id);} });
+      allModels.sort((a,b)=>(a._score??500)-(b._score??500) || String(a.id).localeCompare(String(b.id)));
+
+      modelHasMore = batch.length >= perPage;
+      pages++; modelPage++;
+      document.getElementById('model-count').textContent=allModels.length+' models'+(modelHasMore?' (page '+pages+'…)' : ' ✅');
       renderModelDropdown(allModels);
-      if(autoAll){prog.style.width=Math.min(95,Math.round(pages/50*100))+'%';}
-    }while(autoAll&&modelHasMore);
+      if(autoAll){
+        prog.style.width=Math.min(95, Math.round(pages/Math.max(8, pages+1)*100))+'%';
+      }
+      // Single Load / More click: only one page of 500
+      if(!autoAll) break;
+    }while(modelHasMore);
+
     document.getElementById('model-search').style.display='block';
-    document.getElementById('model-count').textContent=allModels.length+' models'+(modelHasMore?' — more available':'  ✅');
-    moreBtn.classList.toggle('show',modelHasMore);
+    document.getElementById('model-count').textContent=allModels.length+' models'+(modelHasMore?' — more available (More / All)':' ✅ full list');
+    moreBtn.classList.toggle('show', modelHasMore);
     if(autoAll){prog.style.width='100%';setTimeout(()=>{prog.classList.remove('show');prog.style.width='0%';},800);}
-    if(reset)addMsg('system','✅ '+allModels.length+' models from '+currentProvider);
+    if(reset||autoAll) addMsg('system','✅ '+allModels.length+' models from '+currentProvider+(autoAll?' (Load All)':' (page size 500)')+'. Uncensored/HERMES/R18 sorted to top with emojis. Select a model to see its description.');
   }catch(e){
     addMsg('system','❌ Model load error: '+e.message);
     if(reset && allModels.length === 0) {
       const defaults = PROVIDER_DEFAULTS[currentProvider];
       if(defaults) {
-        allModels = defaults.map(id=>({id,name:id,display:id, _cat:'standard'}));
+        allModels = defaults.map(id=>enrichModelMeta({id,name:id}));
         renderModelDropdown(allModels);
         document.getElementById('model-count').textContent=allModels.length+' models (defaults)';
       }
     }
   }
   finally{
-    btn.disabled=false;allBtn.disabled=false;moreBtn.disabled=false;btn.textContent='⚡ Load';allBtn.textContent='🔄 All';
+    btn.disabled=false;allBtn.disabled=false;moreBtn.disabled=false;
+    btn.textContent='⚡ Load 500';allBtn.textContent='🔄 Load All';moreBtn.textContent='⬇ More';
     if(allModels.length > 0) {
       try {
-        localStorage.setItem('models_cache_' + currentProvider, JSON.stringify({time: Date.now(), models: allModels}));
+        localStorage.setItem('models_cache_' + currentProvider, JSON.stringify({
+          time: Date.now(), models: allModels, hasMore: modelHasMore, nextPage: modelPage
+        }));
       } catch(e){}
     }
-}
+  }
 }
 
 /* ╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬
@@ -1786,7 +1937,7 @@ async function sendChat(){
   }
   const thinkingDiv=addMsg('ai','__thinking__');
   try{
-    const maxTok=parseInt(document.getElementById('max-tokens-select').value)||8192;
+    const maxTok=parseInt(document.getElementById('max-tokens-select').value)||4096;
     let respText='';
     // STREAMING: supported for all providers except Anthropic (uses different stream format)
     const useStream=settings.stream&&currentProvider!=='anthropic';
@@ -1923,7 +2074,7 @@ async function processStreamReader(reader, targetDiv) {
 }
 
 /* ─€─€ NON-STREAMING (Anthropic + fallback) ─€─€ */
-async function chatCompletion(key,model,messages,systemPrompt,maxTokens=8192){
+async function chatCompletion(key,model,messages,systemPrompt,maxTokens=4096){
   window.__lastTruncated=false;
   if(currentProvider==='anthropic'){
     const body={model,max_tokens:maxTokens,messages};if(systemPrompt)body.system=systemPrompt;
@@ -1976,7 +2127,7 @@ function appendTruncationNotice(div){
 async function continueResponse(){
   const key=getKey();if(!key)return;const model=document.getElementById('model-select').value;if(!model)return;
   const sysprompt=document.getElementById('system-prompt-input').value.trim();
-  const maxTok=parseInt(document.getElementById('max-tokens-select').value)||8192;
+  const maxTok=parseInt(document.getElementById('max-tokens-select').value)||4096;
   const continuePrompt='Continue exactly where you left off. Do not repeat anything already said, no preamble.';
   const messages=[...chatHistory,{role:'user',content:continuePrompt}];
   const thinkingDiv=addMsg('ai','__thinking__');
@@ -2158,7 +2309,7 @@ async function runEdit(){
   try{
     const msg='Here is the content to edit:\n\n'+source.slice(0,30000)+'\n\n---\nInstruction: '+instruction+'\n\nApply the instruction and return only the result.';
     const sysp=document.getElementById('system-prompt-input').value.trim();
-    const maxTok=parseInt(document.getElementById('max-tokens-select').value)||8192;
+    const maxTok=parseInt(document.getElementById('max-tokens-select').value)||4096;
     document.getElementById('edit-result').value=await chatCompletion(key,model,[{role:'user',content:msg}],sysp,maxTok);
     statusEl.textContent='✅ Done';statusEl.className='status-msg ok show';
   }catch(e){statusEl.textContent='❌ '+e.message;statusEl.className='status-msg err show';}
@@ -2189,7 +2340,7 @@ async function runCombine(){
     let content='Instruction: '+instruction+'\n\n';
     combineFilesData.forEach((f,i)=>{content+='--- File '+(i+1)+': '+f.name+' ---\n'+f.text.slice(0,15000)+'\n\n';});
     const sysp=document.getElementById('system-prompt-input').value.trim();
-    const maxTok=parseInt(document.getElementById('max-tokens-select').value)||8192;
+    const maxTok=parseInt(document.getElementById('max-tokens-select').value)||4096;
     document.getElementById('combine-result').value=await chatCompletion(key,model,[{role:'user',content:content.slice(0,50000)}],sysp,maxTok);
     statusEl.textContent='✅ Done';statusEl.className='status-msg ok show';
   }catch(e){statusEl.textContent='❌ '+e.message;statusEl.className='status-msg err show';}
@@ -2209,7 +2360,7 @@ async function runVideo(){
   try{
     let msg=prompt;if(urlVal)msg+=' [Video URL: '+urlVal+']';
     const sysp=document.getElementById('system-prompt-input').value.trim();
-    const maxTok=parseInt(document.getElementById('max-tokens-select').value)||8192;
+    const maxTok=parseInt(document.getElementById('max-tokens-select').value)||4096;
     document.getElementById('video-result').value=await chatCompletion(key,model,[{role:'user',content:msg}],sysp,maxTok);
     statusEl.textContent='✅ Done';statusEl.className='status-msg ok show';
   }catch(e){statusEl.textContent='❌ '+e.message;statusEl.className='status-msg err show';}
@@ -2548,122 +2699,7 @@ function showToast(msg,type='ok'){
 window.addEventListener('beforeunload',()=>{if(currentDb){currentDb.close();currentDb=null;}});
 populateDefaultModels();
 </script>
-<script>
-// CHARM 2.0 Model Loader Enhancement - Add this to make Load Models / Load All work with 500 at a time + descriptions + emojis
-(function() {
-  const API_BASE = 'https://your-backend-url-here.com'; // ← CHANGE THIS to your Render/Vercel backend URL
 
-  // Find or create the model container
-  function getModelContainer() {
-    return document.querySelector('#model-list, #models-container, .model-grid, #model-select') || 
-           document.querySelector('[id*="model"]');
-  }
-
-  let currentPage = 1;
-  let currentProvider = 'featherless';
-
-  async function loadModels(page = 1, perPage = 500, loadAll = false) {
-    const container = getModelContainer();
-    if (!container) return alert('Model list container not found. Open DevTools and tell me the ID.');
-
-    container.innerHTML = '<div style="padding:20px;text-align:center;color:#888">Loading models... (prioritizing NSFW/HERMES first)</div>';
-
-    try {
-      const url = `${API_BASE}/api/models?provider=${currentProvider}&page=${page}&per_page=${perPage}${loadAll ? '&load_all=true' : ''}`;
-      const res = await fetch(url);
-      const data = await res.json();
-      const models = data.data || [];
-
-      container.innerHTML = '';
-
-      models.forEach(m => {
-        const card = document.createElement('div');
-        card.style.cssText = 'border:1px solid #444;border-radius:12px;padding:14px;margin:8px 0;background:#1a1a1a;cursor:pointer';
-        card.innerHTML = `
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <span style="font-size:22px">${m.emoji || '🤖'}</span>
-            <div style="flex:1">
-              <div style="font-weight:600;color:#fff">${m.id || m.name}</div>
-              <div style="font-size:12px;color:#0f0">${(m.tags || []).join(' • ')}</div>
-            </div>
-            ${m.is_nsfw ? '<span style="background:#c00;color:white;padding:2px 8px;border-radius:4px;font-size:11px">R18</span>' : ''}
-          </div>
-          <div style="font-size:13px;color:#ccc;line-height:1.4">${m.description || 'No description yet.'}</div>
-          <div style="margin-top:8px;font-size:11px;color:#666">Context: ${m.context_length || '?'} tokens</div>
-        `;
-        card.onclick = () => {
-          // Auto-select this model in the main dropdown if it exists
-          const sel = document.querySelector('#model-select');
-          if (sel) {
-            sel.value = m.id;
-            sel.dispatchEvent(new Event('change'));
-          }
-          alert(`Selected: ${m.id}\n\n${m.description}`);
-        };
-        container.appendChild(card);
-      });
-
-      // Add Load More button
-      if (data.has_more) {
-        const moreBtn = document.createElement('button');
-        moreBtn.textContent = 'Load More (next 500)';
-        moreBtn.style.cssText = 'margin:12px auto;display:block;padding:10px 20px;background:#333;color:white;border:none;border-radius:8px;cursor:pointer';
-        moreBtn.onclick = () => {
-          currentPage++;
-          loadModels(currentPage, 500, false);
-        };
-        container.appendChild(moreBtn);
-      }
-
-      if (loadAll) {
-        const note = document.createElement('div');
-        note.style.cssText = 'text-align:center;color:#0a0;margin:10px 0';
-        note.textContent = `Loaded ${data.total_loaded} models (NSFW/HERMES prioritized at top)`;
-        container.prepend(note);
-      }
-
-    } catch (e) {
-      container.innerHTML = `<div style="color:red;padding:20px">Error: ${e.message}. Make sure backend is deployed and API_BASE is correct.</div>`;
-    }
-  }
-
-  // Hook into existing buttons if they exist
-  function hookButtons() {
-    const loadBtn = document.querySelector('#load-models-btn, button[onclick*="loadModels"], button:contains("Load Models")');
-    const loadAllBtn = document.querySelector('#load-all-btn, button[onclick*="loadAll"]');
-
-    if (loadBtn) {
-      loadBtn.onclick = (e) => { e.preventDefault(); currentPage = 1; loadModels(1, 500, false); };
-    }
-    if (loadAllBtn) {
-      loadAllBtn.onclick = (e) => { e.preventDefault(); loadModels(1, 500, true); };
-    }
-
-    // Also add floating buttons if none exist
-    if (!loadBtn && !loadAllBtn) {
-      const fab = document.createElement('div');
-      fab.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;gap:8px';
-      fab.innerHTML = `
-        <button id="charm-load-500" style="padding:12px 18px;background:#00f3ff;color:black;border:none;border-radius:999px;font-weight:600">Load 500</button>
-        <button id="charm-load-all" style="padding:12px 18px;background:#ff00aa;color:white;border:none;border-radius:999px;font-weight:600">Load All (NSFW first)</button>
-      `;
-      document.body.appendChild(fab);
-      document.getElementById('charm-load-500').onclick = () => { currentPage=1; loadModels(1,500,false); };
-      document.getElementById('charm-load-all').onclick = () => loadModels(1,500,true);
-    }
-  }
-
-  // Auto-run
-  setTimeout(() => {
-    hookButtons();
-    // Optional: auto-load first page on Featherless
-    // loadModels(1, 500, false);
-  }, 1500);
-
-  window.CHARM_loadModels = loadModels; // so you can call it from console too
-  console.log('%c[CHARM 2.0] Model loader enhancement ready. Buttons hooked or floating buttons added.', 'color:#0f0');
-})();
-</script>
   <script src="./ux-enhancements.js"></script>
 </body>
 </html>

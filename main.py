@@ -28,13 +28,32 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
     )
 
 
-# ── CORS (FIXED: explicit origins, no wildcards with credentials) ──
+# ── CORS (explicit origins; include common local + Pages hosts) ──
 FRONTEND_URL = os.environ.get(
     "FRONTEND_URL", "https://mariusrezeanu279-star.github.io"
 )
+_extra_origins = [
+    o.strip()
+    for o in os.environ.get("CORS_ORIGINS", "").split(",")
+    if o.strip()
+]
+_cors_origins = list(
+    dict.fromkeys(
+        [
+            FRONTEND_URL,
+            "https://mariusrezeanu279-star.github.io",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            "http://localhost:5500",
+            "http://127.0.0.1:5500",
+            "null",  # file:// opens
+            *_extra_origins,
+        ]
+    )
+)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -149,118 +168,183 @@ async def api_audio_speech(request: Request, body: dict):
         return Response(content=res.content, media_type=content_type)
 
 
-# Enhanced /api/models with pagination support for all providers, especially Featherless (supports page/per_page up to 1000)
-# For load 500 at a time and load all, frontend can call with page and per_page, or use load_all=true for server-side multi-page fetch (limited to avoid overload)
+# /api/models — Featherless supports page + per_page (max 1000). Frontend uses 500/page.
+# load_all=true walks pages server-side (capped) with NSFW/HERMES prioritization + descriptions.
 @app.get("/api/models")
 @limiter.limit("30/minute")
 async def api_list_models(
     provider: str = Query("venice", description="Provider: venice or featherless"),
     page: int = Query(1, ge=1, description="Page number for pagination"),
     per_page: int = Query(500, ge=1, le=1000, description="Results per page, max 1000 for Featherless"),
-    load_all: bool = Query(False, description="If true, attempt to load multiple pages (use carefully, max 5 pages for safety)"),
+    load_all: bool = Query(False, description="If true, fetch many pages (server-side, safety-capped)"),
     q: Optional[str] = Query(None, description="Search query for model name/id"),
-    sort: Optional[str] = Query(None, description="Sort e.g. -popularity or context_length")
+    sort: Optional[str] = Query("-popularity", description="Sort e.g. -popularity or context_length"),
 ):
     if provider not in PROVIDER_URLS:
         raise HTTPException(status_code=400, detail=f"Unknown provider: {provider}")
     key = get_provider_key(provider)
     base = PROVIDER_URLS[provider]
 
-    params = {
-        "page": page,
-        "per_page": per_page,
-    }
+    PRIORITY_MODELS = [
+        "nousresearch/hermes-3-llama-3.1-70b",
+        "nousresearch/hermes-3-llama-3.1-8b",
+        "teknium/openhermes-2.5-mistral-7b",
+        "cognitivecomputations/dolphin-2.9.1-llama-3-70b",
+        "cognitivecomputations/dolphin-2.9.1-llama-3-8b",
+        "cognitivecomputations/dolphin-2.9-llama3.1-70b",
+        "undi95/toppy-m-7b",
+        "sao10k/l3-8b-stheno",
+        "sao10k/l3-8b-lunaris",
+        "nothingiisreal/lumimaid",
+        "neversleep/noromaid",
+        "anthracite-org/magnum",
+        "sophosympatheia/midnight-miqu",
+        "thedrummer/rocinante",
+        "qwen/qwen2.5-72b-instruct",
+        "meta-llama/llama-3.3-70b-instruct",
+        "deepseek-ai/deepseek-r1",
+    ]
+    JAIL_KEYS = (
+        "jailbreak", "uncensored", "abliterated", "unfiltered", "unrestricted",
+        "heretic", "dolphin", "noromaid", "lumimaid", "stheno", "lunaris",
+        "toppy", "psyfighter", "magnum", "midnight-miqu", "rocinante", "unslop",
+    )
+    NSFW_KEYS = ("nsfw", "erotic", "adult", "r18", "sensual", "lewd", "lust") + JAIL_KEYS
+
+    def enrich_model(m):
+        if not isinstance(m, dict):
+            m = {"id": str(m), "name": str(m)}
+        model_id = str(m.get("id") or "").lower()
+        name = str(m.get("name") or m.get("id") or "")
+        blob = f"{model_id} {name.lower()}"
+        tags = []
+        emoji = "🤖"
+        ctx = m.get("context_length", "unknown")
+        description = (
+            f"General purpose LLM. Good for chat, reasoning, and creative tasks. Context: {ctx} tokens."
+        )
+        is_hermes = "hermes" in blob
+        is_jail = any(k in blob for k in JAIL_KEYS)
+        is_nsfw = any(k in blob for k in NSFW_KEYS) or is_jail
+        is_priority = any(p in model_id for p in PRIORITY_MODELS) or is_hermes or is_jail
+
+        if is_hermes:
+            emoji = "✨"
+            tags.append("HERMES")
+            description = (
+                "Hermes / OpenHermes: strong instruction following with lighter refusal tendencies. "
+                "Best for creative writing, roleplay, storytelling, and complex multi-step instructions."
+            )
+        elif is_jail or is_nsfw:
+            emoji = "🔞" if is_nsfw else "🔓"
+            if is_nsfw:
+                tags.append("R18")
+            if is_jail:
+                tags.append("UNRESTRICTED")
+            description = (
+                "Uncensored / less-restricted fine-tune. Ideal for adult creative writing, erotic roleplay, "
+                "and freer storytelling. Pair with a clear system prompt for consistent characters."
+            )
+        elif is_priority:
+            emoji = "⭐"
+            tags.append("TOP50")
+            description = (
+                "Top recommended model for performance and reliability. Strong all-rounder for chat, "
+                "coding, analysis, and creative work."
+            )
+
+        if any(k in blob for k in ("vision", "-vl", "llava")):
+            tags.append("VISION")
+            if emoji == "🤖":
+                emoji = "🖼️"
+
+        m["tags"] = tags
+        m["emoji"] = emoji
+        m["description"] = description + (f" Context ≈ {ctx} tokens." if ctx != "unknown" else "")
+        m["is_nsfw"] = bool(is_nsfw or is_jail)
+        m["priority"] = bool(is_priority or is_hermes or is_nsfw)
+        m["display"] = (
+            f"[{emoji} {'·'.join(tags)}] {m.get('id') or name}"
+            if tags
+            else f"{emoji} {m.get('id') or name}"
+        )
+        return m
+
+    def sort_enriched(items):
+        items.sort(
+            key=lambda x: (
+                0 if x.get("priority") else 1,
+                0 if x.get("is_nsfw") else 1,
+                str(x.get("id") or ""),
+            )
+        )
+        return items
+
+    headers = {}
+    if key:
+        headers["Authorization"] = f"Bearer {key}"
+
+    params = {"page": page, "per_page": per_page}
     if q:
         params["q"] = q
     if sort:
         params["sort"] = sort
 
-    async with httpx.AsyncClient(timeout=60) as client:
-        res = await client.get(
-            f"{base}/models",
-            params=params,
-            headers={"Authorization": f"Bearer {key}"},
-        )
-        if res.status_code != 200:
-            raise HTTPException(status_code=res.status_code, detail=res.text)
-        data = res.json()
+    enriched = []
+    has_more = False
+    pages_fetched = 0
+    # load_all: up to 20 pages * 500 = 10k models (safety). Frontend Load All is preferred for full catalogue.
+    max_pages = 20 if load_all else 1
+    start_page = page
 
-    models = data.get("data", []) if isinstance(data, dict) else data
-
-    # Post-process: Add tags, emojis, priority for uncensored/NSFW/jailbroken/Hermes models
-    PRIORITY_MODELS = [
-        "nousresearch/hermes-3-llama-3.1-8b", "nousresearch/hermes-3-llama-3.1-70b", 
-        "cognitivecomputations/dolphin-2.9.1-llama-3-8b", "cognitivecomputations/dolphin-2.9-llama3.1-70b",
-        "teknium/openhermes-2.5-mistral-7b", "microsoft/phi-3-medium-128k-instruct",
-        "qwen/qwen2.5-72b-instruct",
-    ]
-
-    NSFW_KEYWORDS = ["uncensored", "nsfw", "erotic", "adult", "jailbreak", "hermes", "dolphin", "lust", "sensual", "rp", "roleplay", "creative-writing", "unrestricted"]
-    JAILBREAK_EMOJI = "🛡️"
-    NSFW_EMOJI = "🔞"
-    HERMES_EMOJI = "✨"
-
-    def enrich_model(m):
-        model_id = m.get("id", "").lower() if isinstance(m, dict) else str(m).lower()
-        name = m.get("name", model_id) if isinstance(m, dict) else model_id
-        tags = []
-        emoji = ""
-        description = "General purpose LLM. Good for chat, reasoning, and creative tasks. Context: " + str(m.get("context_length", "unknown")) + " tokens."
-
-        is_priority = any(p in model_id for p in [pm.lower() for pm in PRIORITY_MODELS])
-        is_nsfw = any(kw in model_id or kw in name.lower() for kw in NSFW_KEYWORDS)
-        is_hermes = "hermes" in model_id
-        is_jailbreak = "jailbreak" in model_id or "uncensored" in model_id or "dolphin" in model_id
-
-        if is_hermes:
-            emoji = HERMES_EMOJI
-            tags.append("HERMES")
-            description = "Hermes series: Highly capable, less censored, excellent for creative writing, roleplay, and complex instructions. Best for storytelling, character development, and unrestricted creative tasks. Strong reasoning and instruction following."
-        elif is_nsfw or is_jailbreak:
-            emoji = NSFW_EMOJI if is_nsfw else JAILBREAK_EMOJI
-            tags.append("R18" if is_nsfw else "JAILBROKEN")
-            description = "Uncensored / less restricted model. Ideal for NSFW, erotic roleplay, adult content, creative freedom, and bypassing typical safety filters. Use responsibly. Excellent for sensual storytelling, character AI, and adult creative projects."
-        elif is_priority:
-            emoji = "⭐"
-            tags.append("TOP")
-            description = "Top recommended model for performance and reliability. Great all-rounder for chat, coding, analysis, and creative work."
-
-        if isinstance(m, dict):
-            m["tags"] = tags
-            m["emoji"] = emoji
-            m["description"] = description
-            m["is_nsfw"] = is_nsfw or is_jailbreak
-            m["priority"] = is_priority or is_hermes or is_nsfw
-        return m
-
-    enriched = [enrich_model(m) for m in models]
-
-    # Sort: priority/NSFW/Hermes first, then others
-    enriched.sort(key=lambda x: (0 if x.get("priority") else 1, x.get("id", "")), reverse=False)
-
-    # If load_all, fetch more pages (safety limit)
-    if load_all and provider == "featherless" and page == 1:
-        all_models = enriched[:]
-        for p in range(2, 4):
-            try:
-                params["page"] = p
-                res2 = await client.get(f"{base}/models", params=params, headers={"Authorization": f"Bearer {key}"})
-                if res2.status_code == 200:
-                    extra = res2.json().get("data", [])
-                    all_models.extend([enrich_model(m) for m in extra])
-            except:
+    async with httpx.AsyncClient(timeout=90) as client:
+        for p in range(start_page, start_page + max_pages):
+            params["page"] = p
+            # Venice models endpoint may not use page/per_page the same way
+            req_params = params if provider == "featherless" else None
+            res = await client.get(
+                f"{base}/models",
+                params=req_params,
+                headers=headers,
+            )
+            if res.status_code != 200:
+                if pages_fetched == 0:
+                    raise HTTPException(status_code=res.status_code, detail=res.text)
                 break
-        enriched = all_models
-        enriched.sort(key=lambda x: (0 if x.get("priority") else 1, x.get("id", "")), reverse=False)
+            data = res.json()
+            models = data.get("data", []) if isinstance(data, dict) else data
+            if not isinstance(models, list):
+                models = []
+            batch = [enrich_model(m) for m in models]
+            enriched.extend(batch)
+            pages_fetched += 1
+            has_more = len(batch) >= per_page
+            if not load_all or not has_more or provider != "featherless":
+                break
+
+    seen = set()
+    deduped = []
+    for m in enriched:
+        mid = m.get("id")
+        if mid in seen:
+            continue
+        seen.add(mid)
+        deduped.append(m)
+    enriched = sort_enriched(deduped)
 
     return {
         "data": enriched,
         "page": page,
         "per_page": per_page,
         "total_loaded": len(enriched),
-        "has_more": len(enriched) == per_page,
+        "pages_fetched": pages_fetched,
+        "has_more": has_more if not load_all else False,
         "provider": provider,
-        "note": "For full access to 40k+ models, use incremental 'Load More' (500 at a time) in frontend. Top uncensored/NSFW/Hermes models are prioritized at the top with emojis and detailed descriptions."
+        "note": (
+            "Use page/per_page=500 for Load, and keep calling with page++ for full catalogues. "
+            "load_all=true is server-capped. Frontend Load All walks all pages client-side. "
+            "Models include emoji, tags (R18/HERMES/UNRESTRICTED/TOP50), and descriptions."
+        ),
     }
 
 
