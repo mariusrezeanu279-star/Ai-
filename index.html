@@ -2548,6 +2548,122 @@ function showToast(msg,type='ok'){
 window.addEventListener('beforeunload',()=>{if(currentDb){currentDb.close();currentDb=null;}});
 populateDefaultModels();
 </script>
-<script src="./ux-enhancements.js"></script>
+<script>
+// CHARM 2.0 Model Loader Enhancement - Add this to make Load Models / Load All work with 500 at a time + descriptions + emojis
+(function() {
+  const API_BASE = 'https://your-backend-url-here.com'; // ← CHANGE THIS to your Render/Vercel backend URL
+
+  // Find or create the model container
+  function getModelContainer() {
+    return document.querySelector('#model-list, #models-container, .model-grid, #model-select') || 
+           document.querySelector('[id*="model"]');
+  }
+
+  let currentPage = 1;
+  let currentProvider = 'featherless';
+
+  async function loadModels(page = 1, perPage = 500, loadAll = false) {
+    const container = getModelContainer();
+    if (!container) return alert('Model list container not found. Open DevTools and tell me the ID.');
+
+    container.innerHTML = '<div style="padding:20px;text-align:center;color:#888">Loading models... (prioritizing NSFW/HERMES first)</div>';
+
+    try {
+      const url = `${API_BASE}/api/models?provider=${currentProvider}&page=${page}&per_page=${perPage}${loadAll ? '&load_all=true' : ''}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const models = data.data || [];
+
+      container.innerHTML = '';
+
+      models.forEach(m => {
+        const card = document.createElement('div');
+        card.style.cssText = 'border:1px solid #444;border-radius:12px;padding:14px;margin:8px 0;background:#1a1a1a;cursor:pointer';
+        card.innerHTML = `
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <span style="font-size:22px">${m.emoji || '🤖'}</span>
+            <div style="flex:1">
+              <div style="font-weight:600;color:#fff">${m.id || m.name}</div>
+              <div style="font-size:12px;color:#0f0">${(m.tags || []).join(' • ')}</div>
+            </div>
+            ${m.is_nsfw ? '<span style="background:#c00;color:white;padding:2px 8px;border-radius:4px;font-size:11px">R18</span>' : ''}
+          </div>
+          <div style="font-size:13px;color:#ccc;line-height:1.4">${m.description || 'No description yet.'}</div>
+          <div style="margin-top:8px;font-size:11px;color:#666">Context: ${m.context_length || '?'} tokens</div>
+        `;
+        card.onclick = () => {
+          // Auto-select this model in the main dropdown if it exists
+          const sel = document.querySelector('#model-select');
+          if (sel) {
+            sel.value = m.id;
+            sel.dispatchEvent(new Event('change'));
+          }
+          alert(`Selected: ${m.id}\n\n${m.description}`);
+        };
+        container.appendChild(card);
+      });
+
+      // Add Load More button
+      if (data.has_more) {
+        const moreBtn = document.createElement('button');
+        moreBtn.textContent = 'Load More (next 500)';
+        moreBtn.style.cssText = 'margin:12px auto;display:block;padding:10px 20px;background:#333;color:white;border:none;border-radius:8px;cursor:pointer';
+        moreBtn.onclick = () => {
+          currentPage++;
+          loadModels(currentPage, 500, false);
+        };
+        container.appendChild(moreBtn);
+      }
+
+      if (loadAll) {
+        const note = document.createElement('div');
+        note.style.cssText = 'text-align:center;color:#0a0;margin:10px 0';
+        note.textContent = `Loaded ${data.total_loaded} models (NSFW/HERMES prioritized at top)`;
+        container.prepend(note);
+      }
+
+    } catch (e) {
+      container.innerHTML = `<div style="color:red;padding:20px">Error: ${e.message}. Make sure backend is deployed and API_BASE is correct.</div>`;
+    }
+  }
+
+  // Hook into existing buttons if they exist
+  function hookButtons() {
+    const loadBtn = document.querySelector('#load-models-btn, button[onclick*="loadModels"], button:contains("Load Models")');
+    const loadAllBtn = document.querySelector('#load-all-btn, button[onclick*="loadAll"]');
+
+    if (loadBtn) {
+      loadBtn.onclick = (e) => { e.preventDefault(); currentPage = 1; loadModels(1, 500, false); };
+    }
+    if (loadAllBtn) {
+      loadAllBtn.onclick = (e) => { e.preventDefault(); loadModels(1, 500, true); };
+    }
+
+    // Also add floating buttons if none exist
+    if (!loadBtn && !loadAllBtn) {
+      const fab = document.createElement('div');
+      fab.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:9999;display:flex;gap:8px';
+      fab.innerHTML = `
+        <button id="charm-load-500" style="padding:12px 18px;background:#00f3ff;color:black;border:none;border-radius:999px;font-weight:600">Load 500</button>
+        <button id="charm-load-all" style="padding:12px 18px;background:#ff00aa;color:white;border:none;border-radius:999px;font-weight:600">Load All (NSFW first)</button>
+      `;
+      document.body.appendChild(fab);
+      document.getElementById('charm-load-500').onclick = () => { currentPage=1; loadModels(1,500,false); };
+      document.getElementById('charm-load-all').onclick = () => loadModels(1,500,true);
+    }
+  }
+
+  // Auto-run
+  setTimeout(() => {
+    hookButtons();
+    // Optional: auto-load first page on Featherless
+    // loadModels(1, 500, false);
+  }, 1500);
+
+  window.CHARM_loadModels = loadModels; // so you can call it from console too
+  console.log('%c[CHARM 2.0] Model loader enhancement ready. Buttons hooked or floating buttons added.', 'color:#0f0');
+})();
+</script>
+  <script src="./ux-enhancements.js"></script>
 </body>
 </html>
