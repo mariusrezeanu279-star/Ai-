@@ -318,7 +318,14 @@ async def api_list_models(
             batch = [enrich_model(m) for m in models]
             enriched.extend(batch)
             pages_fetched += 1
-            has_more = len(batch) >= per_page
+            pag = data.get("pagination") or {} if isinstance(data, dict) else {}
+            total_pages = int(pag.get("total_pages") or 0)
+            cur = int(pag.get("current_page") or p)
+            if total_pages:
+                has_more = cur < total_pages
+            else:
+                total_items = int((data.get("total") if isinstance(data, dict) else 0) or 0)
+                has_more = (len(enriched) < total_items) if total_items else (len(batch) >= per_page)
             if not load_all or not has_more or provider != "featherless":
                 break
 

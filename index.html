@@ -1549,15 +1549,30 @@ async function loadModels(reset=true,autoAll=false){
       batch.forEach(m=>{ if(!existIds.has(m.id)){ allModels.push(m); existIds.add(m.id);} });
       allModels.sort((a,b)=>(a._score??500)-(b._score??500) || String(a.id).localeCompare(String(b.id)));
 
-      modelHasMore = batch.length >= perPage;
-      pages++; modelPage++;
-      document.getElementById('model-count').textContent=allModels.length+' models'+(modelHasMore?' (page '+pages+'…)' : ' ✅');
+      // Featherless returns pagination: {current_page, per_page, total_items, total_pages}
+      // Pages often return fewer than per_page items, so length checks alone are wrong.
+      const pag=data.pagination||data.meta||{};
+      const totalPages=Number(pag.total_pages||pag.totalPages||0);
+      const currentPageNum=Number(pag.current_page||pag.currentPage||modelPage)||modelPage;
+      if(totalPages>0){
+        modelHasMore = currentPageNum < totalPages;
+      }else if(typeof data.total==='number' && data.total>0){
+        modelHasMore = allModels.length < data.total;
+      }else{
+        modelHasMore = batch.length > 0 && batch.length >= Math.min(perPage, 50);
+      }
+      pages++; modelPage = currentPageNum + 1;
+      const totalHint = (pag.total_items||data.total) ? (' / '+(pag.total_items||data.total)) : '';
+      document.getElementById('model-count').textContent=allModels.length+totalHint+' models'+(modelHasMore?' (page '+currentPageNum+(totalPages?('/'+totalPages):'')+'…)' : ' ✅');
       renderModelDropdown(allModels);
       if(autoAll){
-        prog.style.width=Math.min(95, Math.round(pages/Math.max(8, pages+1)*100))+'%';
+        const pct = totalPages ? Math.min(95, Math.round(currentPageNum/totalPages*100)) : Math.min(95, Math.round(pages/Math.max(8, pages+1)*100));
+        prog.style.width=pct+'%';
       }
       // Single Load / More click: only one page of 500
       if(!autoAll) break;
+      // Safety: stop if empty page
+      if(batch.length===0){ modelHasMore=false; break; }
     }while(modelHasMore);
 
     document.getElementById('model-search').style.display='block';
