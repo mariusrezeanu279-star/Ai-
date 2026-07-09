@@ -150,7 +150,7 @@ body{
 @keyframes typingBounce{0%,60%,100%{transform:translateY(0);background:var(--text3)}30%{transform:translateY(-4px);background:var(--accent-light)}}
 
 /* CHAT INPUT */
-#chat-bottom{flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);padding:10px 12px 12px;}
+#chat-bottom{flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);padding:10px 12px 12px;width:100%;max-width:100%;box-sizing:border-box;}
 #attachment-area{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius2);padding:10px 12px;margin-bottom:8px;display:none;position:relative;}
 #attachment-area.show{display:block;animation:msgIn .15s ease}
 #attachment-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -168,23 +168,66 @@ body{
 #attachment-preview img{max-height:120px;border-radius:8px;display:block}
 #attachment-preview video{max-height:100px;border-radius:8px;width:100%;display:block}
 #attachment-preview pre{font-size:11px;font-family:monospace;color:var(--text2);white-space:pre-wrap;max-height:100px;overflow:auto;background:var(--bg4);padding:8px;border-radius:8px;}
-#input-drop-zone{border:1px solid var(--border2);border-radius:var(--radius2);overflow:hidden;transition:border-color .2s;}
+#input-drop-zone{border:1px solid var(--border2);border-radius:var(--radius2);overflow:hidden;transition:border-color .2s;width:100%;max-width:100%;box-sizing:border-box;}
 #input-drop-zone.drag-over{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
-#input-top{display:flex;gap:0;background:var(--bg3)}
-#msg-input{flex:1;background:transparent;border:none;color:var(--text);padding:11px 14px;font-size:14px;resize:none;max-height:140px;font-family:var(--font);outline:none;line-height:1.5;}
-#msg-input::placeholder{color:var(--text3)}
-#input-actions{display:flex;flex-direction:column;justify-content:flex-end;padding:8px;gap:4px;background:var(--bg3);}
+#input-top{display:flex;flex-direction:row;align-items:flex-end;gap:0;background:var(--bg3);width:100%;min-width:0;box-sizing:border-box;}
+/* Flex child wrapper so textarea is not squeezed to 1-char width */
+.input-container{display:flex;flex:1 1 auto;min-width:0;width:100%;max-width:100%;}
+/* Global form field sizing — prevents 1-char-per-line collapse */
+textarea,
+input[type="text"],
+input[type="password"],
+input[type="search"],
+input:not([type]){
+  width:100%;
+  max-width:100%;
+  box-sizing:border-box;
+  white-space:pre-wrap;
+  word-wrap:break-word;
+  overflow-wrap:break-word;
+  resize:none;
+}
+#msg-input{
+  flex:1 1 auto;
+  min-width:0;
+  width:100%;
+  max-width:100%;
+  box-sizing:border-box;
+  background:transparent;
+  border:none;
+  color:var(--text);
+  padding:11px 14px;
+  font-size:14px;
+  resize:none;
+  max-height:140px;
+  min-height:44px;
+  font-family:var(--font);
+  outline:none;
+  line-height:1.5;
+  white-space:pre-wrap;
+  word-wrap:break-word;
+  overflow-wrap:break-word;
+  overflow-x:hidden;
+  overflow-y:auto;
+  field-sizing:content;
+}
+#msg-input::placeholder{color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#input-hints{display:none;font-size:10px;color:var(--text3);padding:0 10px 8px;line-height:1.4}
+@media (min-width:720px){
+  #input-hints{display:block}
+}
+#input-actions{display:flex;flex-direction:column;justify-content:flex-end;padding:8px;gap:4px;background:var(--bg3);flex-shrink:0;}
 #attach-btn{background:var(--bg4);border:1px solid var(--border2);color:var(--text2);width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
 #attach-btn:hover{background:var(--bg5);color:var(--text)}
 #send-btn{background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);color:#fff;border:none;width:34px;height:34px;border-radius:8px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;box-shadow:0 2px 8px rgba(139,92,246,.3);}
 #send-btn:hover{transform:scale(1.05);box-shadow:0 4px 12px rgba(139,92,246,.4)}
 #send-btn:active{transform:scale(.95)}
 #send-btn:disabled{background:var(--bg4);color:var(--text3);cursor:not-allowed;transform:none;box-shadow:none}
-#input-footer{display:flex;align-items:center;gap:8px;background:var(--bg4);padding:6px 12px;border-top:1px solid var(--border);}
+#input-footer{display:flex;align-items:center;gap:8px;background:var(--bg4);padding:6px 12px;border-top:1px solid var(--border);min-width:0;width:100%;box-sizing:border-box;}
 #file-input{display:none}
-#drop-hint{font-size:10px;color:var(--text4);flex:1}
-#char-count{font-size:10px;color:var(--text4)}
-#clear-chat-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:10px;padding:0;}
+#drop-hint{font-size:10px;color:var(--text4);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#char-count{font-size:10px;color:var(--text4);flex-shrink:0}
+#clear-chat-btn{background:none;border:none;color:var(--text3);cursor:pointer;font-size:10px;padding:0;flex-shrink:0;}
 #clear-chat-btn:hover{color:var(--red-text)}
 
 /* SQLITE */
@@ -220,10 +263,10 @@ body{
 .tab-content{padding:16px 14px;max-width:600px;margin:0 auto;width:100%}
 .section-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;margin-top:16px;}
 .section-label:first-child{margin-top:0}
-textarea.field{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:11px 13px;border-radius:var(--radius);font-size:13px;resize:vertical;min-height:80px;font-family:var(--font);outline:none;line-height:1.5;transition:border-color .2s;}
+textarea.field{width:100%;max-width:100%;min-width:0;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:11px 13px;border-radius:var(--radius);font-size:13px;resize:vertical;min-height:80px;font-family:var(--font);outline:none;line-height:1.5;transition:border-color .2s;white-space:pre-wrap;word-wrap:break-word;overflow-wrap:break-word;}
 textarea.field:focus{border-color:var(--accent)}
 textarea.field::placeholder{color:var(--text3)}
-input.field{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 13px;border-radius:var(--radius);font-size:13px;outline:none;transition:border-color .2s;}
+input.field{width:100%;max-width:100%;min-width:0;box-sizing:border-box;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 13px;border-radius:var(--radius);font-size:13px;outline:none;transition:border-color .2s;}
 input.field:focus{border-color:var(--accent)}
 input.field::placeholder{color:var(--text3)}
 select.field{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 13px;border-radius:var(--radius);font-size:13px;outline:none;}
@@ -540,15 +583,17 @@ window.addEventListener('DOMContentLoaded', () => {
   <div id="chat-bottom">
     <div id="input-drop-zone" ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
       <div id="input-top">
-        <textarea id="msg-input" rows="1" placeholder="Message”¦ (Shift+Enter for new line)" oninput="autoResize(this);updateCharCount()" onkeydown="chatKey(event)"></textarea>
-        <div style="font-size:10px;color:var(--text3);margin-left:8px;align-self:center;">Hints: <b>Enter</b> send &bull; <b>Shift+Enter</b> new line &bull; <b>Ctrl+F</b> search</div>
+        <div class="input-container">
+          <textarea id="msg-input" rows="1" placeholder="Message… (Shift+Enter for new line)" oninput="autoResize(this);updateCharCount()" onkeydown="chatKey(event)"></textarea>
+        </div>
         <div id="input-actions">
-          <button id="attach-btn" title="Attach file" onclick="document.getElementById('file-input').click()">📄Ž</button>
+          <button id="attach-btn" title="Attach file" onclick="document.getElementById('file-input').click()">📎</button>
           <button id="send-btn" onclick="sendChat()" title="Send (Enter)">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
         </div>
       </div>
+      <div id="input-hints">Hints: <b>Enter</b> send · <b>Shift+Enter</b> new line · <b>Ctrl+F</b> search</div>
       <div id="input-footer">
         <span id="drop-hint">Drop any file here to attach</span>
         <span id="char-count"></span>
