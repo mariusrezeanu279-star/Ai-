@@ -491,15 +491,17 @@
     if (chatBottom && !document.getElementById('goddess-bar')) {
       const bar = document.createElement('div');
       bar.id = 'goddess-bar';
+      bar.className = 'modes-collapsed';
       bar.innerHTML = `
-        <div class="goddess-chips">
+        <div class="goddess-chips" role="toolbar" aria-label="Goddess modes">
           <button type="button" data-g="default">👑 Default</button>
           <button type="button" data-g="quality">✨ HQ</button>
           <button type="button" data-g="extreme">🔥 Extreme</button>
           <button type="button" data-g="vision">🖼️ Vision</button>
           <button type="button" data-g="fast">⚡ Fast</button>
+          <button type="button" id="goddess-more-btn" title="Show router & battle">More ▾</button>
         </div>
-        <div class="router-chips">
+        <div class="router-chips" role="toolbar" aria-label="Model routing">
           <button type="button" data-r="rp">RP</button>
           <button type="button" data-r="uncensored">Uncensored</button>
           <button type="button" data-r="vision">Vision</button>
@@ -509,12 +511,27 @@
         </div>`;
       chatBottom.insertBefore(bar, chatBottom.firstChild);
       bar.querySelectorAll('[data-g]').forEach((btn) => {
-        btn.onclick = () => applyGoddessPreset(btn.getAttribute('data-g'));
+        btn.onclick = () => {
+          bar.querySelectorAll('[data-g]').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          applyGoddessPreset(btn.getAttribute('data-g'));
+        };
       });
       bar.querySelectorAll('[data-r]').forEach((btn) => {
         btn.onclick = () => routeModelTask(btn.getAttribute('data-r'));
       });
-      document.getElementById('btn-battle').onclick = () => runModelBattle();
+      const more = document.getElementById('goddess-more-btn');
+      if (more) {
+        more.onclick = (e) => {
+          e.stopPropagation();
+          bar.classList.toggle('modes-collapsed');
+          more.textContent = bar.classList.contains('modes-collapsed')
+            ? 'More ▾'
+            : 'Less ▴';
+        };
+      }
+      const battle = document.getElementById('btn-battle');
+      if (battle) battle.onclick = () => runModelBattle();
     }
 
     // Activity log drawer
@@ -710,16 +727,14 @@
       const dup = document.getElementById('route-reco-row');
       if (dup && document.getElementById('goddess-bar')) dup.style.display = 'none';
     }, 800);
-    // Phone: ensure header collapsed when key already present
+    // Always reclaim chat height: collapse settings unless user has no key yet
     try {
-      const small = window.matchMedia('(max-width:768px),(max-height:700px)').matches;
-      const keys = JSON.parse(localStorage.getItem('ai-pro-keys') || '{}');
-      const hasKey = Object.keys(keys).some((k) => k !== '__customBase' && keys[k]);
-      if (small && hasKey && typeof headerExpanded !== 'undefined') {
+      if (typeof forceCollapseHeader === 'function') forceCollapseHeader();
+      else if (typeof collapseHeader === 'function') {
         headerExpanded = false;
-        if (typeof collapseHeader === 'function') collapseHeader();
-        document.body.classList.add('compact-ui');
+        collapseHeader();
       }
+      document.body.classList.add('compact-ui');
     } catch (_) {}
     logActivity('info', 'Throne systems online');
     const g = localStorage.getItem('ai-pro-goddess');
