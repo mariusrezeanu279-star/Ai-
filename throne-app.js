@@ -36,12 +36,20 @@
     );
   }
 
-  // ── Activity log API (global) ──
+  // ── Activity log API (global) — dedupe identical spam within 1.5s ──
+  let lastLogKey = '';
+  let lastLogAt = 0;
   window.logActivity = function (level, msg, meta) {
+    const text = String(msg || '');
+    const key = (level || 'info') + '|' + text;
+    const now = Date.now();
+    if (key === lastLogKey && now - lastLogAt < 1500) return;
+    lastLogKey = key;
+    lastLogAt = now;
     const line = {
-      t: Date.now(),
+      t: now,
       level: level || 'info',
-      msg: String(msg || ''),
+      msg: text,
       meta: meta || null,
     };
     logLines.push(line);
@@ -786,23 +794,11 @@
         targetDiv,
         seq
       ) {
-        if (targetDiv && typeof setThinkingStatus === 'function') {
-          targetDiv.className = 'msg ai thinking';
-          targetDiv.innerHTML = '';
-          setThinkingStatus(targetDiv, '⏳ Contacting ' + model + '…', true);
-        }
-        logActivity('info', 'Robust chat start · ' + model, { maxTokens });
-        // Monkey status via wrapping attempts: we intercept by temporary override of setThinking from inside if we patch at lower level
+        // Don't wipe bubble or double-log — index.html robust path owns status
         const result = await orig.apply(this, arguments);
-        if (targetDiv && typeof finishThinkingPanel === 'function') {
+        if (targetDiv && typeof finishThinkingPanel === 'function' && result) {
           finishThinkingPanel(targetDiv, true);
         }
-        logActivity(
-          result ? 'ok' : 'warn',
-          result
-            ? 'Reply ok · ' + String(result).length + ' chars · ' + model
-            : 'Empty reply · ' + model
-        );
         return result;
       };
       window.chatCompletionRobust.__throne = true;

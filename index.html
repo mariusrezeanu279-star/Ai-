@@ -2319,11 +2319,45 @@ function classifyChatError(err){
   if(/garbage|corrupt|degenerat|hallucin/.test(low)) return 'garbage';
   return 'generic';
 }
+/** Session memory: models that returned capacity/429 recently — don't auto-pick them */
+const capacityCooldownMs=12*60*1000; // 12 minutes
+const capacityFailMap=new Map(); // id -> timestamp
+const recentSuccessModels=[]; // last working model ids
+function noteCapacityFailure(modelId){
+  if(!modelId) return;
+  capacityFailMap.set(String(modelId), Date.now());
+  try{if(typeof logActivity==='function') logActivity('warn','Cooldownlisted (capacity) for 12m: '+modelId);}catch(_){}
+}
+function noteModelSuccess(modelId){
+  if(!modelId) return;
+  capacityFailMap.delete(String(modelId));
+  const id=String(modelId);
+  const i=recentSuccessModels.indexOf(id);
+  if(i>=0) recentSuccessModels.splice(i,1);
+  recentSuccessModels.unshift(id);
+  if(recentSuccessModels.length>12) recentSuccessModels.length=12;
+}
+function isModelOnCapacityCooldown(modelId){
+  const t=capacityFailMap.get(String(modelId));
+  if(!t) return false;
+  if(Date.now()-t>capacityCooldownMs){ capacityFailMap.delete(String(modelId)); return false; }
+  return true;
+}
+function modelFamilyKey(modelId){
+  const id=String(modelId||'');
+  const slash=id.indexOf('/');
+  const owner=slash>0?id.slice(0,slash).toLowerCase():'';
+  const name=(slash>0?id.slice(slash+1):id).toLowerCase();
+  // group DarkIdol-1.0 and DarkIdol-1.1 together
+  const base=name.replace(/[-_.]?\d+(\.\d+)*(-uncensored)?$/i,'').replace(/-v\d+(\.\d+)*$/i,'');
+  return owner+'/'+base.slice(0,24);
+}
+
 function humanizeChatError(err, provider, model){
   const raw=(err&&err.message)||String(err||'Unknown error');
   const kind=classifyChatError(err);
   if(kind==='capacity')
-    return 'Model is at capacity on '+provider+' right now ("'+model+'"). Pick another model or retry in 30–60s. Lowering max tokens will not help.';
+    return 'Featherless has no free GPU slot for "'+model+'" right now (provider capacity — not an app bug). Switching to a different family or a model that worked recently usually helps. Lowering max tokens will not help.';
   if(kind==='rate')
     return 'Rate limited (HTTP 429). Wait ~15s or switch to a smaller model. Model: '+model;
   if(kind==='timeout')
@@ -2343,10 +2377,10 @@ function humanizeChatError(err, provider, model){
 function getErrorTips(kind, provider, model){
   const tips={
     capacity:[
-      'This model has no free slot on '+provider+' right now.',
-      'Switching models usually works immediately.',
-      'Waiting 30–60s then retrying can work if you want this exact model.',
-      'Lowering max tokens will NOT fix capacity.'
+      'This is a Featherless server queue issue (no free GPU for that model) — not a bug in Throne.',
+      'Use “Switch model” — we skip models that just failed capacity and avoid the same family (e.g. DarkIdol 1.0 → 1.1).',
+      'Prefer popular instruct models (Hermes, Llama Instruct, Qwen Instruct) when the catalogue is busy.',
+      'Waiting 1–5 minutes can free a slot if you need this exact model. Lowering max tokens will NOT help.'
     ],
     rate:[
       'Your key hit a rate limit (too many requests).',
@@ -2428,31 +2462,57 @@ function looksLikeGarbage(text){
 
 function pickFallbackModel(opts){
   opts=opts||{};
-  const avoid=(opts.avoidId||'').toLowerCase();
+  const avoid=String(opts.avoidId||'');
+  const avoidL=avoid.toLowerCase();
+  const avoidFamily=modelFamilyKey(avoid);
+  const avoidOwner=avoidL.includes('/')?avoidL.split('/')[0]:'';
   const pool=(typeof allModels!=='undefined'?allModels:[]).filter(m=>{
     if(!m||!m.id) return false;
-    if(m.id.toLowerCase()===avoid) return false;
+    const id=String(m.id);
+    if(id.toLowerCase()===avoidL) return false;
     if(m.on_plan===false) return false;
+    if(isModelOnCapacityCooldown(id)) return false;
+    // avoid same fine-tune family right after capacity (DarkIdol 1.0 → 1.1)
+    if(avoidFamily && modelFamilyKey(id)===avoidFamily) return false;
     return true;
   });
-  if(!pool.length) return null;
+  // If everything same-family filtered out, relax family but keep capacity cooldown
+  let usePool=pool;
+  if(!usePool.length){
+    usePool=(typeof allModels!=='undefined'?allModels:[]).filter(m=>{
+      if(!m||!m.id) return false;
+      if(String(m.id).toLowerCase()===avoidL) return false;
+      if(m.on_plan===false) return false;
+      if(isModelOnCapacityCooldown(m.id)) return false;
+      return true;
+    });
+  }
+  if(!usePool.length) return null;
   const score=m=>{
     const id=String(m.id).toLowerCase();
     let s=m._score!=null? (100-Math.min(100,m._score)) : 0;
-    if(opts.preferStable){
-      if(/hermes|openhermes|instruct|llama-3|qwen2\.5-.*instruct|mistral.*instruct/.test(id)) s+=50;
-      if(/blunt|unhinged|abliterated|heretic|uncensored-blunt/.test(id)) s-=40;
+    // Prefer models that worked this session
+    const successIdx=recentSuccessModels.findIndex(x=>x.toLowerCase()===id);
+    if(successIdx>=0) s+=80-successIdx*5;
+    // Prefer different org than the failed one
+    const owner=id.includes('/')?id.split('/')[0]:'';
+    if(avoidOwner && owner!==avoidOwner) s+=25;
+    if(opts.preferStable!==false){
+      if(/hermes|openhermes|instruct|llama-3\.|meta-llama|qwen2\.5-.*instruct|mistral.*instruct|nemo-instruct/.test(id)) s+=55;
+      if(/blunt|unhinged|abliterated|heretic|uncensored-blunt|darkidol|cot-math/.test(id)) s-=45;
       if(/r1-0528|70b|72b/.test(id) && opts.preferSmall) s-=20;
     }
     if(opts.preferSmall){
       if(/\b(7b|8b|9b|12b|13b|14b)\b/.test(id)) s+=35;
       if(/\b(70b|72b|65b|405b)\b/.test(id)) s-=30;
-      if(/r1/.test(id)) s-=10;
+      if(/r1/.test(id)) s-=15;
     }
-    if(m.on_plan===true) s+=15;
+    if(m.on_plan===true) s+=20;
+    if(m.tags&&m.tags.includes&&m.tags.includes('TOP50')) s+=15;
+    if(m.tags&&m.tags.includes&&m.tags.includes('HERMES')) s+=20;
     return s;
   };
-  return pool.slice().sort((a,b)=>score(b)-score(a))[0]||null;
+  return usePool.slice().sort((a,b)=>score(b)-score(a))[0]||null;
 }
 function selectModelInDropdown(modelId){
   if(!modelId) return;
@@ -2934,13 +2994,13 @@ async function chatCompletionRobust(key, model, messages, systemPrompt, maxToken
         }
       }
       if(String(text||'').trim()){
+        noteModelSuccess(model);
         if(typeof logActivity==='function') logActivity('ok', 'OK '+text.length+' chars · '+model);
         if(targetDiv && typeof finishThinkingPanel==='function') finishThinkingPanel(targetDiv, true);
         return text;
       }
       lastErr=new Error('Empty content (attempt '+(i+1)+' · '+conf.label+')');
       if(typeof logActivity==='function') logActivity('warn', lastErr.message);
-      // empty: allow non-stream already in queue; if last was non-stream and token-ish, optionally lower tokens
       if(!triedLowerTok && maxTokens>512 && i===tryOrders.length-1){
         triedLowerTok=true;
         tryOrders.push({stream:false, foldSystem:!!systemPrompt&&triedFold, maxTokens:Math.max(256, Math.floor(maxTokens/2)), label:'Retry with lower max_tokens (empty reply)', timeoutMs:40000});
@@ -2951,9 +3011,10 @@ async function chatCompletionRobust(key, model, messages, systemPrompt, maxToken
       if(typeof logActivity==='function') logActivity('error', e.message||String(e));
       console.warn('[chatCompletionRobust] attempt', i+1, e.message);
 
-      // CAPACITY / 503: stop immediately — do NOT lower max_tokens
+      // CAPACITY / 503: stop immediately — do NOT lower max_tokens; remember for smarter switch
       if(isCapacityError(e)){
-        if(typeof logActivity==='function') logActivity('error', 'Capacity/503 — stopping retries (max_tokens retry skipped)');
+        noteCapacityFailure(model);
+        if(typeof logActivity==='function') logActivity('error', 'Capacity/503 — Featherless has no free GPU for this model (not an app bug). Skipped max_tokens retry.');
         throw e;
       }
       // 429: one polite wait then single retry of this attempt type
