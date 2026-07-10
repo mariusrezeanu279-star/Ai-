@@ -70,23 +70,50 @@ body.throne-mode::before{
     radial-gradient(ellipse 50% 30% at 0% 80%, rgba(255,215,0,0.05), transparent 45%);
 }
 body.throne-mode > *{position:relative;z-index:1}
-#logo{display:flex;align-items:center;gap:8px;background:none!important;-webkit-text-fill-color:unset!important}
-#logo .brand-logo-img{height:36px;width:36px;border-radius:8px;object-fit:cover;border:1px solid rgba(255,215,0,0.45);box-shadow:0 0 12px rgba(255,215,0,0.25)}
-#logo .brand-wordmark{font-size:13px;font-weight:700;letter-spacing:.2px;background:linear-gradient(135deg,#fff8d0,#FFD700 40%,#c5a000);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+#logo{display:flex;align-items:center;gap:10px;background:none!important;-webkit-text-fill-color:unset!important;flex-shrink:0}
+#logo .brand-logo-img{height:52px;width:52px;border-radius:12px;object-fit:cover;border:2px solid rgba(255,215,0,0.65);box-shadow:0 0 18px rgba(255,215,0,0.4)}
+#logo .brand-wordmark{font-size:15px;font-weight:800;letter-spacing:.3px;background:linear-gradient(135deg,#fff8d0,#FFD700 40%,#c5a000);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+@media (max-width:768px){
+  #logo .brand-logo-img{height:48px;width:48px}
+  #logo .brand-wordmark{font-size:12px;max-width:42vw;overflow:hidden;text-overflow:ellipsis}
+}
 .header-icon-btn{background:var(--bg4);border:1px solid var(--border2);color:var(--gold);padding:5px 10px;border-radius:var(--radius);font-size:14px;cursor:pointer}
 .header-icon-btn:hover{box-shadow:0 0 12px var(--accent-glow);border-color:var(--gold)}
 #panel-chat{position:relative}
 #panel-chat.throne-chat,
-body.throne-mode #panel-chat{
+body.throne-mode #panel-chat,
+#panel-chat{
   background-color:#000;
   background-image:
-    linear-gradient(180deg,rgba(0,0,0,.82),rgba(0,0,0,.88)),
+    linear-gradient(180deg,rgba(0,0,0,.72),rgba(0,0,0,.78)),
     url('./Assets/chat-bg.jpg');
   background-size:cover;
   background-position:center;
+  background-repeat:no-repeat;
 }
-#chat-watermark{position:absolute;right:10px;bottom:90px;width:72px;height:72px;opacity:.12;pointer-events:none;z-index:2}
-#chat-watermark img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 8px rgba(255,215,0,.4))}
+/* Watermark: larger + more visible on phone (was too faint) */
+#chat-watermark{
+  position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);
+  width:min(42vw,180px);height:min(42vw,180px);
+  opacity:.18;pointer-events:none;z-index:1;
+}
+#chat-watermark img{
+  width:100%;height:100%;object-fit:contain;
+  filter:drop-shadow(0 0 14px rgba(255,215,0,.55)) brightness(1.1);
+}
+@media (max-width:768px){
+  #chat-watermark{width:min(55vw,200px);height:min(55vw,200px);opacity:.22;top:38%}
+  body.throne-mode #panel-chat,
+  #panel-chat{
+    background-image:
+      linear-gradient(180deg,rgba(0,0,0,.65),rgba(0,0,0,.72)),
+      url('./Assets/chat-bg.jpg');
+  }
+}
+#goddess-bar.personas-disabled .goddess-chips button[data-g]:not([data-g="off"]){opacity:.45}
+#goddess-bar .goddess-chips button[data-g="off"].active{
+  background:rgba(255,215,0,.25);border-color:#FFD700;color:#fff;
+}
 body.throne-mode .msg.user{
   background:linear-gradient(135deg,#3d3200 0%,#1a1500 100%)!important;
   border:1px solid rgba(255,215,0,.45);

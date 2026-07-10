@@ -10,11 +10,25 @@
     chatBg: './Assets/chat-bg.jpg',
     scene: './Assets/throne-scene.jpg',
   };
+  // Rotate these every 5 minutes on the chat panel
+  const BG_ROTATE = [
+    './Assets/chat-bg.jpg',
+    './Assets/throne-scene.jpg',
+    './Assets/logo-king.jpg',
+    './Assets/IMG_9420.JPG',
+    './Assets/1d0297e1-83ca-4bb6-962e-74d557d0b486.jpg',
+    './Assets/image (3).jpg',
+    './Assets/image (4) - Copy.jpg',
+  ];
 
   const logLines = [];
   const MAX_LOG = 300;
   let userPinnedToBottom = true;
   let throneOn = localStorage.getItem('ai-pro-throne') !== '0';
+  // Personas (Goddess system prompts) — OFF by default so normal chat stays normal
+  let personasOn = localStorage.getItem('ai-pro-personas') === '1';
+  let bgRotateTimer = null;
+  let bgRotateIdx = 0;
 
   function esc(s) {
     return String(s ?? '').replace(/[&<>"']/g, (m) =>
@@ -212,13 +226,58 @@
     },
   };
 
+  window.setPersonasEnabled = function (on) {
+    personasOn = !!on;
+    localStorage.setItem('ai-pro-personas', personasOn ? '1' : '0');
+    document.body.classList.toggle('personas-off', !personasOn);
+    const bar = document.getElementById('goddess-bar');
+    if (bar) {
+      bar.classList.toggle('personas-disabled', !personasOn);
+      const offBtn = bar.querySelector('[data-g="off"]');
+      if (offBtn) {
+        bar.querySelectorAll('[data-g]').forEach((b) => b.classList.remove('active'));
+        if (!personasOn) offBtn.classList.add('active');
+      }
+    }
+    const tgl = document.getElementById('toggle-personas');
+    if (tgl) tgl.classList.toggle('on', personasOn);
+    if (typeof showToast === 'function')
+      showToast(personasOn ? 'Personas ON' : 'Personas OFF — normal chat');
+    logActivity('info', 'Personas ' + (personasOn ? 'ON' : 'OFF'));
+  };
+
+  window.clearGoddessPersona = function () {
+    setPersonasEnabled(false);
+    const ta = document.getElementById('system-prompt-input');
+    if (ta) {
+      // Keep continuity memory only; strip goddess persona text
+      const mem = memorySystemPrefix().trim();
+      ta.value = mem ? mem + '\n' : '';
+      try {
+        localStorage.setItem('ai-pro-sysprompt', ta.value);
+      } catch (_) {}
+    }
+    localStorage.removeItem('ai-pro-goddess');
+    if (typeof showToast === 'function')
+      showToast('Persona cleared — plain helpful assistant');
+  };
+
   window.applyGoddessPreset = function (key) {
+    if (key === 'off') {
+      clearGoddessPersona();
+      return;
+    }
     const p = GODDESS[key];
     if (!p) return;
+    setPersonasEnabled(true);
     const ta = document.getElementById('system-prompt-input');
     if (ta) {
       const mem = memorySystemPrefix();
-      ta.value = mem + p.sys;
+      // Keep replies concise unless user asks for long form — reduces “thinking dump” noise
+      ta.value =
+        mem +
+        p.sys +
+        '\n\nRules: Reply directly as the character/assistant. Do NOT narrate your internal reasoning, planning, or "I considered…". Do NOT show chain-of-thought. Keep answers coherent and on-topic.';
       try {
         localStorage.setItem('ai-pro-sysprompt', ta.value);
       } catch (_) {}
@@ -239,9 +298,6 @@
     }
     if (!pick && pool[0]) pick = pool[0];
     if (pick && document.getElementById('model-select')) {
-      if (typeof ensureOption === 'function') {
-        /* no-op if missing */
-      }
       const sel = document.getElementById('model-select');
       if (![...sel.options].some((o) => o.value === pick.id)) {
         const o = document.createElement('option');
@@ -255,6 +311,43 @@
     localStorage.setItem('ai-pro-goddess', key);
     if (typeof showToast === 'function') showToast('Goddess mode: ' + p.label);
     logActivity('info', 'Goddess preset → ' + key);
+  };
+
+  function applyChatBackground(url) {
+    const panel = document.getElementById('panel-chat');
+    if (!panel) return;
+    panel.style.backgroundImage =
+      'linear-gradient(180deg,rgba(0,0,0,.75),rgba(0,0,0,.82)), url(\'' +
+      url +
+      '\')';
+    panel.style.backgroundSize = 'cover';
+    panel.style.backgroundPosition = 'center';
+    // Keep watermark in sync with brand
+    const wm = document.querySelector('#chat-watermark img');
+    if (wm) wm.src = ASSETS.logo;
+  }
+
+  function startBackgroundRotation() {
+    if (bgRotateTimer) clearInterval(bgRotateTimer);
+    const enabled = localStorage.getItem('ai-pro-bg-rotate') !== '0';
+    if (!enabled) {
+      applyChatBackground(ASSETS.chatBg);
+      return;
+    }
+    bgRotateIdx = 0;
+    applyChatBackground(BG_ROTATE[0]);
+    bgRotateTimer = setInterval(() => {
+      bgRotateIdx = (bgRotateIdx + 1) % BG_ROTATE.length;
+      applyChatBackground(BG_ROTATE[bgRotateIdx]);
+      logActivity('info', 'Background rotated → ' + BG_ROTATE[bgRotateIdx]);
+    }, 5 * 60 * 1000); // 5 minutes
+  }
+
+  window.setBgRotate = function (on) {
+    localStorage.setItem('ai-pro-bg-rotate', on ? '1' : '0');
+    startBackgroundRotation();
+    if (typeof showToast === 'function')
+      showToast(on ? 'Background rotates every 5 min' : 'Background rotation off');
   };
 
   window.routeModelTask = function (task) {
@@ -494,6 +587,7 @@
       bar.className = 'modes-collapsed';
       bar.innerHTML = `
         <div class="goddess-chips" role="toolbar" aria-label="Goddess modes">
+          <button type="button" data-g="off" class="${!personasOn ? 'active' : ''}" title="Normal chat — no persona">⭕ Off</button>
           <button type="button" data-g="default">👑 Default</button>
           <button type="button" data-g="quality">✨ HQ</button>
           <button type="button" data-g="extreme">🔥 Extreme</button>
@@ -590,6 +684,16 @@
           <div class="toggle ${throneOn ? 'on' : ''}" id="toggle-throne" onclick="(function(el){el.classList.toggle('on');setThroneMode(el.classList.contains('on'));})(this)"></div>
         </div>
         <div class="setting-row">
+          <div class="setting-info"><div class="setting-name">Goddess personas</div>
+          <div class="setting-desc">When OFF, chat is a normal assistant (no seductive persona). Use ⭕ Off on the chip bar anytime.</div></div>
+          <div class="toggle ${personasOn ? 'on' : ''}" id="toggle-personas" onclick="(function(el){el.classList.toggle('on');setPersonasEnabled(el.classList.contains('on'));if(!el.classList.contains('on'))clearGoddessPersona();})(this)"></div>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info"><div class="setting-name">Rotate background every 5 min</div>
+          <div class="setting-desc">Cycles your Assets images on the chat area</div></div>
+          <div class="toggle ${localStorage.getItem('ai-pro-bg-rotate') !== '0' ? 'on' : ''}" id="toggle-bg-rotate" onclick="(function(el){el.classList.toggle('on');setBgRotate(el.classList.contains('on'));})(this)"></div>
+        </div>
+        <div class="setting-row">
           <div class="setting-info"><div class="setting-name">Follow AI output while typing</div>
           <div class="setting-desc">When off, the page will not keep dragging you to the bottom. When on, only follows if you are already near the bottom.</div></div>
           <div class="toggle ${settings.autoscroll !== false ? 'on' : ''}" id="toggle-autoscroll-hint" style="pointer-events:none;opacity:.5"></div>
@@ -635,20 +739,29 @@
     if (tc) tc.setAttribute('content', '#000000');
   }
 
-  // Wrap sendChat to inject memory + log
+  // Wrap sendChat to inject memory (+ persona only if enabled)
   function patchSendChat() {
     if (typeof window.sendChat !== 'function' || window.sendChat.__throne) return;
     const orig = window.sendChat;
     window.sendChat = async function () {
-      logActivity('info', 'SEND tapped');
+      logActivity('info', 'SEND tapped · personas=' + (personasOn ? 'on' : 'off'));
       userPinnedToBottom = true;
       const ta = document.getElementById('system-prompt-input');
-      const mem = memorySystemPrefix();
       let restore = null;
-      if (ta && mem) {
+      if (ta) {
         restore = ta.value;
-        if (!ta.value.includes('Continuity memory')) {
-          ta.value = mem + ta.value;
+        // If personas OFF, strip goddess system prompt so model stays normal
+        if (!personasOn) {
+          const mem = memorySystemPrefix().trim();
+          ta.value = mem
+            ? mem +
+              '\n\nYou are a helpful, clear assistant. Reply directly. No internal monologue. No roleplay unless asked.'
+            : 'You are a helpful, clear assistant. Reply directly in plain language. Do not show chain-of-thought or planning. No roleplay persona unless the user asks.';
+        } else {
+          const mem = memorySystemPrefix();
+          if (mem && !ta.value.includes('Continuity memory')) {
+            ta.value = mem + ta.value;
+          }
         }
       }
       try {
@@ -718,16 +831,15 @@
     wireChatScroll();
     wireMutationScroll();
     setThroneMode(throneOn);
+    document.body.classList.toggle('personas-off', !personasOn);
+    startBackgroundRotation();
     patchSendChat();
     patchChatStatusHooks();
-    // re-patch after a tick in case index redefined later (it won't)
     setTimeout(patchChatStatusHooks, 500);
-    // Hide any late-injected duplicate routing row
     setTimeout(() => {
       const dup = document.getElementById('route-reco-row');
       if (dup && document.getElementById('goddess-bar')) dup.style.display = 'none';
     }, 800);
-    // Always reclaim chat height: collapse settings unless user has no key yet
     try {
       if (typeof forceCollapseHeader === 'function') forceCollapseHeader();
       else if (typeof collapseHeader === 'function') {
@@ -736,10 +848,14 @@
       }
       document.body.classList.add('compact-ui');
     } catch (_) {}
-    logActivity('info', 'Throne systems online');
+    logActivity('info', 'Throne systems online · personas ' + (personasOn ? 'ON' : 'OFF'));
+    // Highlight Off or last goddess chip
     const g = localStorage.getItem('ai-pro-goddess');
-    // don't auto-apply system overwrite on load
-    if (g && GODDESS[g]) {
+    if (!personasOn) {
+      document
+        .querySelectorAll('#goddess-bar [data-g="off"]')
+        .forEach((b) => b.classList.add('active'));
+    } else if (g && GODDESS[g]) {
       document
         .querySelectorAll('#goddess-bar [data-g="' + g + '"]')
         .forEach((b) => b.classList.add('active'));
