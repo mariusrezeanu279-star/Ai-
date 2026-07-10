@@ -121,6 +121,15 @@ body,#header,#header-top,#header-badges,#header-body,#api-row,#model-row,#model-
 #model-desc.show{display:block}
 #model-desc .md-title{font-weight:600;color:var(--text);margin-bottom:4px}
 #model-desc .md-tags{font-size:11px;color:var(--accent-light);margin-bottom:4px}
+#last-error-bar{display:none;flex-shrink:0;background:var(--red-bg);border-bottom:1px solid rgba(239,68,68,.35);padding:8px 12px;font-size:12px;color:var(--red-text);line-height:1.45;gap:8px;align-items:flex-start;max-height:90px;overflow-y:auto}
+#last-error-bar.show{display:flex}
+#last-error-bar .le-body{flex:1;min-width:0;white-space:pre-wrap;word-break:break-word}
+#last-error-bar button{flex-shrink:0;background:transparent;border:1px solid rgba(239,68,68,.4);color:var(--red-text);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:11px}
+.msg.ai.empty-warn{border-color:rgba(249,115,22,.4)!important;background:rgba(249,115,22,.08)!important}
+.msg.ai.err-bubble{border-color:rgba(239,68,68,.35)!important;background:var(--red-bg)!important}
+#plan-only-toggle{font-size:11px;color:var(--text3);display:inline-flex;align-items:center;gap:4px;cursor:pointer;user-select:none;white-space:nowrap}
+.msg.long-content{max-width:94%}
+
 #chat-messages{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 
 #sqljs-banner{background:var(--blue-bg);color:var(--blue-text);font-size:11px;padding:5px 14px;text-align:center;display:none;border-bottom:1px solid rgba(59,130,246,.15);flex-shrink:0;}
@@ -552,6 +561,7 @@ window.addEventListener('DOMContentLoaded', () => {
     </div>
     <input id="model-search" placeholder="🔍 Search models”¦"/>
     <div id="model-footer">
+      <label id="plan-only-toggle" title="Hide models not available on your current plan"><input type="checkbox" id="plan-only-check" onchange="togglePlanOnlyFilter()"/> On plan only</label>
       <span id="model-count"></span>
       <button id="load-more-btn" onclick="loadModels(false,false)">⬇ More</button>
     </div>
@@ -576,6 +586,7 @@ window.addEventListener('DOMContentLoaded', () => {
   <div style="padding:4px 10px;background:var(--bg3);border-bottom:1px solid var(--border);">
     <input type="text" id="chat-search" class="field" style="padding:6px;font-size:12px;" placeholder="🔍 Search chat... (Ctrl+F)" oninput="filterChat(this.value)" />
   </div>
+  <div id="last-error-bar" role="alert" aria-live="assertive"><div class="le-body" id="last-error-text"></div><button type="button" onclick="clearLastError()" title="Dismiss">✕</button></div>
   <div id="chat-messages">
     <div class="msg system">👋 Save your API key above, load models, then start chatting. Drop any file to analyse it — images, videos, .sqlite, .db, .plist, iPhone backups, and more.</div>
   </div>
@@ -1303,27 +1314,51 @@ function populateDefaultModels(){
 
 /* Model intelligence: emojis, tags, descriptions, priority sort */
 const TOP_UNRESTRICTED=[
-  'nousresearch/hermes-3-llama-3.1-70b','nousresearch/hermes-3-llama-3.1-8b','nousresearch/hermes-2-pro-llama-3-8b',
-  'teknium/openhermes-2.5-mistral-7b','teknium/openhermes-2-mistral-7b',
+  /* ── User priority / Goddess stack (matched by substring on id) ── */
+  'deepseek-v4','deepseek-v3','deepseek-r1','deepseek-ai/deepseek',
+  'heretic','uncensored','highiq-thinking','thinking-heretic',
+  'qwen3.5','qwen3-','qwen2.5-72b','qwen2.5-vl','qwen3-vl',
+  'gemma-4','gemma-3-27b','gemma-3-12b','gemma-3','abliterated',
+  'glm-5','glm-4','chatglm',
+  'mythos','unhinged',
+  'mistral-nemo','captain-eris','violet-lotus','violet',
+  'hermes-3','hermes3','openhermes','nous-hermes',
+  'lumimaid','noromaid','stheno','lunaris','magnum','midnight-miqu',
+  /* ── established uncensored / RP favourites ── */
+  'nousresearch/hermes-3-llama-3.1-70b','nousresearch/hermes-3-llama-3.1-8b',
+  'teknium/openhermes-2.5-mistral-7b',
   'cognitivecomputations/dolphin-2.9.1-llama-3-70b','cognitivecomputations/dolphin-2.9.1-llama-3-8b',
-  'cognitivecomputations/dolphin-2.9-llama3.1-70b','cognitivecomputations/dolphin-llama3-70b',
-  'cognitivecomputations/dolphin-2.6-mixtral-8x7b','cognitivecomputations/dolphin-2.8-mistral-7b-v02',
-  'undi95/toppy-m-7b','koboldai/psyfighter-2-13b','neverleep/noromaid-v0.4-mixtral-8x7b',
-  'lizpreciatior/lzlv-70b-fp16-hf','sao10k/l3-8b-lunaris','sao10k/l3-8b-stheno-v3.2',
-  'nothingiisreal/lumimaid-v0.2-8b','nothingiisreal/lumimaid-v0.2-70b',
-  'aetherwiing/mn-starcannon-12b','nbeerbower/llama3.1-gutenberg-erne-8b',
-  'thedrummer/rocinante-12b-v1.1','thedrummer/unslopnemo-12b','thedrummer/gemmasue-2-9b',
-  'mistralai/mistral-nemo-instruct-2407','mistralai/mixtral-8x22b-instruct-v0.1',
-  'qwen/qwen2.5-72b-instruct','qwen/qwen2.5-32b-instruct','deepseek-ai/deepseek-r1',
-  'meta-llama/llama-3.3-70b-instruct','meta-llama/meta-llama-3.1-70b-instruct',
-  'huggingfaceh4/zephyr-7b-beta','openchat/openchat-3.5-0106','abacusai/smaug-72b-v0.1',
-  'sophosympatheia/midnight-miqu-70b-v1.5','anthracite-org/magnum-v4-72b','anthracite-org/magnum-v2-72b',
-  'eva-unit-01/eva-qwen2.5-72b','eva-unit-01/eva-llama-3.33-70b','neversleep/llama-3-lumimaid-70b',
-  'neversleep/llama-3-lumimaid-8b','neversleep/noromaid-20b','grimulkan/theory-of-mind-14b',
-  'infermatic/mn-12b-inferor-v0.0','inflatebot/mn-12b-mag-mell-r1','alpindale/magnum-72b',
-  'nousresearch/nous-hermes-2-mixtral-8x7b-dpo','nousresearch/nous-hermes-2-yi-34b',
-  'microsoft/wizardlm-2-8x22b','microsoft/wizardlm-2-7b'
+  'undi95/toppy-m-7b','sao10k/l3-8b-stheno','sao10k/l3-8b-lunaris',
+  'nothingiisreal/lumimaid','neversleep/noromaid','anthracite-org/magnum',
+  'thedrummer/rocinante','sophosympatheia/midnight-miqu',
+  'eva-unit-01/eva-qwen','meta-llama/llama-3.3-70b',
+  'mistralai/mistral-nemo-instruct','mistralai/mixtral-8x22b'
 ];
+
+/* Rich blurbs for priority families (matched against model id) */
+const MODEL_BLURBS=[
+  {re:/deepseek.*(v4|v3|r1|chat|pro)/i, emoji:'⭐', tags:['TOP50','FLAGSHIP'], score:0,
+   d:'DeepSeek flagship-class model. Extremely strong at long-form creative writing, immersive roleplay, detailed storytelling, and high-quality prose. Excellent default for main Goddess chat and sensual/elegant creative scenes.'},
+  {re:/heretic|highiq.*thinking|thinking.*heretic|uncensored.*qwen3/i, emoji:'🔓', tags:['TOP50','UNRESTRICTED','R18'], score:1,
+   d:'Uncensored “heretic” / thinking-style model. Bold creative freedom with chain-of-thought style reasoning — excellent for detailed NSFW RP and crafting high-quality image/ComfyUI prompts.'},
+  {re:/gemma-4|gemma4|gemma-3-27|gemma-3-31|abliterated.*gemma|gemma.*abliterated|gemma.*heretic/i, emoji:'🔞', tags:['TOP50','R18','RP'], score:2,
+   d:'Gemma heretic/abliterated-class RP model. Strong balance of size vs quality for emotional, detailed, uncensored sensual roleplay. Popular in RP communities for immersive character work.'},
+  {re:/qwen3?-vl-72|qwen2\.5-vl-72|72b.*vl|vl.*72b/i, emoji:'🖼️', tags:['TOP50','VISION'], score:3,
+   d:'Top-tier vision-language model (~72B class). Deeply analyzes uploaded photos (pose, lighting, body, scene) and returns rich multimodal descriptions. Best for Vault / vision analysis in chat.'},
+  {re:/glm-5|glm5|glm-4\.|chatglm/i, emoji:'⭐', tags:['TOP50','CREATIVE'], score:4,
+   d:'GLM / ChatGLM creative MoE-class model. Praised for atmospheric creative writing and beautiful scene descriptions. Strong for daily throne prompts and prompt engineering.'},
+  {re:/mythos|unhinged/i, emoji:'🔥', tags:['TOP50','R18','EXTREME'], score:5,
+   d:'Extreme / unhinged NSFW specialist. One of the boldest styles for very explicit, dark, or extreme creative content with minimal holding back. Optional “extreme mode” personality.'},
+  {re:/qwen3?-vl-8|qwen.*vl.*8b|8b.*vl/i, emoji:'🖼️', tags:['TOP50','VISION','FAST'], score:6,
+   d:'Fast smaller vision model (~8B VL). Quick photo analysis with solid quality — great default for mobile / rapid vision checks.'},
+  {re:/captain-eris|violet-lotus|violet.*nemo|nemo.*rp|eris/i, emoji:'🎭', tags:['TOP50','RP'], score:7,
+   d:'Mistral Nemo RP fine-tune family (Eris / Violet / similar). Specialized character roleplay — stays in persona and delivers consistent seductive personality.'},
+  {re:/hermes-3|hermes3|openhermes|nous-hermes/i, emoji:'✨', tags:['TOP50','HERMES'], score:8,
+   d:'Hermes 3 / OpenHermes family. Deep roleplay, emotional intelligence, agentic multi-step creative tasks. Excellent for long immersive throne sessions.'},
+  {re:/gemma-3-12|gemma-3-27|gemma3.*vision|gemma-3.*vl/i, emoji:'🖼️', tags:['TOP50','VISION'], score:9,
+   d:'Gemma 3 mid-size vision/creative variants. Strong secondary vision + creative balance without needing the absolute largest VL models.'},
+];
+
 
 function enrichModelMeta(m){
   const rawId=m.id||m.name||'';
@@ -1342,7 +1377,18 @@ function enrichModelMeta(m){
   let isVision=false;
   let description='';
 
-  const topIdx=TOP_UNRESTRICTED.findIndex(p=>idLow.includes(p)||p.includes(idLow));
+  // Priority blurbs (user Goddess stack + catalogue hits)
+  for(const b of (typeof MODEL_BLURBS!=='undefined'?MODEL_BLURBS:[])){
+    if(b.re.test(id)||b.re.test(blob)){
+      emoji=b.emoji||emoji;
+      (b.tags||[]).forEach(tg=>{if(!tags.includes(tg))tags.push(tg);});
+      description=b.d;
+      score=Math.min(score, b.score!=null?b.score:1);
+      break;
+    }
+  }
+
+  const topIdx=TOP_UNRESTRICTED.findIndex(p=>idLow.includes(String(p).toLowerCase())||String(p).toLowerCase().includes(idLow));
   if(topIdx>=0) score=Math.min(score, topIdx);
 
   isHermes=/hermes|openhermes/.test(blob);
@@ -1399,17 +1445,26 @@ function enrichModelMeta(m){
   const seen=new Set();
   const cleanTags=tags.filter(t=>{if(seen.has(t))return false;seen.add(t);return true;});
 
+  const onPlan = (m.available_on_current_plan===true || m.available_on_current_plan===false)
+    ? !!m.available_on_current_plan
+    : null;
+  if(onPlan===true && !cleanTags.includes('ON_PLAN')) cleanTags.push('ON_PLAN');
+  if(onPlan===false && !cleanTags.includes('OFF_PLAN')) cleanTags.push('OFF_PLAN');
+
   const ctx=m.context_length?(' ['+Math.round(m.context_length/1024)+'k]'):'';
+  const planMark = onPlan===true?'✅ ': (onPlan===false?'🚫 ':'');
   const tagPrefix=cleanTags.length?('['+emoji+' '+cleanTags.join('·')+'] '):(emoji!=='🤖'?('['+emoji+'] '):'');
-  const display=tagPrefix+name+ctx;
+  const display=planMark+tagPrefix+name+ctx;
 
   description += m.context_length?(' Context window ≈ '+m.context_length+' tokens.'):'';
+  if(onPlan===false) description += ' Not available on your current API plan — chat may fail until you upgrade or pick an ON_PLAN model.';
 
   return{
     id,name,display,description,emoji,tags:cleanTags,
     is_nsfw:!!(isNsfw||isJail),is_hermes:!!isHermes,is_jailbreak:!!isJail,
+    on_plan:onPlan,
     context_length:m.context_length||null,
-    _score:score,_cat:isNsfw||isHermes||isJail?'priority':(isVision?'vision':'standard')
+    _score:score,_cat:isNsfw||isHermes||isJail||score<50?'priority':(isVision?'vision':'standard')
   };
 }
 
@@ -1425,14 +1480,29 @@ function showModelDescription(modelId){
   box.classList.add('show');
 }
 
+
+let planOnlyFilter=false;
+function togglePlanOnlyFilter(){
+  const el=document.getElementById('plan-only-check');
+  planOnlyFilter=!!(el&&el.checked);
+  try{localStorage.setItem('ai-pro-plan-only', planOnlyFilter?'1':'0');}catch(_){}
+  const list=planOnlyFilter?allModels.filter(m=>m.on_plan!==false):allModels;
+  renderModelDropdown(list);
+}
+function getFilteredModels(){
+  if(planOnlyFilter) return allModels.filter(m=>m.on_plan!==false);
+  return allModels;
+}
+
 document.getElementById('model-search').addEventListener('input',function(){
   clearTimeout(searchTimeout);
   searchTimeout=setTimeout(()=>{
     const term=this.value.toLowerCase().trim();
-    const filtered=term?allModels.filter(m=>{
+    const baseList=getFilteredModels();
+    const filtered=term?baseList.filter(m=>{
       const hay=((m.display||'')+' '+(m.name||'')+' '+(m.id||'')+' '+(m.description||'')+' '+(m.tags||[]).join(' ')).toLowerCase();
       return hay.includes(term);
-    }):allModels;
+    }):baseList;
     renderModelDropdown(filtered);
   },150);
 });
@@ -1457,6 +1527,8 @@ function renderModelDropdown(models){
 document.getElementById('model-select').addEventListener('change',function(){
   if(this.value)try{localStorage.setItem('ai-pro-model',this.value);}catch(_){}
   showModelDescription(this.value);
+  const mm=allModels.find(x=>x.id===this.value);
+  if(mm&&mm.on_plan===false){setLastError('Selected model is marked OFF_PLAN for your Featherless subscription. Chat may return 403 / empty until you pick an ON_PLAN model or upgrade.');}
 });
 
 async function loadModels(reset=true,autoAll=false){
@@ -1933,27 +2005,174 @@ function onDrop(e){e.preventDefault();document.getElementById('input-drop-zone')
 /* ╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬
    CHAT — WITH STREAMING
 ╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬╬ */
+/* ═══════════════════════════════════════════════════════════════
+   CHAT — robust streaming, fallbacks, never-blank bubbles
+═══════════════════════════════════════════════════════════════ */
+let chatSendSeq=0;
+let activeChatSeq=0;
+window.__lastChatDebug=null;
+
+function setLastError(msg, meta){
+  window.__lastChatDebug=Object.assign({ts:Date.now(), message:String(msg||'')}, meta||{});
+  const bar=document.getElementById('last-error-bar');
+  const txt=document.getElementById('last-error-text');
+  if(txt) txt.textContent='⚠️ '+String(msg||'Unknown error');
+  if(bar) bar.classList.add('show');
+  try{console.warn('[chat]', msg, meta||'');}catch(_){}
+}
+function clearLastError(){
+  const bar=document.getElementById('last-error-bar');
+  if(bar) bar.classList.remove('show');
+  const txt=document.getElementById('last-error-text');
+  if(txt) txt.textContent='';
+}
+
+function joinContentParts(content){
+  if(content==null) return '';
+  if(typeof content==='string') return content;
+  if(typeof content==='number'||typeof content==='boolean') return String(content);
+  if(Array.isArray(content)){
+    return content.map(part=>{
+      if(part==null) return '';
+      if(typeof part==='string') return part;
+      if(typeof part==='object'){
+        if(typeof part.text==='string') return part.text;
+        if(typeof part.content==='string') return part.content;
+        if(part.type==='text'&&part.text) return part.text;
+        if(Array.isArray(part.content)) return joinContentParts(part.content);
+      }
+      return '';
+    }).join('');
+  }
+  if(typeof content==='object'){
+    if(typeof content.text==='string') return content.text;
+    if(content.content!=null) return joinContentParts(content.content);
+  }
+  return '';
+}
+
+function extractStreamDelta(j){
+  if(!j||typeof j!=='object') return {text:'', reasoning:'', error:null};
+  if(j.error){
+    const e=j.error;
+    const msg=typeof e==='string'?e:(e.message||e.msg||JSON.stringify(e));
+    return {text:'', reasoning:'', error:msg};
+  }
+  const ch=j.choices&&j.choices[0];
+  if(!ch){
+    // some providers nest differently
+    if(j.delta) return {text:joinContentParts(j.delta.content||j.delta.text), reasoning:joinContentParts(j.delta.reasoning_content||j.delta.reasoning||''), error:null};
+    return {text:'', reasoning:'', error:null};
+  }
+  const delta=ch.delta||{};
+  const msg=ch.message||{};
+  let text=joinContentParts(delta.content);
+  if(!text) text=joinContentParts(msg.content);
+  if(!text) text=joinContentParts(ch.text);
+  if(!text && typeof delta.text==='string') text=delta.text;
+  const reasoning=joinContentParts(delta.reasoning_content||delta.reasoning||msg.reasoning_content||msg.reasoning||'');
+  return {text, reasoning, error:null};
+}
+
+function extractChatText(d){
+  if(!d||typeof d!=='object') return '';
+  if(d.error){
+    const e=d.error;
+    throw new Error(typeof e==='string'?e:(e.message||JSON.stringify(e)));
+  }
+  const ch=d.choices&&d.choices[0];
+  if(!ch){
+    // some APIs return {output_text} or {content}
+    if(typeof d.output_text==='string') return d.output_text;
+    if(d.content!=null) return joinContentParts(d.content);
+    return '';
+  }
+  let text=joinContentParts(ch.message&&ch.message.content);
+  if(!text) text=joinContentParts(ch.text);
+  if(!text) text=joinContentParts(ch.delta&&ch.delta.content);
+  if(!text) text=joinContentParts(ch.message&&(ch.message.reasoning_content||ch.message.reasoning));
+  return text||'';
+}
+
+function humanizeChatError(err, provider, model){
+  const raw=(err&&err.message)||String(err||'Unknown error');
+  const low=raw.toLowerCase();
+  if(/429|rate.?limit|too many requests/.test(low))
+    return 'Rate limited (HTTP 429). Wait a few seconds and try again. Model: '+model;
+  if(/timeout|timed out|abort/.test(low) && !/user abort|aborted by user/.test(low))
+    return 'Request timed out. The model took too long — try again, use a smaller model, or lower max tokens. Model: '+model;
+  if(/failed to fetch|networkerror|load failed|dns|offline|cors|blocked by cors/.test(low))
+    return 'Network/CORS failure reaching '+provider+'. Check connection, API base URL, or browser CORS limits. Details: '+raw;
+  if(/401|invalid api|unauthorized|authentication/.test(low))
+    return 'Authentication failed. Check your '+provider+' API key. Model: '+model;
+  if(/403|forbidden|not available|available_on_current_plan|plan|subscription|api access/.test(low))
+    return 'Forbidden / plan restriction on '+provider+' for model "'+model+'". It may not be on your subscription. Pick a model marked ✅ ON_PLAN or upgrade.';
+  if(/404|not found|model_not_found|does not exist/.test(low))
+    return 'Model not found or not deployed: "'+model+'". Try Load again or another model id.';
+  if(/5\d\d|server error|bad gateway|unavailable/.test(low))
+    return 'Provider server error. Retry shortly. '+raw;
+  return raw + (model?(' (model: '+model+')'):'');
+}
+
+function humanizeEmptyReply(provider, model, debug){
+  const bits=[
+    'The API returned no assistant text for this turn.',
+    'Provider: '+provider+' · Model: '+model,
+  ];
+  if(debug&&debug.status) bits.push('Last HTTP: '+debug.status);
+  if(debug&&debug.bodySnippet) bits.push('Body: '+String(debug.bodySnippet).slice(0,240));
+  bits.push('Tips: try a different model, confirm it is ON_PLAN, disable stream in Settings, or lower Max Tokens.');
+  return bits.join('\n');
+}
+
+function mergeSystemIntoMessages(messages, systemPrompt){
+  if(!systemPrompt) return messages.slice();
+  const msgs=messages.map(m=>({role:m.role, content:m.content}));
+  if(!msgs.length) return [{role:'user', content:systemPrompt}];
+  const first=msgs[0];
+  if(first.role==='user' && typeof first.content==='string'){
+    msgs[0]={role:'user', content:systemPrompt+'\n\n'+first.content};
+  }else{
+    msgs.unshift({role:'user', content:systemPrompt});
+  }
+  return msgs;
+}
+
+function paintAiBubble(targetDiv, text, opts){
+  if(!targetDiv) return;
+  opts=opts||{};
+  targetDiv.className='msg ai'+(opts.warn?' empty-warn':'')+(opts.err?' err-bubble':'');
+  targetDiv.style.background='';
+  targetDiv.style.border='';
+  const safe=String(text||'');
+  if(safe.length>8000) targetDiv.classList.add('long-content');
+  // Prefer textContent for safety on errors; markdown for normal AI
+  if(opts.markdown && settings.markdown && !opts.err && !opts.warn){
+    targetDiv.textContent=safe;
+    try{renderMarkdown(targetDiv);}catch(_){ targetDiv.textContent=safe; }
+  }else{
+    targetDiv.textContent=safe;
+  }
+}
+
 function addMsg(role,text){
   const div=document.createElement('div');div.className='msg '+role;
-  // Add index for branching
   const msgIdx = chatHistory.length + (role==='ai'?1:0);
   div.dataset.index = msgIdx;
-
   if(role==='ai'&&text==='__thinking__'){
     div.className+=' thinking';div.innerHTML='<div class="skeleton"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div>';
   }else{
-    div.textContent=text;
+    const raw=String(text??'');
+    if(raw.length>8000) div.classList.add('long-content');
+    div.textContent=raw;
     if(settings.markdown&&role==='ai')renderMarkdown(div);
-    
-    // Actions container
     const act = document.createElement('div');
     act.style.cssText = 'margin-top:6px;display:flex;gap:8px;font-size:11px;opacity:0.5;';
-    
     if(role==='ai'){
       const copy = document.createElement('span');
       copy.textContent = '📋 Copy';
       copy.style.cursor = 'pointer';
-      copy.onclick = () => { navigator.clipboard.writeText(text); copy.textContent='✅ Copied'; setTimeout(()=>copy.textContent='📋 Copy',2000); if(navigator.vibrate) navigator.vibrate(20);};
+      copy.onclick = () => { navigator.clipboard.writeText(raw); copy.textContent='✅ Copied'; setTimeout(()=>copy.textContent='📋 Copy',2000); if(navigator.vibrate) navigator.vibrate(20);};
       act.appendChild(copy);
     }
     if(role==='user') {
@@ -1962,15 +2181,13 @@ function addMsg(role,text){
       edit.style.cursor = 'pointer';
       edit.onclick = () => {
         const inp = document.getElementById('msg-input');
-        inp.value = text;
+        inp.value = raw;
         inp.focus();
         updateCharCount();
         autoResize(inp);
-        // Truncate history
         const realIdx = parseInt(div.dataset.index);
         if(!isNaN(realIdx)) {
           chatHistory = chatHistory.slice(0, realIdx);
-          // Remove all DOM elements after and including this one
           let curr = div;
           while(curr) {
             let next = curr.nextElementSibling;
@@ -1981,11 +2198,12 @@ function addMsg(role,text){
       };
       act.appendChild(edit);
     }
-    
     if(settings.timestamps){const t=document.createElement('span');t.textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});act.appendChild(t);}
     div.appendChild(act);
   }
-  const msgs=document.getElementById('chat-messages');msgs.appendChild(div);
+  const msgs=document.getElementById('chat-messages');
+  if(!msgs){ console.error('addMsg: #chat-messages missing'); setLastError('#chat-messages container missing'); return null; }
+  msgs.appendChild(div);
   if(settings.autoscroll){
     if(role==='ai'){div.scrollIntoView({block:'start',behavior:'smooth'});}
     else{msgs.scrollTop=msgs.scrollHeight;}
@@ -1993,17 +2211,12 @@ function addMsg(role,text){
   return div;
 }
 
-
 function filterChat(term) {
   const msgs = document.querySelectorAll('#chat-messages .msg');
   term = term.toLowerCase();
   msgs.forEach(m => {
-    if(!term || m.textContent.toLowerCase().includes(term)) {
-      m.style.display = 'block';
-      // simple highlight could be done, but keeping display block is enough
-    } else {
-      m.style.display = 'none';
-    }
+    if(!term || m.textContent.toLowerCase().includes(term)) m.style.display = '';
+    else m.style.display = 'none';
   });
 }
 
@@ -2017,13 +2230,12 @@ function renderMarkdown(el){
     .replace(/^### (.+)$/gm,'<strong style="font-size:13px;color:var(--accent-light)">$1</strong>')
     .replace(/^## (.+)$/gm,'<strong style="font-size:14px;color:var(--accent-light)">$1</strong>')
     .replace(/^# (.+)$/gm,'<strong style="font-size:15px;color:var(--accent-light)">$1</strong>')
-    .replace(/^[”¢\-\*] (.+)$/gm,'&bull; $1')
+    .replace(/^[•\-\*] (.+)$/gm,'&bull; $1')
     .replace(/\n/g,'<br>');
   el.innerHTML=html;
 }
 function autoResize(el){
   if(!el)return;
-  // Never touch width — only grow height. field-sizing/content + width hacks cause 1-char lines.
   el.style.width='';
   el.style.removeProperty('width');
   el.style.height='auto';
@@ -2032,13 +2244,52 @@ function autoResize(el){
 function updateCharCount(){const len=document.getElementById('msg-input').value.length;document.getElementById('char-count').textContent=len>0?len+' chars (~'+Math.ceil(len/4)+' tokens)':'';}
 function chatKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChat();}}
 
+async function parseErrorResponse(r){
+  const status=r.status;
+  let bodySnippet='';
+  let msg='HTTP '+status;
+  try{
+    const txt=await r.text();
+    bodySnippet=txt.slice(0,500);
+    try{
+      const e=JSON.parse(txt);
+      msg=e.error?.message||e.message||e.detail||(typeof e.error==='string'?e.error:null)||msg;
+      if(typeof msg!=='string') msg=JSON.stringify(msg);
+    }catch(_){
+      if(txt) msg=txt.slice(0,300);
+    }
+  }catch(_){}
+  window.__lastChatDebug={status, bodySnippet, provider:currentProvider};
+  const err=new Error(msg);
+  err.status=status;
+  return err;
+}
+
 async function sendChat(){
   const inp=document.getElementById('msg-input');const text=inp.value.trim();
   if(!text&&!attachedFileContent)return;
-  const key=getKey();if(!key){showToast('Save your API key first','err');return;}
-  const model=document.getElementById('model-select').value;if(!model){showToast('Select a model first','err');return;}
+  const key=getKey();
+  if(!key && currentProvider!=='pollinations'){
+    addMsg('system','❌ Save your API key first');
+    showToast('Save your API key first','err');
+    setLastError('No API key saved for '+currentProvider);
+    return;
+  }
+  const model=document.getElementById('model-select').value;
+  if(!model){
+    addMsg('system','❌ Select a model first');
+    showToast('Select a model first','err');
+    setLastError('No model selected');
+    return;
+  }
+  clearLastError();
+  const seq=++chatSendSeq;
+  activeChatSeq=seq;
+  // Abort previous in-flight stream so replies don't mix
+  if(streamAbortCtrl){ try{streamAbortCtrl.abort();}catch(_){ } }
+
   let userDisplay=text;
-  if(attachedFileContent)userDisplay=(text||'Please analyse this file:')+'\n\n📄Ž '+attachedFileContent.name;
+  if(attachedFileContent)userDisplay=(text||'Please analyse this file:')+'\n\n📎 '+attachedFileContent.name;
   addMsg('user',userDisplay);
   inp.value='';inp.style.height='auto';document.getElementById('char-count').textContent='';
   const btn=document.getElementById('send-btn');btn.disabled=true;
@@ -2060,16 +2311,15 @@ async function sendChat(){
   const thinkingDiv=addMsg('ai','__thinking__');
   try{
     const maxTok=parseInt(document.getElementById('max-tokens-select').value)||4096;
-    let respText='';
-    // STREAMING: supported for all providers except Anthropic (uses different stream format)
-    const useStream=settings.stream&&currentProvider!=='anthropic';
-    if(useStream){
-      respText=await chatCompletionStream(key,model,messages,sysprompt,maxTok,thinkingDiv);
-    }else{
-      respText=await chatCompletion(key,model,messages,sysprompt,maxTok);
-      thinkingDiv.className='msg ai';thinkingDiv.textContent=respText;
-      if(settings.markdown)renderMarkdown(thinkingDiv);
+    const respText=await chatCompletionRobust(key||'pollinations', model, messages, sysprompt, maxTok, thinkingDiv, seq);
+    if(seq!==activeChatSeq) return; // superseded by a newer send
+    if(!String(respText||'').trim()){
+      const hint=humanizeEmptyReply(currentProvider, model, window.__lastChatDebug);
+      paintAiBubble(thinkingDiv, '⚠️ Empty reply from model.\n\n'+hint, {warn:true});
+      setLastError('Empty reply from '+model, {provider:currentProvider, model});
+      return;
     }
+    paintAiBubble(thinkingDiv, respText, {markdown:true});
     if(settings.timestamps){const t=document.createElement('span');t.className='msg-time';t.textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});thinkingDiv.appendChild(t);}
     chatHistory.push({role:'user',content:messages[messages.length-1].content});
     chatHistory.push({role:'assistant',content:respText});
@@ -2078,18 +2328,21 @@ async function sendChat(){
     setTimeout(()=>document.getElementById('msg-input')?.focus(), 50);
     clearFile();
   }catch(e){
-    let msg = e.message;
-    // Provide a clearer error message for HF CORS/Loading issues
-    if(currentProvider === 'huggingface' && (msg.includes('Failed to fetch') || msg.includes('CORS') || msg.includes('NetworkError'))) {
-       msg = 'Model is loading (Cold Start) or requires PRO. Please wait ~30s and try again, or select a different model. (CORS blocked the exact loading status).';
-    } else if (msg.includes('Failed to fetch')) {
-        msg += ' (CORS blocked, network error, or invalid URL)';
+    if(seq!==activeChatSeq) return;
+    if(e&&e.name==='AbortError'){
+      paintAiBubble(thinkingDiv, '⏹ Cancelled (newer message sent or aborted).', {warn:true});
+      return;
     }
-    thinkingDiv.className='msg ai';thinkingDiv.textContent='❌ '+msg;
-    thinkingDiv.style.background='var(--red-bg)';thinkingDiv.style.border='1px solid rgba(239,68,68,.2)';
-  }finally{btn.disabled=false;}
+    let msg = humanizeChatError(e, currentProvider, model);
+    if(currentProvider === 'huggingface' && /failed to fetch|cors|network/i.test(String(e.message||''))) {
+       msg = 'Model is loading (cold start) or network/CORS blocked. Wait ~30s and retry, or pick another HF model.';
+    }
+    paintAiBubble(thinkingDiv, '❌ '+msg, {err:true});
+    setLastError(msg, {provider:currentProvider, model, status:e&&e.status});
+  }finally{
+    if(seq===activeChatSeq) btn.disabled=false;
+  }
 }
-
 
 async function fetchWithRetry(url, options, maxRetries=3) {
   let retries = 0;
@@ -2114,129 +2367,267 @@ async function fetchWithRetry(url, options, maxRetries=3) {
   }
 }
 
-/* ─€─€ STREAMING CHAT (OpenAI-compatible SSE) ─€─€ */
-async function chatCompletionStream(key,model,messages,systemPrompt,maxTokens,targetDiv){
-  window.__lastTruncated=false;
+function buildChatUrl(model){
   const base=currentProvider==='custom'?(savedKeys.__customBase||''):PROVIDER_BASES[currentProvider];
-  if(!base)throw new Error('No base URL');
-  const msgs=systemPrompt?[{role:'system',content:systemPrompt},...messages]:messages;
-  if(streamAbortCtrl)streamAbortCtrl.abort();
-  streamAbortCtrl=new AbortController();
-  
-  let url=base+'/chat/completions';
-  
-  // HUGGING FACE: chat-completions router endpoint, model in body
+  if(!base && currentProvider!=='huggingface') throw new Error('No base URL for '+currentProvider);
   if(currentProvider==='huggingface'){
-    url='https://api-inference.huggingface.co/models/'+model+'/v1/chat/completions';
-    try {
-        const r=await fetchWithRetry(url,{
-            method:'POST',signal:streamAbortCtrl.signal,
-            headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
-            body:JSON.stringify({model,messages:msgs,max_tokens:maxTokens,stream:true})
-        });
-        if(!r.ok){
-            const e=await r.json().catch(()=>({}));
-            let errMsg = e.error?.message || (typeof e.error==='string'?e.error:null) || 'HTTP '+r.status;
-            if(r.status === 404) errMsg += ' (Model ID not available via any HF Inference Provider for chat — check it supports chat completions)';
-            if(r.status === 401) errMsg += ' (Invalid Hugging Face token)';
-            throw new Error(errMsg);
-        }
-        return await processStreamReader(r.body.getReader(), targetDiv);
-    } catch(err) {
-        if(err.name === 'TypeError' && err.message.includes('fetch')) {
-             throw new Error("Failed to fetch — network error reaching api-inference.huggingface.co. Check your connection or try the Universal API tab.");
-        }
-        throw err;
-    }
+    return 'https://api-inference.huggingface.co/models/'+model+'/v1/chat/completions';
   }
-
-  // STANDARD ROUTING FOR OTHER PROVIDERS
-  const r=await fetchWithRetry(url,{
-    method:'POST',signal:streamAbortCtrl.signal,
-    headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
-    body:JSON.stringify({model,messages:msgs,max_tokens:maxTokens,stream:true})
-  });
-  if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.error?.message||'HTTP '+r.status);}
-  return await processStreamReader(r.body.getReader(), targetDiv);
+  return base.replace(/\/$/,'')+'/chat/completions';
 }
 
-// Extracted stream processor for reuse
-async function processStreamReader(reader, targetDiv) {
+async function chatCompletionRobust(key, model, messages, systemPrompt, maxTokens, targetDiv, seq){
+  const tryOrders=[];
+  // 1 stream with system
+  tryOrders.push({stream:true, foldSystem:false, maxTokens});
+  // 2 non-stream
+  tryOrders.push({stream:false, foldSystem:false, maxTokens});
+  // 3 fold system into user
+  if(systemPrompt) tryOrders.push({stream:false, foldSystem:true, maxTokens});
+  // 4 smaller max tokens
+  if(maxTokens>512) tryOrders.push({stream:false, foldSystem:!!systemPrompt, maxTokens:Math.max(256, Math.floor(maxTokens/2))});
+
+  let lastErr=null;
+  for(let i=0;i<tryOrders.length;i++){
+    if(seq!=null && seq!==activeChatSeq) throw new DOMException('Aborted','AbortError');
+    const conf=tryOrders[i];
+    try{
+      let text='';
+      if(conf.stream && currentProvider!=='anthropic'){
+        text=await chatCompletionStream(key, model, messages, conf.foldSystem?'':systemPrompt, conf.maxTokens, targetDiv, {
+          foldSystem:conf.foldSystem, systemPrompt, timeoutMs:120000, seq
+        });
+      }else{
+        text=await chatCompletion(key, model, messages, conf.foldSystem?'':systemPrompt, conf.maxTokens, {
+          foldSystem:conf.foldSystem, systemPrompt, timeoutMs:120000, seq
+        });
+        if(targetDiv && seq===activeChatSeq) paintAiBubble(targetDiv, text||'…', {markdown:!!text});
+      }
+      if(String(text||'').trim()) return text;
+      lastErr=new Error('Empty content (attempt '+(i+1)+' stream='+conf.stream+')');
+    }catch(e){
+      lastErr=e;
+      if(e&&e.name==='AbortError') throw e;
+      const low=String(e.message||'').toLowerCase();
+      // fatal auth — don't keep thrashing
+      if(/401|invalid api|unauthorized/.test(low) && e.status===401) throw e;
+      console.warn('[chatCompletionRobust] attempt', i+1, e.message);
+    }
+  }
+  if(lastErr) throw lastErr;
+  return '';
+}
+
+async function chatCompletionStream(key,model,messages,systemPrompt,maxTokens,targetDiv,opts){
+  opts=opts||{};
+  window.__lastTruncated=false;
+  if(currentProvider==='anthropic') throw new Error('Use non-stream for Anthropic');
+
+  let msgs;
+  if(opts.foldSystem && opts.systemPrompt){
+    msgs=mergeSystemIntoMessages(messages, opts.systemPrompt);
+  }else{
+    msgs=systemPrompt?[{role:'system',content:systemPrompt},...messages]:messages;
+  }
+
+  if(streamAbortCtrl) try{streamAbortCtrl.abort();}catch(_){}
+  streamAbortCtrl=new AbortController();
+  const timeoutMs=opts.timeoutMs||120000;
+  let timedOut=false;
+  const timer=setTimeout(()=>{ timedOut=true; try{streamAbortCtrl.abort();}catch(_){ } }, timeoutMs);
+
+  const url=buildChatUrl(model);
+  const headers={Authorization:'Bearer '+key,'Content-Type':'application/json'};
+  const body={model, messages:msgs, max_tokens:maxTokens, stream:true};
+
+  try{
+    const r=await fetchWithRetry(url,{
+      method:'POST', signal:streamAbortCtrl.signal, headers,
+      body:JSON.stringify(body)
+    });
+    if(!r.ok){
+      const err=await parseErrorResponse(r);
+      throw err;
+    }
+    if(!r.body) throw new Error('No response body (stream unsupported?)');
+    return await processStreamReader(r.body.getReader(), targetDiv, opts.seq);
+  }catch(err){
+    if(err.name==='AbortError'){
+      if(opts.seq!=null && opts.seq!==activeChatSeq) throw err;
+      if(timedOut){
+        const e=new Error('Request timed out after '+(timeoutMs/1000)+'s');
+        e.name='TimeoutError';
+        throw e;
+      }
+      throw err;
+    }
+    if(err.name==='TypeError' && /fetch/i.test(err.message||'')){
+      throw new Error('Failed to fetch — network error or CORS blocked for '+url);
+    }
+    throw err;
+  }finally{
+    clearTimeout(timer);
+  }
+}
+
+async function processStreamReader(reader, targetDiv, seq) {
   const dec=new TextDecoder();
-  let fullText='';let finishReason='';
-  targetDiv.className='msg ai';targetDiv.textContent='';
+  let fullText='';
+  let reasoningText='';
+  let finishReason='';
+  let buf='';
+  let sawAnyJson=false;
+  if(targetDiv && (seq==null || seq===activeChatSeq)){
+    targetDiv.className='msg ai';
+    targetDiv.textContent='';
+  }
   const msgs2=document.getElementById('chat-messages');
   while(true){
-    const{done,value}=await reader.read();if(done)break;
-    const chunk=dec.decode(value,{stream:true});
-    const lines=chunk.split('\n');
-    for(const line of lines){
-      if(!line.startsWith('data:'))continue;
-      const data=line.slice(5).trim();
-      if(data==='[DONE]')break;
+    if(seq!=null && seq!==activeChatSeq) throw new DOMException('Aborted','AbortError');
+    const{done,value}=await reader.read();
+    if(done) break;
+    buf+=dec.decode(value,{stream:true});
+    // normalize CRLF
+    buf=buf.replace(/\r\n/g,'\n');
+    let nl;
+    while((nl=buf.indexOf('\n'))>=0){
+      let line=buf.slice(0,nl);
+      buf=buf.slice(nl+1);
+      line=line.trim();
+      if(!line) continue;
+      if(line.startsWith(':')) continue; // SSE comment
+      if(!line.startsWith('data:')){
+        // some servers send raw JSON lines
+        if(line[0]==='{'||line[0]==='['){
+          // fall through as data
+        }else continue;
+      }
+      const data=line.startsWith('data:')?line.slice(5).trim():line;
+      if(data==='[DONE]'){ buf=''; break; }
       try{
         const j=JSON.parse(data);
-        const delta=j.choices?.[0]?.delta?.content||'';
+        sawAnyJson=true;
+        const ext=extractStreamDelta(j);
+        if(ext.error) throw new Error(ext.error);
         finishReason=j.choices?.[0]?.finish_reason||finishReason;
-        if(delta){
-          fullText+=delta;
-          // Update DOM efficiently
-          if(settings.markdown){
-            targetDiv.textContent=fullText;renderMarkdown(targetDiv);
+        if(ext.text) fullText+=ext.text;
+        if(ext.reasoning) reasoningText+=ext.reasoning;
+        const show=fullText || (reasoningText?('💭 '+reasoningText):'');
+        if(show && targetDiv && (seq==null||seq===activeChatSeq)){
+          if(settings.markdown && fullText){
+            targetDiv.textContent=fullText; renderMarkdown(targetDiv);
           }else{
-            targetDiv.textContent=fullText;
+            targetDiv.textContent=show;
           }
-          if(settings.autoscroll)msgs2.scrollTop=msgs2.scrollHeight;
+          if(settings.autoscroll && msgs2) msgs2.scrollTop=msgs2.scrollHeight;
         }
+      }catch(parseErr){
+        if(parseErr&&parseErr.message&&!/JSON|Unexpected|position/i.test(parseErr.message)){
+          // real API error from extractStreamDelta
+          throw parseErr;
+        }
+        // incomplete JSON — put line back if it looks truncated
+        if(data && data[0]==='{' && !data.endsWith('}')){
+          buf=data+'\n'+buf;
+          break;
+        }
+        console.warn('[stream] skip line', data.slice(0,120));
+      }
+    }
+  }
+  // flush remainder
+  if(buf.trim()){
+    const data=buf.trim().startsWith('data:')?buf.trim().slice(5).trim():buf.trim();
+    if(data && data!=='[DONE]'){
+      try{
+        const j=JSON.parse(data);
+        const ext=extractStreamDelta(j);
+        if(ext.error) throw new Error(ext.error);
+        if(ext.text) fullText+=ext.text;
+        if(ext.reasoning) reasoningText+=ext.reasoning;
       }catch(_){}
     }
   }
   window.__lastTruncated=finishReason==='length';
+  if(!fullText && reasoningText) fullText=reasoningText;
+  if(!fullText && !sawAnyJson){
+    window.__lastChatDebug=Object.assign({}, window.__lastChatDebug||{}, {note:'stream had no JSON chunks'});
+  }
   return fullText;
 }
 
-/* ─€─€ NON-STREAMING (Anthropic + fallback) ─€─€ */
-async function chatCompletion(key,model,messages,systemPrompt,maxTokens=4096){
+async function chatCompletion(key,model,messages,systemPrompt,maxTokens=4096,opts){
+  opts=opts||{};
   window.__lastTruncated=false;
-  if(currentProvider==='anthropic'){
-    const body={model,max_tokens:maxTokens,messages};if(systemPrompt)body.system=systemPrompt;
-    const r=await fetchWithRetry('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json'},body:JSON.stringify(body)});
-    const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
-    const fullText=(d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
-    window.__lastTruncated=d.stop_reason==='max_tokens';return fullText;
-  }
-  
-  const base=currentProvider==='custom'?(savedKeys.__customBase||''):PROVIDER_BASES[currentProvider];
-  if(!base)throw new Error('No base URL set for Custom provider');
-  
-  let url = base+'/chat/completions';
-  if(currentProvider === 'huggingface'){
-       url = 'https://api-inference.huggingface.co/models/'+model+'/v1/chat/completions';
-  }
+  const timeoutMs=opts.timeoutMs||120000;
+  const ctrl=new AbortController();
+  let timedOut=false;
+  const timer=setTimeout(()=>{ timedOut=true; ctrl.abort(); }, timeoutMs);
 
-  const msgs=systemPrompt?[{role:'system',content:systemPrompt},...messages]:messages;
-
-  try {
-      const r=await fetchWithRetry(url,{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},body:JSON.stringify({model,messages:msgs,max_tokens:maxTokens})});
-
-      if(!r.ok){
-          const e=await r.json().catch(()=>({}));
-          let errMsg = e.error?.message || (typeof e.error==='string'?e.error:null) || 'HTTP '+r.status;
-          if(r.status === 404) errMsg += ' (Model not available via HF chat router)';
-          if(r.status === 401) errMsg += ' (Invalid Hugging Face token)';
-          throw new Error(errMsg);
+  try{
+    if(currentProvider==='anthropic'){
+      let bodyMsgs=messages;
+      let sys=systemPrompt;
+      if(opts.foldSystem && opts.systemPrompt){
+        bodyMsgs=mergeSystemIntoMessages(messages, opts.systemPrompt);
+        sys=undefined;
       }
+      const body={model,max_tokens:maxTokens,messages:bodyMsgs};
+      if(sys) body.system=sys;
+      const r=await fetchWithRetry('https://api.anthropic.com/v1/messages',{
+        method:'POST', signal:ctrl.signal,
+        headers:{'x-api-key':key,'anthropic-version':'2023-06-01','content-type':'application/json'},
+        body:JSON.stringify(body)
+      });
+      if(!r.ok) throw await parseErrorResponse(r);
+      let d;
+      try{ d=await r.json(); }
+      catch(_){ throw new Error('Malformed JSON in Anthropic response'); }
+      if(d.error) throw new Error(d.error.message||JSON.stringify(d.error));
+      const fullText=(d.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('');
+      window.__lastTruncated=d.stop_reason==='max_tokens';
+      return fullText;
+    }
 
-      const d=await r.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
-      const choice=d.choices?.[0];window.__lastTruncated=choice?.finish_reason==='length';return choice?.message?.content||'';
-  } catch(err) {
-      if(currentProvider === 'huggingface' && err.name === 'TypeError' && err.message.includes('fetch')) {
-             throw new Error("Failed to fetch — network error reaching api-inference.huggingface.co.");
-      }
-      if(currentProvider === 'openai' && err.name === 'TypeError' && err.message.includes('fetch')) {
-          throw new Error("OpenAI blocks browser requests (CORS). Route through a proxy — see the Universal API tab.");
+    let msgs;
+    if(opts.foldSystem && opts.systemPrompt){
+      msgs=mergeSystemIntoMessages(messages, opts.systemPrompt);
+    }else{
+      msgs=systemPrompt?[{role:'system',content:systemPrompt},...messages]:messages;
+    }
+    const url=buildChatUrl(model);
+    const r=await fetchWithRetry(url,{
+      method:'POST', signal:ctrl.signal,
+      headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
+      body:JSON.stringify({model, messages:msgs, max_tokens:maxTokens, stream:false})
+    });
+    if(!r.ok) throw await parseErrorResponse(r);
+    let d;
+    try{ d=await r.json(); }
+    catch(_){ throw new Error('Malformed JSON in non-stream response from '+currentProvider); }
+    window.__lastChatDebug={status:r.status, bodySnippet:JSON.stringify(d).slice(0,400), provider:currentProvider, model};
+    const text=extractChatText(d);
+    const choice=d.choices&&d.choices[0];
+    window.__lastTruncated=choice?.finish_reason==='length';
+    return text||'';
+  }catch(err){
+    if(err.name==='AbortError'){
+      if(timedOut){
+        const e=new Error('Request timed out after '+(timeoutMs/1000)+'s');
+        e.name='TimeoutError';
+        throw e;
       }
       throw err;
+    }
+    if(currentProvider === 'huggingface' && err.name === 'TypeError' && /fetch/i.test(err.message||'')) {
+      throw new Error('Failed to fetch — network error reaching api-inference.huggingface.co.');
+    }
+    if(currentProvider === 'openai' && err.name === 'TypeError' && /fetch/i.test(err.message||'')) {
+      throw new Error('OpenAI blocks browser requests (CORS). Route through a proxy — see the Universal API tab.');
+    }
+    throw err;
+  }finally{
+    clearTimeout(timer);
   }
 }
 
@@ -2252,26 +2643,28 @@ async function continueResponse(){
   const maxTok=parseInt(document.getElementById('max-tokens-select').value)||4096;
   const continuePrompt='Continue exactly where you left off. Do not repeat anything already said, no preamble.';
   const messages=[...chatHistory,{role:'user',content:continuePrompt}];
+  const seq=++chatSendSeq; activeChatSeq=seq;
+  if(streamAbortCtrl){try{streamAbortCtrl.abort();}catch(_){}}
   const thinkingDiv=addMsg('ai','__thinking__');
   try{
-    let respText='';
-    if(settings.stream&&currentProvider!=='anthropic'){
-      respText=await chatCompletionStream(key,model,messages,sysprompt,maxTok,thinkingDiv);
-    }else{
-      respText=await chatCompletion(key,model,messages,sysprompt,maxTok);
-      thinkingDiv.className='msg ai';thinkingDiv.textContent=respText;
-      if(settings.markdown)renderMarkdown(thinkingDiv);
+    const respText=await chatCompletionRobust(key,model,messages,sysprompt,maxTok,thinkingDiv,seq);
+    if(seq!==activeChatSeq)return;
+    if(!String(respText||'').trim()){
+      paintAiBubble(thinkingDiv,'⚠️ Empty continuation from model.',{warn:true});
+      setLastError('Empty continuation from '+model);
+      return;
     }
-    chatHistory.push({role:'user',content:continuePrompt});chatHistory.push({role:'assistant',content:respText});
+    paintAiBubble(thinkingDiv,respText,{markdown:true});
+    chatHistory.push({role:'user',content:continuePrompt});
+    chatHistory.push({role:'assistant',content:respText});
     if(chatHistory.length>40)chatHistory=chatHistory.slice(-40);
     if(window.__lastTruncated)appendTruncationNotice(thinkingDiv);
     setTimeout(()=>document.getElementById('msg-input')?.focus(), 50);
   }catch(e){
-    let msg = e.message;
-    if(currentProvider === 'huggingface' && (msg.includes('Failed to fetch') || msg.includes('CORS'))) {
-       msg = 'Model is loading (Cold Start) or requires PRO. Please wait ~30s and try again. (CORS blocked the loading status).';
-    }
-    thinkingDiv.className='msg ai';thinkingDiv.textContent='❌ '+msg;
+    if(seq!==activeChatSeq)return;
+    const msg=humanizeChatError(e,currentProvider,model);
+    paintAiBubble(thinkingDiv,'❌ '+msg,{err:true});
+    setLastError(msg,{provider:currentProvider,model});
   }
 }
 
@@ -2820,6 +3213,8 @@ function showToast(msg,type='ok'){
 
 window.addEventListener('beforeunload',()=>{if(currentDb){currentDb.close();currentDb=null;}});
 populateDefaultModels();
+try{if(localStorage.getItem('ai-pro-plan-only')==='1'){const c=document.getElementById('plan-only-check');if(c){c.checked=true;planOnlyFilter=true;}}}
+catch(_){}
 </script>
 
   <script src="./ux-enhancements.js"></script>
