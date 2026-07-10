@@ -37,9 +37,9 @@
 html,body{
   height:100%;
   height:100dvh;
+  max-height:100dvh;
   margin:0;
-  overflow-x:hidden;
-  overflow-y:auto;
+  overflow:hidden; /* page shell fixed; chat scrolls inside */
   -webkit-overflow-scrolling:touch;
 }
 body{
@@ -49,8 +49,10 @@ body{
   font-size:14px;
   display:flex;
   flex-direction:column;
-  min-height:100%;
-  min-height:100dvh;
+  height:100%;
+  height:100dvh;
+  max-height:100dvh;
+  min-height:0;
   width:100%;
   max-width:100%;
   position:relative;
@@ -119,12 +121,14 @@ body.throne-mode #input-drop-zone{border-color:rgba(255,215,0,.35)}
 }
 #throne-fab.active{background:linear-gradient(145deg,#FFD700,#C5A000);color:#111}
 #throne-fab:hover{transform:scale(1.06)}
-#goddess-bar{padding:8px 10px 0;display:flex;flex-direction:column;gap:6px}
-.goddess-chips,.router-chips{display:flex;flex-wrap:wrap;gap:6px}
+#goddess-bar{padding:6px 8px 0;display:flex;flex-direction:column;gap:4px;flex-shrink:0;max-width:100%}
+.goddess-chips,.router-chips{display:flex;flex-wrap:nowrap;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.goddess-chips::-webkit-scrollbar,.router-chips::-webkit-scrollbar{display:none}
 .goddess-chips button,.router-chips button{
   background:rgba(0,0,0,.55);border:1px solid rgba(255,215,0,.35);color:var(--gold-soft);
-  padding:5px 10px;border-radius:999px;font-size:11px;cursor:pointer;
+  padding:5px 10px;border-radius:999px;font-size:11px;cursor:pointer;flex-shrink:0;white-space:nowrap;
 }
+#route-reco-row{display:none!important} /* hide duplicate routing from ux-enhancements */
 .goddess-chips button:hover,.router-chips button:hover,
 .goddess-chips button.active{background:rgba(255,215,0,.15);border-color:#FFD700;color:#FFD700}
 #jump-latest-chip{
@@ -184,7 +188,23 @@ body,#header,#header-top,#header-badges,#header-body,#api-row,#model-row,#model-
 #header-toggle:hover{background:var(--bg5);color:var(--text)}
 #header-body{overflow:hidden;transition:max-height .25s cubic-bezier(.4,0,.2,1),opacity .2s}
 #header-body.collapsed{max-height:0;opacity:0;pointer-events:none}
-#header-body.expanded{max-height:min(52dvh,460px);opacity:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#header-body.expanded{max-height:min(36dvh,320px);opacity:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+@media (max-width:768px), (max-height:700px){
+  #header-body.expanded{max-height:min(28dvh,220px)}
+  #header-top{margin-bottom:4px}
+  .tab{padding:8px 4px 7px;font-size:10px}
+  .tab-icon{font-size:12px;margin-bottom:1px}
+  #chat-messages{padding:10px 10px 8px;min-height:20dvh}
+  #chat-bottom{padding:6px 8px 8px}
+  #goddess-bar{padding:4px 6px 0}
+  .goddess-chips,.router-chips{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;max-width:100%}
+  .goddess-chips::-webkit-scrollbar,.router-chips::-webkit-scrollbar{display:none}
+  #activity-log-drawer{width:100%;left:0;right:0;padding-bottom:env(safe-area-inset-bottom,0)}
+  #throne-fab{bottom:calc(72px + env(safe-area-inset-bottom,0px));right:12px;width:46px;height:46px}
+  #jump-latest-chip{bottom:calc(120px + env(safe-area-inset-bottom,0px))}
+  body.compact-ui #goddess-bar .router-chips{display:none}
+  body.compact-ui #route-reco-row{display:none!important}
+}
 #api-row{display:flex;gap:6px;align-items:center;margin-bottom:7px;flex-wrap:wrap;min-width:0;width:100%;}
 .provider-pill{display:flex;gap:0;border:1px solid var(--border2);border-radius:var(--radius);overflow:hidden;flex-shrink:0;}
 .provider-pill select{background:var(--bg3);border:none;color:var(--text);padding:7px 10px;font-size:12px;cursor:pointer;outline:none;min-width:0;max-width:42vw;}
@@ -239,13 +259,14 @@ body,#header,#header-top,#header-badges,#header-body,#api-row,#model-row,#model-
 .tab.active{color:var(--accent-light);border-bottom-color:var(--accent)}
 .tab-icon{font-size:14px;display:block;margin-bottom:2px}
 
-/* PANELS — min-height:0 + min-width:0 so nested scroll/flex share space correctly */
+/* PANELS — chat owns remaining viewport height */
 #panels{flex:1 1 auto;overflow:hidden;display:flex;flex-direction:column;min-height:0;min-width:0;width:100%;}
 .panel{display:none;flex:1 1 auto;flex-direction:column;overflow:hidden;min-height:0;min-width:0;width:100%;max-width:100%}
 .panel.active{display:flex;min-height:0;min-width:0}
+#panel-chat{min-height:0;flex:1 1 auto}
 
 /* CHAT */
-#chat-messages{flex:1 1 auto;overflow-y:auto;padding:16px 14px 10px;display:flex;flex-direction:column;gap:12px;min-height:0;min-width:0;width:100%;}
+#chat-messages{flex:1 1 auto;overflow-y:auto;padding:16px 14px 10px;display:flex;flex-direction:column;gap:12px;min-height:30dvh;min-width:0;width:100%;}
 .msg{max-width:86%;min-width:0;padding:11px 14px;border-radius:var(--radius2);font-size:14px;line-height:1.55;word-break:break-word;overflow-wrap:anywhere;animation:msgIn .18s ease;}
 @keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .msg.user{background:linear-gradient(135deg,var(--accent) 0%,var(--accent2) 100%);color:#fff;align-self:flex-end;border-bottom-right-radius:4px;box-shadow:0 2px 12px rgba(139,92,246,.25);}
@@ -267,8 +288,8 @@ body,#header,#header-top,#header-badges,#header-body,#api-row,#model-row,#model-
 .typing-dots span:nth-child(3){animation-delay:.3s}
 @keyframes typingBounce{0%,60%,100%{transform:translateY(0);background:var(--text3)}30%{transform:translateY(-4px);background:var(--accent-light)}}
 
-/* CHAT INPUT */
-#chat-bottom{flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);padding:10px 12px 12px;width:100%;max-width:100%;box-sizing:border-box;}
+/* CHAT INPUT — always pinned in flex shell */
+#chat-bottom{flex-shrink:0;background:var(--bg2);border-top:1px solid var(--border);padding:10px 12px 12px;width:100%;max-width:100%;box-sizing:border-box;position:relative;z-index:4;}
 #attachment-area{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius2);padding:10px 12px;margin-bottom:8px;display:none;position:relative;}
 #attachment-area.show{display:block;animation:msgIn .15s ease}
 #attachment-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -1244,7 +1265,11 @@ const IMG_MODELS={
     const ss=localStorage.getItem('ai-pro-settings');if(ss)Object.assign(settings,JSON.parse(ss));
     const sysp=localStorage.getItem('ai-pro-sysprompt');if(sysp)document.getElementById('system-prompt-input').value=sysp;
     const mt=localStorage.getItem('ai-pro-maxtokens');if(mt)document.getElementById('max-tokens-select').value=mt;
-    const hc=localStorage.getItem('ai-pro-header');if(hc==='collapsed'){headerExpanded=false;collapseHeader(false);}
+    const hc=localStorage.getItem('ai-pro-header');
+    const hasKey=!!(savedKeys&&Object.keys(savedKeys).some(k=>k!=='__customBase'&&savedKeys[k]));
+    const small=window.matchMedia('(max-width:768px),(max-height:700px)').matches;
+    if(hc==='collapsed'||(hasKey&&small&&hc!=='expanded')){headerExpanded=false;collapseHeader();}
+    if(localStorage.getItem('ai-pro-compact-ui')!=='0') document.body.classList.add('compact-ui');
     Object.keys(settings).forEach(k=>{const el=document.getElementById('toggle-'+k);if(el)el.classList.toggle('on',!!settings[k]);});
     if(sm){const opt=document.createElement('option');opt.value=sm;opt.textContent=sm;opt.selected=true;document.getElementById('model-select').appendChild(opt);}
   }catch(_){}
@@ -1289,7 +1314,11 @@ function onProviderChange(reset=true){
 }
 function saveKey(){
   const raw=document.getElementById('api-key-input').value.trim();
-  if(!raw||raw.startsWith('”¢'))return showToast('Enter your API key first','err');
+  if(!raw||raw.startsWith('•')||/^•+$/.test(raw)||raw.startsWith('¢')||/^[•"¢]+$/.test(raw)){
+    // allow masked placeholder detection: empty-ish after save display
+    if(!raw||raw.length<8) return showToast('Enter your API key first','err');
+  }
+  if(!raw)return showToast('Enter your API key first','err');
   savedKeys[currentProvider]=raw;
   try{localStorage.setItem('ai-pro-keys',JSON.stringify(savedKeys));}catch(_){}
   document.getElementById('api-key-input').value='';
@@ -1298,6 +1327,14 @@ function saveKey(){
   populateDefaultModels();
   loadImgModels();
   showToast('✅ '+currentProvider+' key saved');
+  // Reclaim chat space: collapse settings header after key save (esp. phone)
+  try{
+    headerExpanded=false;
+    collapseHeader();
+    localStorage.setItem('ai-pro-header','collapsed');
+    document.body.classList.add('compact-ui');
+    localStorage.setItem('ai-pro-compact-ui','1');
+  }catch(_){}
 }
 function getKey(){return savedKeys[currentProvider]||'';}
 
@@ -2190,13 +2227,30 @@ function extractChatText(d){
   return text||'';
 }
 
+function isCapacityError(err){
+  const raw=((err&&err.message)||String(err||''))+' '+(err&&err.status?String(err.status):'');
+  const low=raw.toLowerCase();
+  const st=err&&err.status;
+  return st===503||st===529||/at capacity|temporarily at capacity|overloaded|unavailable|service unavailable|503|no capacity|high demand|try again shortly/.test(low);
+}
+function isTokenLimitError(err){
+  const low=String((err&&err.message)||err||'').toLowerCase();
+  return /max_?tokens|context.?length|too many tokens|maximum context|token limit|context window|reduce.*tokens|prompt is too long/.test(low);
+}
+function isRateLimitError(err){
+  const st=err&&err.status;
+  const low=String((err&&err.message)||err||'').toLowerCase();
+  return st===429||/429|rate.?limit|too many requests/.test(low);
+}
 function humanizeChatError(err, provider, model){
   const raw=(err&&err.message)||String(err||'Unknown error');
   const low=raw.toLowerCase();
-  if(/429|rate.?limit|too many requests/.test(low))
+  if(isCapacityError(err))
+    return 'Model is at capacity on '+provider+' right now ("'+model+'"). Pick another model or retry in 30–60s. Lowering max tokens will not help.';
+  if(isRateLimitError(err))
     return 'Rate limited (HTTP 429). Wait a few seconds and try again. Model: '+model;
-  if(/timeout|timed out|abort/.test(low) && !/user abort|aborted by user/.test(low))
-    return 'Request timed out. The model took too long — try again, use a smaller model, or lower max tokens. Model: '+model;
+  if(/timeout|timed out/.test(low) && !/user abort|aborted by user/.test(low))
+    return 'Request timed out. Try a different/faster model, or retry shortly. Model: '+model;
   if(/failed to fetch|networkerror|load failed|dns|offline|cors|blocked by cors/.test(low))
     return 'Network/CORS failure reaching '+provider+'. Check connection, API base URL, or browser CORS limits. Details: '+raw;
   if(/401|invalid api|unauthorized|authentication/.test(low))
@@ -2206,7 +2260,7 @@ function humanizeChatError(err, provider, model){
   if(/404|not found|model_not_found|does not exist/.test(low))
     return 'Model not found or not deployed: "'+model+'". Try Load again or another model id.';
   if(/5\d\d|server error|bad gateway|unavailable/.test(low))
-    return 'Provider server error. Retry shortly. '+raw;
+    return 'Provider server error. Retry shortly or switch models. '+raw;
   return raw + (model?(' (model: '+model+')'):'');
 }
 
@@ -2486,16 +2540,17 @@ function buildChatUrl(model){
 }
 
 async function chatCompletionRobust(key, model, messages, systemPrompt, maxTokens, targetDiv, seq){
+  // Dynamic attempt plan — capacity/429/timeout never burn time on "lower max_tokens"
   const tryOrders=[];
-  tryOrders.push({stream:true, foldSystem:false, maxTokens, label:'Streaming'});
-  tryOrders.push({stream:false, foldSystem:false, maxTokens, label:'Non-stream fallback'});
-  if(systemPrompt) tryOrders.push({stream:false, foldSystem:true, maxTokens, label:'Retry with system folded into user'});
-  if(maxTokens>512) tryOrders.push({stream:false, foldSystem:!!systemPrompt, maxTokens:Math.max(256, Math.floor(maxTokens/2)), label:'Retry with lower max_tokens'});
+  tryOrders.push({stream:true, foldSystem:false, maxTokens, label:'Streaming', timeoutMs:45000});
+  tryOrders.push({stream:false, foldSystem:false, maxTokens, label:'Non-stream fallback', timeoutMs:45000});
+  // fold-system / lower-max only added if earlier errors need them (see catch)
 
   let lastErr=null;
+  let triedFold=false;
+  let triedLowerTok=false;
   if(targetDiv && typeof setThinkingStatus==='function'){
     targetDiv.className='msg ai thinking';
-    // keep structure: do not wipe if panel exists
     if(!targetDiv.querySelector('.thinking-panel')){
       targetDiv.innerHTML='';
       setThinkingStatus(targetDiv, '⏳ Contacting '+model+'…', true);
@@ -2513,14 +2568,15 @@ async function chatCompletionRobust(key, model, messages, systemPrompt, maxToken
     if(typeof logActivity==='function') logActivity('info', statusMsg);
     try{
       let text='';
+      const tmo=conf.timeoutMs||45000;
       if(conf.stream && currentProvider!=='anthropic'){
         text=await chatCompletionStream(key, model, messages, conf.foldSystem?'':systemPrompt, conf.maxTokens, targetDiv, {
-          foldSystem:conf.foldSystem, systemPrompt, timeoutMs:120000, seq, keepStatus:true
+          foldSystem:conf.foldSystem, systemPrompt, timeoutMs:tmo, seq, keepStatus:true
         });
       }else{
         if(targetDiv && typeof setThinkingStatus==='function') setThinkingStatus(targetDiv, '⏳ Waiting for full response…', true);
         text=await chatCompletion(key, model, messages, conf.foldSystem?'':systemPrompt, conf.maxTokens, {
-          foldSystem:conf.foldSystem, systemPrompt, timeoutMs:120000, seq
+          foldSystem:conf.foldSystem, systemPrompt, timeoutMs:tmo, seq
         });
         if(targetDiv && seq===activeChatSeq && String(text||'').trim()){
           if(typeof finishThinkingPanel==='function') finishThinkingPanel(targetDiv, true);
@@ -2534,13 +2590,45 @@ async function chatCompletionRobust(key, model, messages, systemPrompt, maxToken
       }
       lastErr=new Error('Empty content (attempt '+(i+1)+' · '+conf.label+')');
       if(typeof logActivity==='function') logActivity('warn', lastErr.message);
+      // empty: allow non-stream already in queue; if last was non-stream and token-ish, optionally lower tokens
+      if(!triedLowerTok && maxTokens>512 && i===tryOrders.length-1){
+        triedLowerTok=true;
+        tryOrders.push({stream:false, foldSystem:!!systemPrompt&&triedFold, maxTokens:Math.max(256, Math.floor(maxTokens/2)), label:'Retry with lower max_tokens (empty reply)', timeoutMs:40000});
+      }
     }catch(e){
       lastErr=e;
       if(e&&e.name==='AbortError') throw e;
-      const low=String(e.message||'').toLowerCase();
       if(typeof logActivity==='function') logActivity('error', e.message||String(e));
-      if(/401|invalid api|unauthorized/.test(low) && e.status===401) throw e;
       console.warn('[chatCompletionRobust] attempt', i+1, e.message);
+
+      // CAPACITY / 503 / rate limit: stop immediately — do NOT lower max_tokens
+      if(isCapacityError(e)){
+        if(typeof logActivity==='function') logActivity('error', 'Capacity/503 — stopping retries (max_tokens retry skipped)');
+        throw e;
+      }
+      if(isRateLimitError(e)){
+        if(typeof logActivity==='function') logActivity('error', 'Rate limited — stopping retries');
+        throw e;
+      }
+      if(e&&e.name==='TimeoutError'){
+        if(typeof logActivity==='function') logActivity('error', 'Timeout — stopping long retry chain');
+        throw e;
+      }
+      const low=String(e.message||'').toLowerCase();
+      if(/401|invalid api|unauthorized/.test(low) && e.status===401) throw e;
+
+      // Only schedule lower max_tokens when API complains about tokens/context
+      if(!triedLowerTok && isTokenLimitError(e) && maxTokens>512){
+        triedLowerTok=true;
+        tryOrders.push({stream:false, foldSystem:triedFold, maxTokens:Math.max(256, Math.floor(maxTokens/2)), label:'Retry with lower max_tokens', timeoutMs:40000});
+        if(typeof logActivity==='function') logActivity('info', 'Token/context error → will retry with lower max_tokens');
+      }
+      // System role issues
+      if(!triedFold && systemPrompt && /system.?role|system message|unknown role|invalid role|does not support system/.test(low)){
+        triedFold=true;
+        tryOrders.push({stream:false, foldSystem:true, maxTokens, label:'Retry with system folded into user', timeoutMs:45000});
+        if(typeof logActivity==='function') logActivity('info', 'System-role error → will fold system into user');
+      }
     }
   }
   if(lastErr) throw lastErr;
@@ -2561,7 +2649,7 @@ async function chatCompletionStream(key,model,messages,systemPrompt,maxTokens,ta
 
   if(streamAbortCtrl) try{streamAbortCtrl.abort();}catch(_){}
   streamAbortCtrl=new AbortController();
-  const timeoutMs=opts.timeoutMs||120000;
+  const timeoutMs=opts.timeoutMs||45000;
   let timedOut=false;
   const timer=setTimeout(()=>{ timedOut=true; try{streamAbortCtrl.abort();}catch(_){ } }, timeoutMs);
 

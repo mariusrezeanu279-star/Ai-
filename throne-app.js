@@ -705,6 +705,22 @@
     patchChatStatusHooks();
     // re-patch after a tick in case index redefined later (it won't)
     setTimeout(patchChatStatusHooks, 500);
+    // Hide any late-injected duplicate routing row
+    setTimeout(() => {
+      const dup = document.getElementById('route-reco-row');
+      if (dup && document.getElementById('goddess-bar')) dup.style.display = 'none';
+    }, 800);
+    // Phone: ensure header collapsed when key already present
+    try {
+      const small = window.matchMedia('(max-width:768px),(max-height:700px)').matches;
+      const keys = JSON.parse(localStorage.getItem('ai-pro-keys') || '{}');
+      const hasKey = Object.keys(keys).some((k) => k !== '__customBase' && keys[k]);
+      if (small && hasKey && typeof headerExpanded !== 'undefined') {
+        headerExpanded = false;
+        if (typeof collapseHeader === 'function') collapseHeader();
+        document.body.classList.add('compact-ui');
+      }
+    } catch (_) {}
     logActivity('info', 'Throne systems online');
     const g = localStorage.getItem('ai-pro-goddess');
     // don't auto-apply system overwrite on load

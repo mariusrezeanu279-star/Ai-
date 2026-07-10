@@ -398,8 +398,9 @@
   }
 
   function mountPowerTools(){
+    // Model routing chips live in #goddess-bar (throne-app.js) — skip duplicate row that steals chat height
     const chatWrap=$('#panel-chat #chat-bottom');
-    if(chatWrap&&!$('#route-reco-row')){
+    if(chatWrap&&!$('#route-reco-row')&&!$('#goddess-bar')){
       const row=document.createElement('div');
       row.id='route-reco-row';
       row.style.cssText='display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px';
