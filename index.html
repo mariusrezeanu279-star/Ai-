@@ -252,6 +252,18 @@ body,#header,#header-top,#header-badges,#header-body,#api-row,#model-row,#model-
 #last-error-bar button{flex-shrink:0;background:transparent;border:1px solid rgba(239,68,68,.4);color:var(--red-text);border-radius:6px;padding:2px 8px;cursor:pointer;font-size:11px}
 .msg.ai.empty-warn{border-color:rgba(249,115,22,.4)!important;background:rgba(249,115,22,.08)!important}
 .msg.ai.err-bubble{border-color:rgba(239,68,68,.35)!important;background:var(--red-bg)!important}
+.err-fix-card{margin-top:10px;padding:10px;border-radius:10px;border:1px solid rgba(255,215,0,.35);background:rgba(0,0,0,.45);font-style:normal;color:var(--text)}
+.err-fix-card .err-title{font-weight:700;color:#FFD700;margin-bottom:6px;font-size:13px}
+.err-fix-card .err-msg{font-size:13px;line-height:1.45;margin-bottom:8px;color:#f5f5f5;white-space:pre-wrap}
+.err-fix-card .err-tips{font-size:12px;color:var(--gold-soft);line-height:1.5;margin:0 0 10px 0;padding-left:18px}
+.err-fix-card .err-tips li{margin:3px 0}
+.err-fix-actions{display:flex;flex-wrap:wrap;gap:6px}
+.err-fix-actions button{
+  background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.5);color:#FFD700;
+  padding:7px 10px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;
+}
+.err-fix-actions button:hover{background:rgba(255,215,0,.22)}
+.err-fix-actions button:disabled{opacity:.5;cursor:wait}
 #plan-only-toggle{font-size:11px;color:var(--text3);display:inline-flex;align-items:center;gap:4px;cursor:pointer;user-select:none;white-space:nowrap}
 .msg.long-content{max-width:94%}
 
@@ -1160,7 +1172,8 @@ let loadAllAbort=false;
 let headerExpanded=false;
 let streamAbortCtrl=null;
 
-const settings={stream:true,markdown:true,autoscroll:true,timestamps:false};
+const settings={stream:true,markdown:true,autoscroll:true,timestamps:false,temperature:0.7};
+let lastSendContext={userText:'', model:'', provider:'', sysprompt:''};
 
 const PROVIDER_BASES={
   featherless:'https://api.featherless.ai/v1',
@@ -2261,28 +2274,96 @@ function isRateLimitError(err){
   const low=String((err&&err.message)||err||'').toLowerCase();
   return st===429||/429|rate.?limit|too many requests/.test(low);
 }
+function isTimeoutError(err){
+  if(err&&err.name==='TimeoutError') return true;
+  const low=String((err&&err.message)||err||'').toLowerCase();
+  return /timeout|timed out/.test(low) && !/user abort|aborted by user/.test(low);
+}
+function classifyChatError(err){
+  if(isCapacityError(err)) return 'capacity';
+  if(isRateLimitError(err)) return 'rate';
+  if(isTimeoutError(err)) return 'timeout';
+  if(isTokenLimitError(err)) return 'tokens';
+  const low=String((err&&err.message)||err||'').toLowerCase();
+  if(/401|invalid api|unauthorized|authentication/.test(low)) return 'auth';
+  if(/403|forbidden|plan|subscription|available_on_current_plan/.test(low)) return 'plan';
+  if(/failed to fetch|networkerror|cors|offline|dns/.test(low)) return 'network';
+  if(/empty content|empty reply|no text|no assistant/.test(low)) return 'empty';
+  if(/garbage|corrupt|degenerat|hallucin/.test(low)) return 'garbage';
+  return 'generic';
+}
 function humanizeChatError(err, provider, model){
   const raw=(err&&err.message)||String(err||'Unknown error');
-  const low=raw.toLowerCase();
-  if(isCapacityError(err))
+  const kind=classifyChatError(err);
+  if(kind==='capacity')
     return 'Model is at capacity on '+provider+' right now ("'+model+'"). Pick another model or retry in 30–60s. Lowering max tokens will not help.';
-  if(isRateLimitError(err))
-    return 'Rate limited (HTTP 429). Wait a few seconds and try again. Model: '+model;
-  if(/timeout|timed out/.test(low) && !/user abort|aborted by user/.test(low))
+  if(kind==='rate')
+    return 'Rate limited (HTTP 429). Wait ~15s or switch to a smaller model. Model: '+model;
+  if(kind==='timeout')
     return 'Request timed out. Try a different/faster model, or retry shortly. Model: '+model;
-  if(/failed to fetch|networkerror|load failed|dns|offline|cors|blocked by cors/.test(low))
+  if(kind==='network')
     return 'Network/CORS failure reaching '+provider+'. Check connection, API base URL, or browser CORS limits. Details: '+raw;
-  if(/401|invalid api|unauthorized|authentication/.test(low))
+  if(kind==='auth')
     return 'Authentication failed. Check your '+provider+' API key. Model: '+model;
-  if(/403|forbidden|not available|available_on_current_plan|plan|subscription|api access/.test(low))
-    return 'Forbidden / plan restriction on '+provider+' for model "'+model+'". It may not be on your subscription. Pick a model marked ✅ ON_PLAN or upgrade.';
-  if(/404|not found|model_not_found|does not exist/.test(low))
+  if(kind==='plan')
+    return 'Forbidden / plan restriction on '+provider+' for model "'+model+'". Pick a model marked ✅ ON_PLAN or upgrade.';
+  if(/404|not found|model_not_found|does not exist/.test(raw.toLowerCase()))
     return 'Model not found or not deployed: "'+model+'". Try Load again or another model id.';
-  if(/5\d\d|server error|bad gateway|unavailable/.test(low))
+  if(/5\d\d|server error|bad gateway|unavailable/.test(raw.toLowerCase()))
     return 'Provider server error. Retry shortly or switch models. '+raw;
   return raw + (model?(' (model: '+model+')'):'');
 }
-
+function getErrorTips(kind, provider, model){
+  const tips={
+    capacity:[
+      'This model has no free slot on '+provider+' right now.',
+      'Switching models usually works immediately.',
+      'Waiting 30–60s then retrying can work if you want this exact model.',
+      'Lowering max tokens will NOT fix capacity.'
+    ],
+    rate:[
+      'Your key hit a rate limit (too many requests).',
+      'Wait ~15 seconds, then retry — or switch to a smaller model.',
+      'Big R1 / 70B models get rate-limited fastest — don’t spam Send.'
+    ],
+    timeout:[
+      'The model didn’t answer in time (cold start or overload).',
+      'A smaller/faster model is more reliable for quick tests.',
+      'Retry once; if it keeps timing out, switch models.'
+    ],
+    empty:[
+      'The API returned no text.',
+      'Try non-stream (Settings) or another model.',
+      'Confirm the model is ON_PLAN for your key.'
+    ],
+    garbage:[
+      'This fine-tune produced corrupted/gibberish text (common on some uncensored distill models).',
+      'Regenerate without that junk in history, or switch to a stable instruct model (e.g. OpenHermes).',
+      'Clearing the bad reply stops it from poisoning the next turn.'
+    ],
+    plan:[
+      'Your plan may not include this model.',
+      'Use On plan only filter, or pick a model marked ✅ ON_PLAN.'
+    ],
+    auth:[
+      'Re-save a valid API key in Settings.',
+      'Check the key has API access enabled on '+provider+'.'
+    ],
+    network:[
+      'Check Wi‑Fi / VPN.',
+      'Some providers block browsers (CORS) — try another provider or a proxy.'
+    ],
+    tokens:[
+      'Prompt or max tokens too large for this model.',
+      'Use the lower-max-tokens retry or shorten chat history.'
+    ],
+    generic:[
+      'Retry once, or switch to another ON_PLAN model.',
+      'Check the Activity log for the exact API message.'
+    ]
+  };
+  return tips[kind]||tips.generic;
+}
 function humanizeEmptyReply(provider, model, debug){
   const bits=[
     'The API returned no assistant text for this turn.',
@@ -2290,8 +2371,217 @@ function humanizeEmptyReply(provider, model, debug){
   ];
   if(debug&&debug.status) bits.push('Last HTTP: '+debug.status);
   if(debug&&debug.bodySnippet) bits.push('Body: '+String(debug.bodySnippet).slice(0,240));
-  bits.push('Tips: try a different model, confirm it is ON_PLAN, disable stream in Settings, or lower Max Tokens.');
   return bits.join('\n');
+}
+
+/** Heuristic: nonsense / token salad */
+function looksLikeGarbage(text){
+  const s=String(text||'').trim();
+  if(s.length<80) return false;
+  const words=s.split(/\s+/).filter(Boolean);
+  if(words.length<12) return false;
+  const avg=words.reduce((a,w)=>a+w.length,0)/words.length;
+  const unique=new Set(words.map(w=>w.toLowerCase())).size;
+  const uniqRatio=unique/words.length;
+  const nonLatin=(s.match(/[^\x00-\x7F]/g)||[]).join('').length;
+  const nonLatinRatio=nonLatin/s.length;
+  const weirdPunct=(s.match(/[\/\\|{}<>§#@]{2,}|\w{20,}/g)||[]).length;
+  const spaces= (s.match(/\s/g)||[]).length;
+  const spaceRatio=spaces/s.length;
+  // high unique chaos + low spaces or mixed scripts often = degeneration
+  if(avg>14 && uniqRatio>0.85 && s.length>200) return true;
+  if(nonLatinRatio>0.25 && uniqRatio>0.7 && s.length>150) return true;
+  if(weirdPunct>=4 && uniqRatio>0.75) return true;
+  if(spaceRatio<0.08 && s.length>120) return true;
+  // many short broken tokens
+  const short=words.filter(w=>w.length<=2).length/words.length;
+  if(short>0.45 && uniqRatio>0.8 && words.length>40) return true;
+  return false;
+}
+
+function pickFallbackModel(opts){
+  opts=opts||{};
+  const avoid=(opts.avoidId||'').toLowerCase();
+  const pool=(typeof allModels!=='undefined'?allModels:[]).filter(m=>{
+    if(!m||!m.id) return false;
+    if(m.id.toLowerCase()===avoid) return false;
+    if(m.on_plan===false) return false;
+    return true;
+  });
+  if(!pool.length) return null;
+  const score=m=>{
+    const id=String(m.id).toLowerCase();
+    let s=m._score!=null? (100-Math.min(100,m._score)) : 0;
+    if(opts.preferStable){
+      if(/hermes|openhermes|instruct|llama-3|qwen2\.5-.*instruct|mistral.*instruct/.test(id)) s+=50;
+      if(/blunt|unhinged|abliterated|heretic|uncensored-blunt/.test(id)) s-=40;
+      if(/r1-0528|70b|72b/.test(id) && opts.preferSmall) s-=20;
+    }
+    if(opts.preferSmall){
+      if(/\b(7b|8b|9b|12b|13b|14b)\b/.test(id)) s+=35;
+      if(/\b(70b|72b|65b|405b)\b/.test(id)) s-=30;
+      if(/r1/.test(id)) s-=10;
+    }
+    if(m.on_plan===true) s+=15;
+    return s;
+  };
+  return pool.slice().sort((a,b)=>score(b)-score(a))[0]||null;
+}
+function selectModelInDropdown(modelId){
+  if(!modelId) return;
+  const sel=document.getElementById('model-select');
+  if(!sel) return;
+  if(![...sel.options].some(o=>o.value===modelId)){
+    const o=document.createElement('option');
+    o.value=modelId; o.textContent=modelId;
+    sel.appendChild(o);
+  }
+  sel.value=modelId;
+  try{localStorage.setItem('ai-pro-model',modelId);}catch(_){}
+  if(typeof showModelDescription==='function') showModelDescription(modelId);
+}
+function getLastUserTextFromUi(){
+  if(lastSendContext&&lastSendContext.userText) return lastSendContext.userText;
+  const users=[...document.querySelectorAll('#chat-messages .msg.user')];
+  if(!users.length) return '';
+  const t=users[users.length-1].cloneNode(true);
+  t.querySelectorAll('span,button,.err-fix-card').forEach(n=>n.remove());
+  return (t.textContent||'').replace(/✏️ Edit \/ Fork/g,'').trim();
+}
+function stripLastAssistantTurn(bubbleEl){
+  // history: pop assistant if last
+  if(chatHistory.length && chatHistory[chatHistory.length-1].role==='assistant'){
+    chatHistory.pop();
+  }
+  if(bubbleEl&&bubbleEl.parentNode) bubbleEl.remove();
+}
+function stripLastUserAndAssistant(bubbleEl){
+  if(chatHistory.length && chatHistory[chatHistory.length-1].role==='assistant') chatHistory.pop();
+  if(chatHistory.length && chatHistory[chatHistory.length-1].role==='user') chatHistory.pop();
+  if(bubbleEl){
+    const prev=bubbleEl.previousElementSibling;
+    if(prev&&prev.classList.contains('user')) prev.remove();
+    bubbleEl.remove();
+  }
+}
+async function resendWithModel(modelId, delayMs){
+  const text=getLastUserTextFromUi();
+  if(!text){ showToast('No previous message to retry','err'); return; }
+  if(modelId) selectModelInDropdown(modelId);
+  const inp=document.getElementById('msg-input');
+  if(inp){ inp.value=text; if(typeof autoResize==='function') autoResize(inp); if(typeof updateCharCount==='function') updateCharCount(); }
+  if(delayMs>0){
+    if(typeof logActivity==='function') logActivity('info','FIX waiting '+delayMs+'ms then retry');
+    await new Promise(r=>setTimeout(r,delayMs));
+  }
+  if(typeof logActivity==='function') logActivity('info','FIX resend model='+(modelId||document.getElementById('model-select')?.value));
+  // Remove previous error AI bubble if still last
+  const last=document.querySelector('#chat-messages .msg.ai:last-child');
+  if(last&&(last.classList.contains('err-bubble')||last.querySelector('.err-fix-card'))){
+    stripLastAssistantTurn(last);
+  }
+  return sendChat();
+}
+
+function attachErrorFixCard(targetDiv, err, model){
+  if(!targetDiv) return;
+  const kind=classifyChatError(err);
+  const titleMap={capacity:'At capacity',rate:'Rate limited (429)',timeout:'Timed out',empty:'Empty reply',garbage:'Corrupted / gibberish output',plan:'Plan / access blocked',auth:'Auth failed',network:'Network error',tokens:'Token/context limit',generic:'Request failed'};
+  const tips=getErrorTips(kind, currentProvider, model);
+  const msg=humanizeChatError(err, currentProvider, model);
+  let card=targetDiv.querySelector('.err-fix-card');
+  if(card) card.remove();
+  card=document.createElement('div');
+  card.className='err-fix-card';
+  const ul=tips.map(t=>'<li>'+esc(t)+'</li>').join('');
+  const actions=[];
+  if(kind==='rate'||kind==='capacity'){
+    actions.push({id:'wait', label: kind==='rate'?'⏱ Wait 12s & retry':'⏱ Wait 30s & retry', delay: kind==='rate'?12000:30000, mode:'retry'});
+    actions.push({id:'switch', label:'🔀 Switch model & retry', mode:'switch'});
+  }else if(kind==='timeout'){
+    actions.push({id:'fast', label:'⚡ Try faster model', mode:'fast'});
+    actions.push({id:'retry', label:'🔄 Retry same model', mode:'retry', delay:0});
+    actions.push({id:'switch', label:'🔀 Switch model & retry', mode:'switch'});
+  }else if(kind==='garbage'||kind==='empty'){
+    actions.push({id:'regen', label:'🔄 Regenerate clean', mode:'regen'});
+    actions.push({id:'stable', label:'✨ Switch to stable model', mode:'stable'});
+    actions.push({id:'clear', label:'🧹 Clear bad reply', mode:'clear'});
+  }else if(kind==='plan'||kind==='auth'){
+    actions.push({id:'switch', label:'🔀 Try another ON_PLAN model', mode:'switch'});
+  }else{
+    actions.push({id:'retry', label:'🔄 Retry', mode:'retry', delay:0});
+    actions.push({id:'switch', label:'🔀 Switch model & retry', mode:'switch'});
+  }
+  actions.push({id:'copy', label:'📋 Copy error', mode:'copy'});
+  card.innerHTML=
+    '<div class="err-title">❌ '+(titleMap[kind]||'Error')+'</div>'+
+    '<div class="err-msg">'+esc(msg)+'</div>'+
+    '<div style="font-size:12px;color:var(--gold-soft);margin-bottom:4px">What you can do:</div>'+
+    '<ul class="err-tips">'+ul+'</ul>'+
+    '<div class="err-fix-actions"></div>';
+  const row=card.querySelector('.err-fix-actions');
+  actions.forEach(a=>{
+    const b=document.createElement('button');
+    b.type='button';
+    b.textContent=a.label;
+    b.onclick=async()=>{
+      try{
+        if(a.mode==='copy'){
+          const payload=msg+'\nmodel='+model+'\nprovider='+currentProvider+'\n'+(window.__lastChatDebug?JSON.stringify(window.__lastChatDebug):'');
+          await navigator.clipboard.writeText(payload);
+          b.textContent='✅ Copied';
+          setTimeout(()=>b.textContent=a.label,1500);
+          return;
+        }
+        if(a.mode==='clear'){
+          stripLastAssistantTurn(targetDiv);
+          if(typeof logActivity==='function') logActivity('info','FIX clear bad reply');
+          showToast('Bad reply removed');
+          return;
+        }
+        if(a.mode==='regen'){
+          const ut=getLastUserTextFromUi();
+          stripLastUserAndAssistant(targetDiv);
+          const inp=document.getElementById('msg-input');
+          if(inp){ inp.value=ut; updateCharCount(); autoResize(inp); }
+          if(typeof logActivity==='function') logActivity('info','FIX regenerate clean');
+          return sendChat();
+        }
+        b.disabled=true;
+        if(a.mode==='retry'){
+          const d=a.delay||0;
+          if(d>0){
+            let left=Math.ceil(d/1000);
+            b.textContent='⏳ Retry in '+left+'s…';
+            const iv=setInterval(()=>{ left--; b.textContent=left>0?('⏳ Retry in '+left+'s…'):'⏳ Retrying…'; if(left<=0) clearInterval(iv); },1000);
+            await resendWithModel(null, d);
+          }else{
+            await resendWithModel(null, 0);
+          }
+          return;
+        }
+        if(a.mode==='switch'||a.mode==='fast'||a.mode==='stable'){
+          const pick=pickFallbackModel({
+            avoidId:model,
+            preferSmall:a.mode==='fast'||a.mode==='switch',
+            preferStable:a.mode==='stable'||a.mode==='switch'
+          });
+          if(!pick){ showToast('No alternative model loaded — tap Load 500 first','err'); b.disabled=false; return; }
+          b.textContent='→ '+pick.id.split('/').pop();
+          if(typeof logActivity==='function') logActivity('info','FIX switch → '+pick.id);
+          showToast('Switching to '+pick.id);
+          await resendWithModel(pick.id, a.mode==='switch'&&kind==='rate'?3000:0);
+          return;
+        }
+      }catch(ex){
+        showToast(ex.message||'Fix failed','err');
+        b.disabled=false;
+      }
+    };
+    row.appendChild(b);
+  });
+  targetDiv.appendChild(card);
+  if(typeof maybeAutoscroll==='function') maybeAutoscroll();
 }
 
 function mergeSystemIntoMessages(messages, systemPrompt){
@@ -2317,14 +2607,14 @@ function paintAiBubble(targetDiv, text, opts){
   targetDiv.style.border='';
   const safe=String(text||'');
   if(safe.length>8000) targetDiv.classList.add('long-content');
-  targetDiv.querySelectorAll('.reply-skeleton,.skeleton,.reply-body').forEach(n=>n.remove());
+  targetDiv.querySelectorAll('.reply-skeleton,.skeleton,.reply-body,.err-fix-card').forEach(n=>n.remove());
   let body=targetDiv.querySelector('.reply-body');
   if(!body){
     body=document.createElement('div');
     body.className='reply-body';
     targetDiv.appendChild(body);
   }
-  if(opts.markdown && settings.markdown && !opts.err && !opts.warn){
+  if(opts.markdown && settings.markdown && !opts.err && !opts.warn && !opts.garbage){
     body.textContent=safe;
     try{renderMarkdown(body);}catch(_){ body.textContent=safe; }
   }else{
@@ -2467,16 +2757,20 @@ async function sendChat(){
   clearLastError();
   const seq=++chatSendSeq;
   activeChatSeq=seq;
-  // Abort previous in-flight stream so replies don't mix
   if(streamAbortCtrl){ try{streamAbortCtrl.abort();}catch(_){ } }
 
   let userDisplay=text;
   if(attachedFileContent)userDisplay=(text||'Please analyse this file:')+'\n\n📎 '+attachedFileContent.name;
+  const sysprompt=document.getElementById('system-prompt-input').value.trim();
+  lastSendContext={userText:text||userDisplay, model, provider:currentProvider, sysprompt};
   addMsg('user',userDisplay);
   inp.value='';inp.style.height='auto';document.getElementById('char-count').textContent='';
   const btn=document.getElementById('send-btn');btn.disabled=true;
+  // Drop trailing garbage assistants from history so they don't poison the next turn
+  while(chatHistory.length && chatHistory[chatHistory.length-1].role==='assistant' && chatHistory[chatHistory.length-1]._garbage){
+    chatHistory.pop();
+  }
   let messages=[...chatHistory];
-  const sysprompt=document.getElementById('system-prompt-input').value.trim();
   if(attachedFileContent){
     if(attachedFileContent.type==='image'){
       messages.push({role:'user',content:[{type:'image_url',image_url:{url:'data:'+attachedFileContent.mime+';base64,'+attachedFileContent.data}},{type:'text',text:text||'Describe this image in detail.'}]});
@@ -2494,11 +2788,20 @@ async function sendChat(){
   try{
     const maxTok=parseInt(document.getElementById('max-tokens-select').value)||4096;
     const respText=await chatCompletionRobust(key||'pollinations', model, messages, sysprompt, maxTok, thinkingDiv, seq);
-    if(seq!==activeChatSeq) return; // superseded by a newer send
+    if(seq!==activeChatSeq) return;
     if(!String(respText||'').trim()){
       const hint=humanizeEmptyReply(currentProvider, model, window.__lastChatDebug);
       paintAiBubble(thinkingDiv, '⚠️ Empty reply from model.\n\n'+hint, {warn:true});
       setLastError('Empty reply from '+model, {provider:currentProvider, model});
+      attachErrorFixCard(thinkingDiv, new Error('Empty reply from model'), model);
+      return;
+    }
+    if(looksLikeGarbage(respText)){
+      paintAiBubble(thinkingDiv, '⚠️ Model output looked corrupted (gibberish / token salad).\n\nPreview:\n'+String(respText).slice(0,400)+(respText.length>400?'…':''), {warn:true, garbage:true});
+      setLastError('Gibberish output from '+model, {provider:currentProvider, model});
+      attachErrorFixCard(thinkingDiv, new Error('garbage / hallucinated output'), model);
+      // do not store garbage in history
+      if(typeof logActivity==='function') logActivity('warn','Garbage output detected — not saved to history');
       return;
     }
     paintAiBubble(thinkingDiv, respText, {markdown:true});
@@ -2521,6 +2824,7 @@ async function sendChat(){
     }
     paintAiBubble(thinkingDiv, '❌ '+msg, {err:true});
     setLastError(msg, {provider:currentProvider, model, status:e&&e.status});
+    attachErrorFixCard(thinkingDiv, e, model);
   }finally{
     if(seq===activeChatSeq) btn.disabled=false;
   }
@@ -2620,13 +2924,22 @@ async function chatCompletionRobust(key, model, messages, systemPrompt, maxToken
       if(typeof logActivity==='function') logActivity('error', e.message||String(e));
       console.warn('[chatCompletionRobust] attempt', i+1, e.message);
 
-      // CAPACITY / 503 / rate limit: stop immediately — do NOT lower max_tokens
+      // CAPACITY / 503: stop immediately — do NOT lower max_tokens
       if(isCapacityError(e)){
         if(typeof logActivity==='function') logActivity('error', 'Capacity/503 — stopping retries (max_tokens retry skipped)');
         throw e;
       }
+      // 429: one polite wait then single retry of this attempt type
       if(isRateLimitError(e)){
-        if(typeof logActivity==='function') logActivity('error', 'Rate limited — stopping retries');
+        if(!conf._retried429){
+          conf._retried429=true;
+          if(typeof logActivity==='function') logActivity('info', '429 — waiting 10s then one retry');
+          if(targetDiv && typeof setThinkingStatus==='function') setThinkingStatus(targetDiv, '⏳ Rate limited — waiting 10s then retry…', true);
+          await new Promise(r=>setTimeout(r,10000));
+          tryOrders.splice(i+1, 0, Object.assign({}, conf, {label: conf.label+' (after 429 wait)', _retried429:true}));
+          continue;
+        }
+        if(typeof logActivity==='function') logActivity('error', 'Rate limited again — stopping');
         throw e;
       }
       if(e&&e.name==='TimeoutError'){
@@ -2674,7 +2987,8 @@ async function chatCompletionStream(key,model,messages,systemPrompt,maxTokens,ta
 
   const url=buildChatUrl(model);
   const headers={Authorization:'Bearer '+key,'Content-Type':'application/json'};
-  const body={model, messages:msgs, max_tokens:maxTokens, stream:true};
+  const temp=typeof settings.temperature==='number'?settings.temperature:0.7;
+  const body={model, messages:msgs, max_tokens:maxTokens, stream:true, temperature:temp, top_p:0.9};
 
   try{
     const r=await fetchWithRetry(url,{
@@ -2842,10 +3156,11 @@ async function chatCompletion(key,model,messages,systemPrompt,maxTokens=4096,opt
       msgs=systemPrompt?[{role:'system',content:systemPrompt},...messages]:messages;
     }
     const url=buildChatUrl(model);
+    const temp=typeof settings.temperature==='number'?settings.temperature:0.7;
     const r=await fetchWithRetry(url,{
       method:'POST', signal:ctrl.signal,
       headers:{Authorization:'Bearer '+key,'Content-Type':'application/json'},
-      body:JSON.stringify({model, messages:msgs, max_tokens:maxTokens, stream:false})
+      body:JSON.stringify({model, messages:msgs, max_tokens:maxTokens, stream:false, temperature:temp, top_p:0.9})
     });
     if(!r.ok) throw await parseErrorResponse(r);
     let d;
