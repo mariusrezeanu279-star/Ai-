@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="throne-mode">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
-<title>Ai— Studio</title>
+<title>1N8BillionXXL · Throne</title>
+<link rel="icon" href="./Assets/logo-king.jpg"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 
@@ -11,25 +12,27 @@
   --bg:#fafafa;--bg2:#f0f0f5;--bg3:#e5e5ec;--bg4:#dadae3;--bg5:#cfcfda;
   --border:#e0e0eb;--border2:#d0d0dc;--border3:#c0c0cd;
   --text:#11111a;--text2:#44445c;--text3:#77778c;--text4:#9999b0;
-  --accent:#7c3aed;--accent2:#6d28d9;--accent3:#5b21b6;
-  --accent-glow:rgba(124,58,237,0.15);--accent-light:#8b5cf6;
+  --accent:#b8860b;--accent2:#996f00;--accent3:#7a5800;
+  --accent-glow:rgba(255,215,0,0.2);--accent-light:#daa520;
   --error:#dc2626;--error-bg:rgba(220,38,38,0.1);
   --success:#16a34a;--success-bg:rgba(22,163,74,0.1);
 }
 
+/* Default = dark; body.throne-mode amplifies 1N8 gold brand */
 :root{
-  --bg:#070709;--bg2:#0e0e12;--bg3:#16161c;--bg4:#1e1e26;--bg5:#252530;
-  --border:#1f1f2b;--border2:#2a2a38;--border3:#363648;
-  --text:#f0f0f5;--text2:#9898b0;--text3:#555570;--text4:#3a3a50;
-  --accent:#8b5cf6;--accent2:#7c3aed;--accent3:#6d28d9;
-  --accent-glow:rgba(139,92,246,0.15);--accent-light:#c4b5fd;
+  --bg:#000000;--bg2:#0a0a0a;--bg3:#111111;--bg4:#1a1508;--bg5:#241c0a;
+  --border:rgba(255,215,0,0.18);--border2:rgba(255,215,0,0.32);--border3:rgba(255,215,0,0.45);
+  --text:#ffffff;--text2:#e8d48b;--text3:#a89050;--text4:#6b5a30;
+  --accent:#FFD700;--accent2:#C5A000;--accent3:#8a7000;
+  --accent-glow:rgba(255,215,0,0.28);--accent-light:#ffe566;
   --green:#22c55e;--green-bg:#052e16;--green-text:#86efac;
   --red:#ef4444;--red-bg:#2d0a0a;--red-text:#fca5a5;
   --blue:#3b82f6;--blue-bg:#0c1a3a;--blue-text:#93c5fd;
   --orange:#f97316;
   --radius:10px;--radius2:14px;--radius3:18px;
-  --shadow:0 4px 24px rgba(0,0,0,.5);
+  --shadow:0 4px 28px rgba(0,0,0,.65),0 0 40px rgba(255,215,0,0.06);
   --font:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;
+  --gold:#FFD700;--gold-soft:#E8D48B;
 }
 html,body{
   height:100%;
@@ -51,12 +54,105 @@ body{
   width:100%;
   max-width:100%;
   position:relative;
-  /* iOS / WebView safe areas when viewport-fit=cover */
   padding-top:env(safe-area-inset-top,0px);
   padding-right:env(safe-area-inset-right,0px);
   padding-bottom:env(safe-area-inset-bottom,0px);
   padding-left:env(safe-area-inset-left,0px);
 }
+/* Golden rim lighting */
+body.throne-mode::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% -20%, rgba(255,215,0,0.14), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(255,215,0,0.06), transparent 50%),
+    radial-gradient(ellipse 50% 30% at 0% 80%, rgba(255,215,0,0.05), transparent 45%);
+}
+body.throne-mode > *{position:relative;z-index:1}
+#logo{display:flex;align-items:center;gap:8px;background:none!important;-webkit-text-fill-color:unset!important}
+#logo .brand-logo-img{height:36px;width:36px;border-radius:8px;object-fit:cover;border:1px solid rgba(255,215,0,0.45);box-shadow:0 0 12px rgba(255,215,0,0.25)}
+#logo .brand-wordmark{font-size:13px;font-weight:700;letter-spacing:.2px;background:linear-gradient(135deg,#fff8d0,#FFD700 40%,#c5a000);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header-icon-btn{background:var(--bg4);border:1px solid var(--border2);color:var(--gold);padding:5px 10px;border-radius:var(--radius);font-size:14px;cursor:pointer}
+.header-icon-btn:hover{box-shadow:0 0 12px var(--accent-glow);border-color:var(--gold)}
+#panel-chat{position:relative}
+#panel-chat.throne-chat,
+body.throne-mode #panel-chat{
+  background-color:#000;
+  background-image:
+    linear-gradient(180deg,rgba(0,0,0,.82),rgba(0,0,0,.88)),
+    url('./Assets/chat-bg.jpg');
+  background-size:cover;
+  background-position:center;
+}
+#chat-watermark{position:absolute;right:10px;bottom:90px;width:72px;height:72px;opacity:.12;pointer-events:none;z-index:2}
+#chat-watermark img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 8px rgba(255,215,0,.4))}
+body.throne-mode .msg.user{
+  background:linear-gradient(135deg,#3d3200 0%,#1a1500 100%)!important;
+  border:1px solid rgba(255,215,0,.45);
+  box-shadow:4px 0 18px rgba(255,215,0,.35),0 2px 12px rgba(0,0,0,.4);
+}
+body.throne-mode .msg.ai{
+  background:rgba(20,16,8,.92)!important;
+  border:1px solid rgba(255,215,0,.22);
+}
+body.throne-mode .tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+body.throne-mode .model-btn.primary,
+body.throne-mode #save-key-btn,
+body.throne-mode #send-btn,
+body.throne-mode .action-btn{
+  background:linear-gradient(135deg,#FFD700,#C5A000)!important;
+  color:#111!important;
+  border-color:#FFD700!important;
+  box-shadow:0 0 16px rgba(255,215,0,.35);
+}
+body.throne-mode #input-drop-zone:focus-within,
+body.throne-mode #msg-input:focus{
+  border-color:#FFD700!important;
+  box-shadow:0 0 0 1px rgba(255,215,0,.5),0 0 16px rgba(255,215,0,.2);
+}
+body.throne-mode #input-drop-zone{border-color:rgba(255,215,0,.35)}
+#throne-fab{
+  position:fixed;right:16px;bottom:88px;z-index:9998;
+  width:52px;height:52px;border-radius:50%;
+  background:linear-gradient(145deg,#1a1500,#000);
+  border:2px solid #FFD700;color:#FFD700;font-size:22px;cursor:pointer;
+  box-shadow:0 0 20px rgba(255,215,0,.35);
+}
+#throne-fab.active{background:linear-gradient(145deg,#FFD700,#C5A000);color:#111}
+#throne-fab:hover{transform:scale(1.06)}
+#goddess-bar{padding:8px 10px 0;display:flex;flex-direction:column;gap:6px}
+.goddess-chips,.router-chips{display:flex;flex-wrap:wrap;gap:6px}
+.goddess-chips button,.router-chips button{
+  background:rgba(0,0,0,.55);border:1px solid rgba(255,215,0,.35);color:var(--gold-soft);
+  padding:5px 10px;border-radius:999px;font-size:11px;cursor:pointer;
+}
+.goddess-chips button:hover,.router-chips button:hover,
+.goddess-chips button.active{background:rgba(255,215,0,.15);border-color:#FFD700;color:#FFD700}
+#jump-latest-chip{
+  display:none;position:absolute;left:50%;transform:translateX(-50%);bottom:100px;z-index:5;
+  background:#111;border:1px solid #FFD700;color:#FFD700;padding:6px 14px;border-radius:999px;font-size:12px;cursor:pointer;
+  box-shadow:0 0 14px rgba(255,215,0,.3);
+}
+#jump-latest-chip.show{display:block}
+#activity-log-drawer{
+  display:none;position:fixed;right:0;top:0;bottom:0;width:min(380px,100%);z-index:10050;
+  background:#0a0a0a;border-left:1px solid rgba(255,215,0,.35);flex-direction:column;
+  box-shadow:-8px 0 32px rgba(0,0,0,.6);
+}
+#activity-log-drawer.show{display:flex}
+.alog-head{display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid rgba(255,215,0,.25);color:#FFD700}
+.alog-actions{display:flex;gap:6px}
+.alog-actions button{background:transparent;border:1px solid rgba(255,215,0,.35);color:#E8D48B;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px}
+.alog-body{flex:1;overflow:auto;padding:10px;font-family:ui-monospace,Consolas,monospace;font-size:11px}
+.alog-line{display:flex;gap:8px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04);color:#ccc}
+.alog-t{color:#a89050;flex-shrink:0}
+.alog-error .alog-m,.alog-line.alog-error{color:#fca5a5}
+.alog-ok .alog-m{color:#86efac}
+.thinking-panel{border:1px solid rgba(255,215,0,.25);border-radius:10px;margin-bottom:8px;background:rgba(0,0,0,.35);overflow:hidden}
+.thinking-toggle{width:100%;text-align:left;background:transparent;border:none;color:var(--gold-soft);padding:8px 10px;font-size:12px;cursor:pointer}
+.thinking-body{display:none;padding:0 10px 10px;font-size:12px;color:var(--text2);white-space:pre-wrap}
+.thinking-panel.open .thinking-body{display:block}
+.thinking-status{color:#FFD700;margin-bottom:4px}
+.thinking-reason{opacity:.85;max-height:120px;overflow:auto}
 ::-webkit-scrollbar{width:10px;height:10px}
 ::-webkit-scrollbar-track{background:var(--bg3)}
 ::-webkit-scrollbar-thumb{background:var(--border3);border-radius:8px}
@@ -79,7 +175,7 @@ body,#header,#header-top,#header-badges,#header-body,#api-row,#model-row,#model-
 /* HEADER */
 #header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 14px 8px;flex-shrink:0;position:relative;width:100%;max-width:100%;box-sizing:border-box;}
 #header-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;min-width:0;width:100%;}
-#logo{font-size:17px;font-weight:700;letter-spacing:-.5px;background:linear-gradient(135deg,#c4b5fd 0%,#8b5cf6 50%,#6d28d9 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;white-space:nowrap;flex-shrink:0;}
+#logo{font-size:17px;font-weight:700;letter-spacing:-.5px;white-space:nowrap;flex-shrink:0;}
 #header-badges{display:flex;gap:6px;align-items:center;flex:1 1 auto;min-width:0;overflow:hidden}
 .badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;white-space:nowrap;letter-spacing:.3px;}
 .badge.key-saved{background:var(--green-bg);color:var(--green-text);border:1px solid rgba(34,197,94,.2)}
@@ -416,7 +512,7 @@ select.field{width:100%;background:var(--bg3);border:1px solid var(--border2);co
 
 </style>
 <link rel="manifest" href="data:application/manifest+json;base64,ewogICJuYW1lIjogIkFpIFN0dWRpbyIsCiAgInNob3J0X25hbWUiOiAiQWkgU3R1ZGlvIiwKICAic3RhcnRfdXJsIjogIi4iLAogICJkaXNwbGF5IjogInN0YW5kYWxvbmUiLAogICJiYWNrZ3JvdW5kX2NvbG9yIjogIiMwNzA3MDkiLAogICJ0aGVtZV9jb2xvciI6ICIjMDcwNzA5IiwKICAiaWNvbnMiOiBbewogICAgInNyYyI6ICJkYXRhOmltYWdlL3N2Zyt4bWwsPHN2ZyB4bWxucz0lMjJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyUyMiB2aWV3Qm94PSUyMjAgMCAxMDAgMTAwJTIyPjx0ZXh0IHk9JTIyLjllbSUyMiBmb250LXNpemU9JTIyOTAlMjI+4pyoPC90ZXh0Pjwvc3ZnPiIsCiAgICAic2l6ZXMiOiAiNTEyeDUxMiIsCiAgICAidHlwZSI6ICJpbWFnZS9zdmcreG1sIgogIH1dCn0=">
-<meta name="theme-color" content="#070709" />
+<meta name="theme-color" content="#000000" />
 
 
 <script>
@@ -445,7 +541,7 @@ self.addEventListener('fetch', event => {
 
 
 </head>
-<body>
+<body class="throne-mode">
 
 <script>
 let SQL=null,sqlJsLoading=false,sqlJsReady=false;
@@ -2141,18 +2237,30 @@ function mergeSystemIntoMessages(messages, systemPrompt){
 function paintAiBubble(targetDiv, text, opts){
   if(!targetDiv) return;
   opts=opts||{};
+  // Preserve thinking panel if present
+  const think=targetDiv.querySelector('.thinking-panel');
   targetDiv.className='msg ai'+(opts.warn?' empty-warn':'')+(opts.err?' err-bubble':'');
   targetDiv.style.background='';
   targetDiv.style.border='';
   const safe=String(text||'');
   if(safe.length>8000) targetDiv.classList.add('long-content');
-  // Prefer textContent for safety on errors; markdown for normal AI
-  if(opts.markdown && settings.markdown && !opts.err && !opts.warn){
-    targetDiv.textContent=safe;
-    try{renderMarkdown(targetDiv);}catch(_){ targetDiv.textContent=safe; }
-  }else{
-    targetDiv.textContent=safe;
+  targetDiv.querySelectorAll('.reply-skeleton,.skeleton,.reply-body').forEach(n=>n.remove());
+  let body=targetDiv.querySelector('.reply-body');
+  if(!body){
+    body=document.createElement('div');
+    body.className='reply-body';
+    targetDiv.appendChild(body);
   }
+  if(opts.markdown && settings.markdown && !opts.err && !opts.warn){
+    body.textContent=safe;
+    try{renderMarkdown(body);}catch(_){ body.textContent=safe; }
+  }else{
+    body.textContent=safe;
+  }
+  if(think && think.parentNode!==targetDiv) targetDiv.insertBefore(think, targetDiv.firstChild);
+  else if(think) targetDiv.insertBefore(think, targetDiv.firstChild);
+  if(typeof maybeAutoscroll==='function') maybeAutoscroll();
+  else if(settings.autoscroll){ const m=document.getElementById('chat-messages'); if(m) m.scrollTop=m.scrollHeight; }
 }
 
 function addMsg(role,text){
@@ -2204,7 +2312,8 @@ function addMsg(role,text){
   const msgs=document.getElementById('chat-messages');
   if(!msgs){ console.error('addMsg: #chat-messages missing'); setLastError('#chat-messages container missing'); return null; }
   msgs.appendChild(div);
-  if(settings.autoscroll){
+  if(typeof maybeAutoscroll==='function') maybeAutoscroll(msgs);
+  else if(settings.autoscroll){
     if(role==='ai'){div.scrollIntoView({block:'start',behavior:'smooth'});}
     else{msgs.scrollTop=msgs.scrollHeight;}
   }
@@ -2378,38 +2487,58 @@ function buildChatUrl(model){
 
 async function chatCompletionRobust(key, model, messages, systemPrompt, maxTokens, targetDiv, seq){
   const tryOrders=[];
-  // 1 stream with system
-  tryOrders.push({stream:true, foldSystem:false, maxTokens});
-  // 2 non-stream
-  tryOrders.push({stream:false, foldSystem:false, maxTokens});
-  // 3 fold system into user
-  if(systemPrompt) tryOrders.push({stream:false, foldSystem:true, maxTokens});
-  // 4 smaller max tokens
-  if(maxTokens>512) tryOrders.push({stream:false, foldSystem:!!systemPrompt, maxTokens:Math.max(256, Math.floor(maxTokens/2))});
+  tryOrders.push({stream:true, foldSystem:false, maxTokens, label:'Streaming'});
+  tryOrders.push({stream:false, foldSystem:false, maxTokens, label:'Non-stream fallback'});
+  if(systemPrompt) tryOrders.push({stream:false, foldSystem:true, maxTokens, label:'Retry with system folded into user'});
+  if(maxTokens>512) tryOrders.push({stream:false, foldSystem:!!systemPrompt, maxTokens:Math.max(256, Math.floor(maxTokens/2)), label:'Retry with lower max_tokens'});
 
   let lastErr=null;
+  if(targetDiv && typeof setThinkingStatus==='function'){
+    targetDiv.className='msg ai thinking';
+    // keep structure: do not wipe if panel exists
+    if(!targetDiv.querySelector('.thinking-panel')){
+      targetDiv.innerHTML='';
+      setThinkingStatus(targetDiv, '⏳ Contacting '+model+'…', true);
+    }else{
+      setThinkingStatus(targetDiv, '⏳ Contacting '+model+'…', true);
+    }
+  }
+  if(typeof logActivity==='function') logActivity('info', 'START model='+model+' max_tokens='+maxTokens);
+
   for(let i=0;i<tryOrders.length;i++){
     if(seq!=null && seq!==activeChatSeq) throw new DOMException('Aborted','AbortError');
     const conf=tryOrders[i];
+    const statusMsg=(i===0?'⏳ ':'↻ ')+conf.label+' ('+(i+1)+'/'+tryOrders.length+') · '+model;
+    if(targetDiv && typeof setThinkingStatus==='function') setThinkingStatus(targetDiv, statusMsg, true);
+    if(typeof logActivity==='function') logActivity('info', statusMsg);
     try{
       let text='';
       if(conf.stream && currentProvider!=='anthropic'){
         text=await chatCompletionStream(key, model, messages, conf.foldSystem?'':systemPrompt, conf.maxTokens, targetDiv, {
-          foldSystem:conf.foldSystem, systemPrompt, timeoutMs:120000, seq
+          foldSystem:conf.foldSystem, systemPrompt, timeoutMs:120000, seq, keepStatus:true
         });
       }else{
+        if(targetDiv && typeof setThinkingStatus==='function') setThinkingStatus(targetDiv, '⏳ Waiting for full response…', true);
         text=await chatCompletion(key, model, messages, conf.foldSystem?'':systemPrompt, conf.maxTokens, {
           foldSystem:conf.foldSystem, systemPrompt, timeoutMs:120000, seq
         });
-        if(targetDiv && seq===activeChatSeq) paintAiBubble(targetDiv, text||'…', {markdown:!!text});
+        if(targetDiv && seq===activeChatSeq && String(text||'').trim()){
+          if(typeof finishThinkingPanel==='function') finishThinkingPanel(targetDiv, true);
+          paintAiBubble(targetDiv, text, {markdown:true});
+        }
       }
-      if(String(text||'').trim()) return text;
-      lastErr=new Error('Empty content (attempt '+(i+1)+' stream='+conf.stream+')');
+      if(String(text||'').trim()){
+        if(typeof logActivity==='function') logActivity('ok', 'OK '+text.length+' chars · '+model);
+        if(targetDiv && typeof finishThinkingPanel==='function') finishThinkingPanel(targetDiv, true);
+        return text;
+      }
+      lastErr=new Error('Empty content (attempt '+(i+1)+' · '+conf.label+')');
+      if(typeof logActivity==='function') logActivity('warn', lastErr.message);
     }catch(e){
       lastErr=e;
       if(e&&e.name==='AbortError') throw e;
       const low=String(e.message||'').toLowerCase();
-      // fatal auth — don't keep thrashing
+      if(typeof logActivity==='function') logActivity('error', e.message||String(e));
       if(/401|invalid api|unauthorized/.test(low) && e.status===401) throw e;
       console.warn('[chatCompletionRobust] attempt', i+1, e.message);
     }
@@ -2478,8 +2607,12 @@ async function processStreamReader(reader, targetDiv, seq) {
   let buf='';
   let sawAnyJson=false;
   if(targetDiv && (seq==null || seq===activeChatSeq)){
-    targetDiv.className='msg ai';
-    targetDiv.textContent='';
+    targetDiv.className='msg ai thinking';
+    // Do NOT wipe thinking panel — only ensure reply body exists
+    if(typeof setThinkingStatus==='function') setThinkingStatus(targetDiv, '⏳ Streaming tokens…', true);
+    let body=targetDiv.querySelector('.reply-body');
+    if(!body){ body=document.createElement('div'); body.className='reply-body'; targetDiv.appendChild(body); }
+    body.textContent='';
   }
   const msgs2=document.getElementById('chat-messages');
   while(true){
@@ -2512,14 +2645,20 @@ async function processStreamReader(reader, targetDiv, seq) {
         finishReason=j.choices?.[0]?.finish_reason||finishReason;
         if(ext.text) fullText+=ext.text;
         if(ext.reasoning) reasoningText+=ext.reasoning;
-        const show=fullText || (reasoningText?('💭 '+reasoningText):'');
+        if(reasoningText && targetDiv && typeof setThinkingReason==='function') setThinkingReason(targetDiv, reasoningText);
+        const show=fullText || '';
         if(show && targetDiv && (seq==null||seq===activeChatSeq)){
-          if(settings.markdown && fullText){
-            targetDiv.textContent=fullText; renderMarkdown(targetDiv);
+          targetDiv.classList.remove('thinking');
+          let body=targetDiv.querySelector('.reply-body');
+          if(!body){ body=document.createElement('div'); body.className='reply-body'; targetDiv.appendChild(body); }
+          targetDiv.querySelectorAll('.reply-skeleton,.skeleton').forEach(n=>n.remove());
+          if(settings.markdown){
+            body.textContent=fullText; renderMarkdown(body);
           }else{
-            targetDiv.textContent=show;
+            body.textContent=fullText;
           }
-          if(settings.autoscroll && msgs2) msgs2.scrollTop=msgs2.scrollHeight;
+          if(typeof maybeAutoscroll==='function') maybeAutoscroll(msgs2);
+          else if(settings.autoscroll && msgs2) msgs2.scrollTop=msgs2.scrollHeight;
         }
       }catch(parseErr){
         if(parseErr&&parseErr.message&&!/JSON|Unexpected|position/i.test(parseErr.message)){
@@ -3218,5 +3357,6 @@ catch(_){}
 </script>
 
   <script src="./ux-enhancements.js"></script>
+  <script src="./throne-app.js"></script>
 </body>
 </html>
