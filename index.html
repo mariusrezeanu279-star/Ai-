@@ -284,6 +284,32 @@ body,#header,#header-top,#header-badges,#header-body,#api-row,#model-row,#model-
 .err-fix-card .err-msg{font-size:13px;line-height:1.45;margin-bottom:8px;color:#f5f5f5;white-space:pre-wrap}
 .err-fix-card .err-tips{font-size:12px;color:var(--gold-soft);line-height:1.5;margin:0 0 10px 0;padding-left:18px}
 .err-fix-card .err-tips li{margin:3px 0}
+/* iOS promo + capacity status strip (web only — native app is the real product) */
+#ios-promo-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  margin:0 0 6px;padding:8px 12px;border-radius:10px;
+  background:linear-gradient(90deg,rgba(255,215,0,.14),rgba(0,0,0,.55) 55%,rgba(255,215,0,.08));
+  border:1px solid rgba(255,215,0,.4);
+  box-shadow:0 0 18px rgba(255,215,0,.12);
+}
+#ios-promo-bar .ios-promo-copy{font-size:12px;line-height:1.4;color:var(--gold-soft);flex:1 1 200px;min-width:0}
+#ios-promo-bar .ios-promo-copy strong{color:#FFD700}
+#ios-promo-bar .ios-promo-actions{display:flex;gap:8px;align-items:center;flex-shrink:0}
+#ios-promo-bar a.ios-promo-cta{
+  display:inline-block;padding:6px 12px;border-radius:999px;font-size:11px;font-weight:700;
+  background:linear-gradient(135deg,#FFD700,#C5A000);color:#111;text-decoration:none;
+  border:1px solid #FFD700;white-space:nowrap;
+}
+#ios-promo-bar button.ios-promo-dismiss{
+  background:transparent;border:1px solid rgba(255,215,0,.35);color:var(--gold-soft);
+  padding:4px 8px;border-radius:8px;font-size:11px;cursor:pointer;
+}
+#capacity-status-bar{
+  display:none;margin:0 0 6px;padding:6px 10px;border-radius:8px;font-size:11px;line-height:1.35;
+  background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.45);color:#fca5a5;
+}
+#capacity-status-bar.show{display:block}
+#capacity-status-bar strong{color:#FFD700}
 .err-fix-actions{display:flex;flex-wrap:wrap;gap:6px}
 .err-fix-actions button{
   background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.5);color:#FFD700;
@@ -685,8 +711,23 @@ window.addEventListener('DOMContentLoaded', () => {
 
 <div id="header">
   <div id="load-progress"></div>
+  <div id="ios-promo-bar" role="region" aria-label="Native iOS app">
+    <div class="ios-promo-copy">
+      <strong>Throne native iOS</strong> — Chat · Image/Video Studio · Face ID Vault · multi-provider keys.
+      Shared Featherless GPUs can queue (“no free slot”); this web app <strong>auto-switches models</strong> on capacity.
+      For PC local Hermes (RTX), use Settings → <strong>Custom URL</strong> (Ollama/LM Studio) — not in the browser alone.
+    </div>
+    <div class="ios-promo-actions">
+      <a class="ios-promo-cta" href="https://github.com/mariusrezeanu279-star/OneN8Throne-iOS" target="_blank" rel="noopener">iOS app repo</a>
+      <button type="button" class="ios-promo-dismiss" onclick="dismissIosPromo()" title="Hide for this browser">Dismiss</button>
+    </div>
+  </div>
+  <div id="capacity-status-bar" role="status" aria-live="polite"></div>
   <div id="header-top">
-    <div id="logo">Ai—</div>
+    <div id="logo">
+      <img class="brand-logo-img" src="./Assets/logo-king.jpg" alt="" onerror="this.style.display='none'"/>
+      <span class="brand-wordmark">1N8BillionXXL</span>
+    </div>
     <div id="header-badges">
       <span class="badge provider" id="provider-badge">Featherless</span>
       <span class="badge key-saved" id="key-saved-badge" style="display:none">Key saved</span>
@@ -715,14 +756,18 @@ window.addEventListener('DOMContentLoaded', () => {
           <option value="hyperbolic">Hyperbolic</option>
           <option value="together">Together AI</option>
           <option value="github">GitHub AI (Models)</option>
-          <option value="custom">Custom URL</option>
+          <option value="custom">Custom URL (local Ollama / PC GPU)</option>
         </select>
       </div>
-      <input id="api-key-input" type="password" placeholder="Paste API key”¦"/>
+      <input id="api-key-input" type="password" placeholder="Paste API key…"/>
       <button id="save-key-btn" onclick="saveKey()">Save</button>
     </div>
     <div id="custom-base-row">
-      <input id="custom-base-input" class="field" placeholder="Base URL e.g. https://your-api.com/v1" oninput="savedKeys.__customBase=this.value;try{localStorage.setItem('ai-pro-keys',JSON.stringify(savedKeys));}catch(_){}"/>
+      <input id="custom-base-input" class="field" placeholder="Custom base e.g. http://127.0.0.1:11434/v1 (Ollama) or LAN PC" oninput="savedKeys.__customBase=this.value;try{localStorage.setItem('ai-pro-keys',JSON.stringify(savedKeys));}catch(_){}"/>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px;line-height:1.35">
+        Local RTX / Hermes: run Ollama or LM Studio on your PC, pick <strong>Custom URL</strong>, paste the OpenAI-compatible base.
+        This cannot run a desktop GPU inside the phone/browser — only via your PC server.
+      </div>
     </div>
     <div id="model-row">
       <select id="model-select"><option value="">— Choose model —</option></select>
@@ -2290,7 +2335,8 @@ function isCapacityError(err){
   const raw=((err&&err.message)||String(err||''))+' '+(err&&err.status?String(err.status):'');
   const low=raw.toLowerCase();
   const st=err&&err.status;
-  return st===503||st===529||/at capacity|temporarily at capacity|overloaded|unavailable|service unavailable|503|no capacity|high demand|try again shortly/.test(low);
+  // Featherless / shared-GPU hosts: "no free GPU slot" is capacity, not an app bug
+  return st===503||st===529||/at capacity|temporarily at capacity|overloaded|unavailable|service unavailable|503|no capacity|high demand|try again shortly|no free gpu|free gpu slot|gpu slot|out of capacity|resource.?exhausted|too many requests.*capacity/.test(low);
 }
 function isTokenLimitError(err){
   const low=String((err&&err.message)||err||'').toLowerCase();
@@ -2353,11 +2399,36 @@ function modelFamilyKey(modelId){
   return owner+'/'+base.slice(0,24);
 }
 
+function setCapacityStatus(html, show){
+  const el=document.getElementById('capacity-status-bar');
+  if(!el) return;
+  if(!show){ el.classList.remove('show'); el.innerHTML=''; return; }
+  el.innerHTML=html;
+  el.classList.add('show');
+}
+function dismissIosPromo(){
+  try{ localStorage.setItem('throne-ios-promo-dismissed','1'); }catch(_){}
+  const bar=document.getElementById('ios-promo-bar');
+  if(bar) bar.style.display='none';
+}
+function initIosPromoBar(){
+  try{
+    if(localStorage.getItem('throne-ios-promo-dismissed')==='1'){
+      const bar=document.getElementById('ios-promo-bar');
+      if(bar) bar.style.display='none';
+    }
+  }catch(_){}
+}
+if(typeof window!=='undefined'){
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', initIosPromoBar);
+  else initIosPromoBar();
+}
+
 function humanizeChatError(err, provider, model){
   const raw=(err&&err.message)||String(err||'Unknown error');
   const kind=classifyChatError(err);
   if(kind==='capacity')
-    return 'Featherless has no free GPU slot for "'+model+'" right now (provider capacity — not an app bug). Switching to a different family or a model that worked recently usually helps. Lowering max tokens will not help.';
+    return (provider==='featherless'?'Featherless':'This provider')+' has no free GPU slot for "'+model+'" right now (shared server queue — not an app bug). We auto-try another model family when possible. Prefer instruct/Hermes when the catalogue is busy. Lowering max tokens will not help.';
   if(kind==='rate')
     return 'Rate limited (HTTP 429). Wait ~15s or switch to a smaller model. Model: '+model;
   if(kind==='timeout')
@@ -2377,10 +2448,12 @@ function humanizeChatError(err, provider, model){
 function getErrorTips(kind, provider, model){
   const tips={
     capacity:[
-      'This is a Featherless server queue issue (no free GPU for that model) — not a bug in Throne.',
-      'Use “Switch model” — we skip models that just failed capacity and avoid the same family (e.g. DarkIdol 1.0 → 1.1).',
+      'This is a provider GPU queue issue (no free slot for that model) — not a bug in this web app.',
+      'Auto-switch already tries other families (skips the failed model for ~12 minutes).',
+      'Or tap “Switch model” — we avoid the same family (e.g. DarkIdol 1.0 → 1.1).',
       'Prefer popular instruct models (Hermes, Llama Instruct, Qwen Instruct) when the catalogue is busy.',
-      'Waiting 1–5 minutes can free a slot if you need this exact model. Lowering max tokens will NOT help.'
+      'Load 500 / Load All first so failover has a pool. Lowering max tokens will NOT free a GPU slot.',
+      'Optional: Custom URL → Ollama/LM Studio on your PC (RTX) for offline instruct models.'
     ],
     rate:[
       'Your key hit a rate limit (too many requests).',
@@ -2498,9 +2571,13 @@ function pickFallbackModel(opts){
     const owner=id.includes('/')?id.split('/')[0]:'';
     if(avoidOwner && owner!==avoidOwner) s+=25;
     if(opts.preferStable!==false){
-      if(/hermes|openhermes|instruct|llama-3\.|meta-llama|qwen2\.5-.*instruct|mistral.*instruct|nemo-instruct/.test(id)) s+=55;
-      if(/blunt|unhinged|abliterated|heretic|uncensored-blunt|darkidol|cot-math/.test(id)) s-=45;
-      if(/r1-0528|70b|72b/.test(id) && opts.preferSmall) s-=20;
+      // Prefer instruct / Hermes (more free slots historically than huge R1 / niche fine-tunes)
+      if(/hermes|openhermes|instruct|llama-3\.|meta-llama|qwen2\.5-.*instruct|mistral.*instruct|nemo-instruct|llama-3\.3|qwen2\.5-7b-instruct|qwen2\.5-14b-instruct/.test(id)) s+=70;
+      if(/-instruct\b|chat$|instruct-v/.test(id)) s+=25;
+      if(/blunt|unhinged|abliterated|heretic|uncensored-blunt|darkidol|cot-math|initializedembeddings/.test(id)) s-=50;
+      if(/r1-0528|70b|72b|405b/.test(id) && opts.preferSmall) s-=25;
+      // DeepSeek R1 often queues hard on free Featherless
+      if(/deepseek.*r1|r1-0528/.test(id)) s-=20;
     }
     if(opts.preferSmall){
       if(/\b(7b|8b|9b|12b|13b|14b)\b/.test(id)) s+=35;
@@ -2905,13 +2982,15 @@ async function sendChat(){
       paintAiBubble(thinkingDiv, '⏹ Cancelled (newer message sent or aborted).', {warn:true});
       return;
     }
-    let msg = humanizeChatError(e, currentProvider, model);
+    // Prefer currently selected model (may have auto-switched during failover)
+    const failedModel=document.getElementById('model-select')?.value||model;
+    let msg = humanizeChatError(e, currentProvider, failedModel);
     if(currentProvider === 'huggingface' && /failed to fetch|cors|network/i.test(String(e.message||''))) {
        msg = 'Model is loading (cold start) or network/CORS blocked. Wait ~30s and retry, or pick another HF model.';
     }
     paintAiBubble(thinkingDiv, '❌ '+msg, {err:true});
-    setLastError(msg, {provider:currentProvider, model, status:e&&e.status});
-    attachErrorFixCard(thinkingDiv, e, model);
+    setLastError(msg, {provider:currentProvider, model:failedModel, status:e&&e.status});
+    attachErrorFixCard(thinkingDiv, e, failedModel);
   }finally{
     if(seq===activeChatSeq) btn.disabled=false;
   }
@@ -2951,10 +3030,19 @@ function buildChatUrl(model){
 
 async function chatCompletionRobust(key, model, messages, systemPrompt, maxTokens, targetDiv, seq){
   // Dynamic attempt plan — capacity/429/timeout never burn time on "lower max_tokens"
-  const tryOrders=[];
-  tryOrders.push({stream:true, foldSystem:false, maxTokens, label:'Streaming', timeoutMs:45000});
-  tryOrders.push({stream:false, foldSystem:false, maxTokens, label:'Non-stream fallback', timeoutMs:45000});
-  // fold-system / lower-max only added if earlier errors need them (see catch)
+  // Capacity: auto-switch model family (up to 2 failovers) like native Throne resilience intent.
+  const maxModelFailovers=2;
+  let modelFailovers=0;
+  let activeModel=model;
+  const failedModels=new Set();
+
+  function buildTryOrders(tok){
+    return [
+      {stream:true, foldSystem:false, maxTokens:tok, label:'Streaming', timeoutMs:45000},
+      {stream:false, foldSystem:false, maxTokens:tok, label:'Non-stream fallback', timeoutMs:45000},
+    ];
+  }
+  let tryOrders=buildTryOrders(maxTokens);
 
   let lastErr=null;
   let triedFold=false;
@@ -2963,29 +3051,30 @@ async function chatCompletionRobust(key, model, messages, systemPrompt, maxToken
     targetDiv.className='msg ai thinking';
     if(!targetDiv.querySelector('.thinking-panel')){
       targetDiv.innerHTML='';
-      setThinkingStatus(targetDiv, '⏳ Contacting '+model+'…', true);
+      setThinkingStatus(targetDiv, '⏳ Contacting '+activeModel+'…', true);
     }else{
-      setThinkingStatus(targetDiv, '⏳ Contacting '+model+'…', true);
+      setThinkingStatus(targetDiv, '⏳ Contacting '+activeModel+'…', true);
     }
   }
-  if(typeof logActivity==='function') logActivity('info', 'START model='+model+' max_tokens='+maxTokens);
+  if(typeof logActivity==='function') logActivity('info', 'START model='+activeModel+' max_tokens='+maxTokens);
+  setCapacityStatus('', false);
 
   for(let i=0;i<tryOrders.length;i++){
     if(seq!=null && seq!==activeChatSeq) throw new DOMException('Aborted','AbortError');
     const conf=tryOrders[i];
-    const statusMsg=(i===0?'⏳ ':'↻ ')+conf.label+' ('+(i+1)+'/'+tryOrders.length+') · '+model;
+    const statusMsg=(i===0?'⏳ ':'↻ ')+conf.label+' ('+(i+1)+'/'+tryOrders.length+') · '+activeModel;
     if(targetDiv && typeof setThinkingStatus==='function') setThinkingStatus(targetDiv, statusMsg, true);
     if(typeof logActivity==='function') logActivity('info', statusMsg);
     try{
       let text='';
       const tmo=conf.timeoutMs||45000;
       if(conf.stream && currentProvider!=='anthropic'){
-        text=await chatCompletionStream(key, model, messages, conf.foldSystem?'':systemPrompt, conf.maxTokens, targetDiv, {
+        text=await chatCompletionStream(key, activeModel, messages, conf.foldSystem?'':systemPrompt, conf.maxTokens, targetDiv, {
           foldSystem:conf.foldSystem, systemPrompt, timeoutMs:tmo, seq, keepStatus:true
         });
       }else{
         if(targetDiv && typeof setThinkingStatus==='function') setThinkingStatus(targetDiv, '⏳ Waiting for full response…', true);
-        text=await chatCompletion(key, model, messages, conf.foldSystem?'':systemPrompt, conf.maxTokens, {
+        text=await chatCompletion(key, activeModel, messages, conf.foldSystem?'':systemPrompt, conf.maxTokens, {
           foldSystem:conf.foldSystem, systemPrompt, timeoutMs:tmo, seq
         });
         if(targetDiv && seq===activeChatSeq && String(text||'').trim()){
@@ -2994,9 +3083,10 @@ async function chatCompletionRobust(key, model, messages, systemPrompt, maxToken
         }
       }
       if(String(text||'').trim()){
-        noteModelSuccess(model);
-        if(typeof logActivity==='function') logActivity('ok', 'OK '+text.length+' chars · '+model);
+        noteModelSuccess(activeModel);
+        if(typeof logActivity==='function') logActivity('ok', 'OK '+text.length+' chars · '+activeModel);
         if(targetDiv && typeof finishThinkingPanel==='function') finishThinkingPanel(targetDiv, true);
+        setCapacityStatus('', false);
         return text;
       }
       lastErr=new Error('Empty content (attempt '+(i+1)+' · '+conf.label+')');
@@ -3011,13 +3101,58 @@ async function chatCompletionRobust(key, model, messages, systemPrompt, maxToken
       if(typeof logActivity==='function') logActivity('error', e.message||String(e));
       console.warn('[chatCompletionRobust] attempt', i+1, e.message);
 
-      // CAPACITY / 503: stop immediately — do NOT lower max_tokens; remember for smarter switch
+      // CAPACITY / 503: blacklist + auto-switch model family (do NOT lower max_tokens)
       if(isCapacityError(e)){
-        noteCapacityFailure(model);
-        if(typeof logActivity==='function') logActivity('error', 'Capacity/503 — Featherless has no free GPU for this model (not an app bug). Skipped max_tokens retry.');
+        noteCapacityFailure(activeModel);
+        failedModels.add(String(activeModel).toLowerCase());
+        if(typeof logActivity==='function') logActivity('error', 'Capacity/503 — no free GPU for '+activeModel+' (not an app bug).');
+        if(modelFailovers < maxModelFailovers){
+          let pick=pickFallbackModel({
+            avoidId:activeModel,
+            preferSmall:true,
+            preferStable:true
+          });
+          // Extra pass: skip any already-failed this turn
+          if(pick && failedModels.has(String(pick.id).toLowerCase())){
+            pick=pickFallbackModel({
+              avoidId:pick.id,
+              preferSmall:true,
+              preferStable:true
+            });
+          }
+          if(pick && !failedModels.has(String(pick.id).toLowerCase())){
+            modelFailovers++;
+            const from=activeModel;
+            activeModel=pick.id;
+            try{ selectModelInDropdown(activeModel); }catch(_){}
+            setCapacityStatus(
+              '⚠️ <strong>At capacity</strong> on <code>'+esc(from)+'</code> (shared GPU queue — not a bug). '+
+              'Auto-switching to <strong>'+esc(activeModel)+'</strong>…',
+              true
+            );
+            if(typeof logActivity==='function') logActivity('info', 'AUTO capacity failover '+from+' → '+activeModel+' ('+modelFailovers+'/'+maxModelFailovers+')');
+            if(typeof showToast==='function') showToast('Capacity: switching to '+activeModel.split('/').pop());
+            if(targetDiv && typeof setThinkingStatus==='function'){
+              setThinkingStatus(targetDiv, '🔀 Capacity — switching to '+activeModel+'…', true);
+            }
+            // Fresh stream/non-stream attempts on the new model
+            tryOrders=buildTryOrders(maxTokens);
+            triedFold=false;
+            triedLowerTok=false;
+            i=-1; // loop will i++ → 0
+            continue;
+          }
+        }
+        const poolSize=(typeof allModels!=='undefined'&&allModels)?allModels.length:0;
+        setCapacityStatus(
+          poolSize<2
+            ? '⚠️ <strong>At capacity</strong> and no alternate models loaded. Tap <strong>Load 500</strong> so auto-switch has a pool. This is a GPU queue issue — not an app bug. Max tokens will not help.'
+            : '⚠️ <strong>Provider at capacity</strong> for this model family. Auto-switch found no safe alternate. Pick instruct/Hermes manually, or wait 1–5 min. Lowering max tokens will not help.',
+          true
+        );
         throw e;
       }
-      // 429: one polite wait then single retry of this attempt type
+      // 429: one polite wait then single retry; then try model switch once
       if(isRateLimitError(e)){
         if(!conf._retried429){
           conf._retried429=true;
@@ -3026,6 +3161,19 @@ async function chatCompletionRobust(key, model, messages, systemPrompt, maxToken
           await new Promise(r=>setTimeout(r,10000));
           tryOrders.splice(i+1, 0, Object.assign({}, conf, {label: conf.label+' (after 429 wait)', _retried429:true}));
           continue;
+        }
+        if(modelFailovers < maxModelFailovers){
+          noteCapacityFailure(activeModel); // treat sticky 429 like avoid-list
+          const pick=pickFallbackModel({ avoidId:activeModel, preferSmall:true, preferStable:true });
+          if(pick){
+            modelFailovers++;
+            activeModel=pick.id;
+            try{ selectModelInDropdown(activeModel); }catch(_){}
+            if(typeof logActivity==='function') logActivity('info', 'AUTO 429 failover → '+activeModel);
+            tryOrders=buildTryOrders(maxTokens);
+            i=-1;
+            continue;
+          }
         }
         if(typeof logActivity==='function') logActivity('error', 'Rate limited again — stopping');
         throw e;
