@@ -776,10 +776,11 @@ window.addEventListener('DOMContentLoaded', () => {
     </div>
     <input id="model-search" placeholder="🔍 Search models”¦"/>
     <div id="model-footer">
-      <label id="plan-only-toggle" title="Hide models not available on your current plan"><input type="checkbox" id="plan-only-check" onchange="togglePlanOnlyFilter()"/> On plan only</label>
+      <label id="plan-only-toggle" title="Uses Featherless available_on_current_plan for your API key (e.g. Feather Chat $25). Hides only models the API marks off-plan. Unknown plan status stays visible."><input type="checkbox" id="plan-only-check" onchange="togglePlanOnlyFilter()"/> On plan only</label>
       <span id="model-count"></span>
       <button id="load-more-btn" onclick="loadModels(false,false)">⬇ More</button>
     </div>
+    <div id="plan-filter-stats" style="display:none;font-size:10px;color:var(--text3);padding:2px 0 4px;line-height:1.35"></div>
     <div id="model-desc" aria-live="polite"></div>
   </div>
 </div>
@@ -1719,16 +1720,49 @@ function showModelDescription(modelId){
 
 
 let planOnlyFilter=false;
+function getPlanFilterStats(){
+  let on=0, off=0, unk=0;
+  (allModels||[]).forEach(m=>{
+    if(m.on_plan===true) on++;
+    else if(m.on_plan===false) off++;
+    else unk++;
+  });
+  return {on, off, unk, total:(allModels||[]).length};
+}
+function updatePlanFilterStats(){
+  const el=document.getElementById('plan-filter-stats');
+  if(!el) return;
+  if(!planOnlyFilter || !(allModels&&allModels.length)){
+    el.style.display='none';
+    el.textContent='';
+    return;
+  }
+  const s=getPlanFilterStats();
+  const shown=allModels.filter(m=>m.on_plan!==false).length;
+  el.style.display='block';
+  el.innerHTML='On plan only: <strong style="color:var(--gold-soft)">'+shown+' shown</strong> · '+
+    s.off+' off-plan hidden · '+s.unk+' unknown kept · '+
+    '<span title="From Featherless available_on_current_plan for your key">API-key plan flags</span>';
+}
 function togglePlanOnlyFilter(){
   const el=document.getElementById('plan-only-check');
   planOnlyFilter=!!(el&&el.checked);
   try{localStorage.setItem('ai-pro-plan-only', planOnlyFilter?'1':'0');}catch(_){}
   const list=planOnlyFilter?allModels.filter(m=>m.on_plan!==false):allModels;
   renderModelDropdown(list);
+  updatePlanFilterStats();
 }
 function getFilteredModels(){
   if(planOnlyFilter) return allModels.filter(m=>m.on_plan!==false);
   return allModels;
+}
+function logPlanFlagSample(){
+  if(typeof logActivity!=='function' || !allModels || !allModels.length) return;
+  const s=getPlanFilterStats();
+  logActivity('info','Plan flags for key: ON_PLAN='+s.on+' OFF_PLAN='+s.off+' unknown='+s.unk+' total='+s.total+
+    ' (On plan only hides only OFF_PLAN; Feather Chat uses API available_on_current_plan)');
+  const sample=allModels.slice(0,8).map(m=> (m.on_plan===true?'✅':m.on_plan===false?'🚫':'?')+' '+(m.id||'').slice(0,48));
+  if(sample.length) logActivity('info','Plan sample: '+sample.join(' · '));
 }
 
 document.getElementById('model-search').addEventListener('input',function(){
@@ -1759,6 +1793,7 @@ function renderModelDropdown(models){
   if(saved && [...sel.options].some(o=>o.value===saved)){sel.value=saved;showModelDescription(saved);}
   else if(sel.value){showModelDescription(sel.value);}
   else{showModelDescription('');}
+  updatePlanFilterStats();
 }
 
 document.getElementById('model-select').addEventListener('change',function(){
@@ -1989,6 +2024,8 @@ async function loadModels(reset=true,autoAll=false){
     moreBtn.classList.toggle('show', modelHasMore);
     if(autoAll){prog.style.width='100%';setTimeout(()=>{prog.classList.remove('show');prog.style.width='0%';},800);}
     if(reset||autoAll) addMsg('system','✅ '+allModels.length+' models from '+currentProvider+(autoAll?' (Load All)':' (page size 500)')+'. Uncensored/HERMES/R18 sorted to top with emojis. Select a model to see its description.');
+    updatePlanFilterStats();
+    if(currentProvider==='featherless' && (reset||autoAll)) logPlanFlagSample();
   }catch(e){
     addMsg('system','❌ Model load error: '+e.message);
     if(reset && allModels.length === 0) {
@@ -2449,10 +2486,10 @@ function getErrorTips(kind, provider, model){
   const tips={
     capacity:[
       'This is a provider GPU queue issue (no free slot for that model) — not a bug in this web app.',
-      'Auto-switch already tries other families (skips the failed model for ~12 minutes).',
-      'Or tap “Switch model” — we avoid the same family (e.g. DarkIdol 1.0 → 1.1).',
-      'Prefer popular instruct models (Hermes, Llama Instruct, Qwen Instruct) when the catalogue is busy.',
-      'Load 500 / Load All first so failover has a pool. Lowering max tokens will NOT free a GPU slot.',
+      'Auto-switch tries up to 5 alternates (relaxing family/cooldown), then waits 20s and 45s before giving up.',
+      'Use “Wait 45s & retry” or “Switch any free model” if the catalogue is still busy.',
+      'Prefer instruct / Hermes / Kimi / GLM when free slots are scarce.',
+      'Load 500 / Load All first so failover has a large pool. Lowering max tokens will NOT free a GPU slot.',
       'Optional: Custom URL → Ollama/LM Studio on your PC (RTX) for offline instruct models.'
     ],
     rate:[
@@ -2533,50 +2570,66 @@ function looksLikeGarbage(text){
   return false;
 }
 
+/**
+ * Pick an alternate model after capacity/429.
+ * opts.relaxLevel: 0 skip family+cooldown · 1 allow same family · 2 half-cooldown · 3 ignore cooldown
+ * opts.excludeIds: Set/array of model ids already failed this turn
+ */
 function pickFallbackModel(opts){
   opts=opts||{};
   const avoid=String(opts.avoidId||'');
   const avoidL=avoid.toLowerCase();
   const avoidFamily=modelFamilyKey(avoid);
   const avoidOwner=avoidL.includes('/')?avoidL.split('/')[0]:'';
-  const pool=(typeof allModels!=='undefined'?allModels:[]).filter(m=>{
-    if(!m||!m.id) return false;
-    const id=String(m.id);
-    if(id.toLowerCase()===avoidL) return false;
-    if(m.on_plan===false) return false;
-    if(isModelOnCapacityCooldown(id)) return false;
-    // avoid same fine-tune family right after capacity (DarkIdol 1.0 → 1.1)
-    if(avoidFamily && modelFamilyKey(id)===avoidFamily) return false;
-    return true;
-  });
-  // If everything same-family filtered out, relax family but keep capacity cooldown
-  let usePool=pool;
-  if(!usePool.length){
-    usePool=(typeof allModels!=='undefined'?allModels:[]).filter(m=>{
-      if(!m||!m.id) return false;
-      if(String(m.id).toLowerCase()===avoidL) return false;
-      if(m.on_plan===false) return false;
-      if(isModelOnCapacityCooldown(m.id)) return false;
-      return true;
+  const relax=Math.max(0, Math.min(3, Number(opts.relaxLevel)||0));
+  const exclude=new Set();
+  if(opts.excludeIds){
+    (opts.excludeIds instanceof Set?opts.excludeIds:[...opts.excludeIds]).forEach(x=>{
+      if(x) exclude.add(String(x).toLowerCase());
     });
   }
+  exclude.add(avoidL);
+
+  function cooldownBlocks(modelId){
+    if(relax>=3) return false; // last resort: ignore cooldown
+    const t=capacityFailMap.get(String(modelId));
+    if(!t) return false;
+    const age=Date.now()-t;
+    if(age>capacityCooldownMs){ capacityFailMap.delete(String(modelId)); return false; }
+    if(relax>=2 && age > capacityCooldownMs/2) return false; // allow older half of cooldown
+    return true;
+  }
+
+  function passesBase(m, allowSameFamily){
+    if(!m||!m.id) return false;
+    const id=String(m.id);
+    const idL=id.toLowerCase();
+    if(exclude.has(idL)) return false;
+    if(m.on_plan===false) return false;
+    if(cooldownBlocks(id)) return false;
+    if(!allowSameFamily && avoidFamily && modelFamilyKey(id)===avoidFamily) return false;
+    return true;
+  }
+
+  // Progressive pool: level 0 family-safe → 1 same-family → higher levels use same filter with looser cooldown
+  let usePool=(typeof allModels!=='undefined'?allModels:[]).filter(m=>passesBase(m, relax>=1));
+  if(!usePool.length && relax===0){
+    usePool=(typeof allModels!=='undefined'?allModels:[]).filter(m=>passesBase(m, true));
+  }
   if(!usePool.length) return null;
+
   const score=m=>{
     const id=String(m.id).toLowerCase();
     let s=m._score!=null? (100-Math.min(100,m._score)) : 0;
-    // Prefer models that worked this session
     const successIdx=recentSuccessModels.findIndex(x=>x.toLowerCase()===id);
     if(successIdx>=0) s+=80-successIdx*5;
-    // Prefer different org than the failed one
     const owner=id.includes('/')?id.split('/')[0]:'';
     if(avoidOwner && owner!==avoidOwner) s+=25;
     if(opts.preferStable!==false){
-      // Prefer instruct / Hermes (more free slots historically than huge R1 / niche fine-tunes)
       if(/hermes|openhermes|instruct|llama-3\.|meta-llama|qwen2\.5-.*instruct|mistral.*instruct|nemo-instruct|llama-3\.3|qwen2\.5-7b-instruct|qwen2\.5-14b-instruct/.test(id)) s+=70;
-      if(/-instruct\b|chat$|instruct-v/.test(id)) s+=25;
+      if(/-instruct\b|chat$|instruct-v|kimi|glm-4|glm4|deepseek-chat|deepseek-v3/.test(id)) s+=30;
       if(/blunt|unhinged|abliterated|heretic|uncensored-blunt|darkidol|cot-math|initializedembeddings/.test(id)) s-=50;
       if(/r1-0528|70b|72b|405b/.test(id) && opts.preferSmall) s-=25;
-      // DeepSeek R1 often queues hard on free Featherless
       if(/deepseek.*r1|r1-0528/.test(id)) s-=20;
     }
     if(opts.preferSmall){
@@ -2587,9 +2640,35 @@ function pickFallbackModel(opts){
     if(m.on_plan===true) s+=20;
     if(m.tags&&m.tags.includes&&m.tags.includes('TOP50')) s+=15;
     if(m.tags&&m.tags.includes&&m.tags.includes('HERMES')) s+=20;
+    // Slight penalty if still on cooldown but allowed via relax
+    if(capacityFailMap.has(String(m.id))) s-=10;
     return s;
   };
   return usePool.slice().sort((a,b)=>score(b)-score(a))[0]||null;
+}
+
+/** Try relax levels 0→maxLevel until a candidate appears. */
+function pickFallbackModelProgressive(opts){
+  opts=opts||{};
+  const maxLevel=opts.maxRelaxLevel!=null?opts.maxRelaxLevel:3;
+  for(let level=0; level<=maxLevel; level++){
+    const pick=pickFallbackModel(Object.assign({}, opts, {relaxLevel:level}));
+    if(pick) return {pick, relaxLevel:level};
+  }
+  return {pick:null, relaxLevel:maxLevel};
+}
+
+async function waitWithCapacityStatus(ms, label){
+  const total=Math.max(1000, ms|0);
+  const start=Date.now();
+  while(Date.now()-start < total){
+    const left=Math.ceil((total-(Date.now()-start))/1000);
+    setCapacityStatus(
+      '⏳ <strong>All nearby GPU slots busy</strong> — '+esc(label||'waiting')+' <strong>'+left+'s</strong> then retry… (shared queue, not an app bug)',
+      true
+    );
+    await new Promise(r=>setTimeout(r, Math.min(1000, total-(Date.now()-start))));
+  }
 }
 function selectModelInDropdown(modelId){
   if(!modelId) return;
@@ -2661,6 +2740,10 @@ function attachErrorFixCard(targetDiv, err, model){
   const actions=[];
   if(kind==='rate'||kind==='capacity'){
     actions.push({id:'wait', label: kind==='rate'?'⏱ Wait 12s & retry':'⏱ Wait 30s & retry', delay: kind==='rate'?12000:30000, mode:'retry'});
+    if(kind==='capacity'){
+      actions.push({id:'wait45', label:'⏱ Wait 45s & retry', delay:45000, mode:'retry'});
+      actions.push({id:'switchany', label:'🔀 Switch any free model', mode:'switchany'});
+    }
     actions.push({id:'switch', label:'🔀 Switch model & retry', mode:'switch'});
   }else if(kind==='timeout'){
     actions.push({id:'fast', label:'⚡ Try faster model', mode:'fast'});
@@ -2724,17 +2807,19 @@ function attachErrorFixCard(targetDiv, err, model){
           }
           return;
         }
-        if(a.mode==='switch'||a.mode==='fast'||a.mode==='stable'){
-          const pick=pickFallbackModel({
+        if(a.mode==='switch'||a.mode==='fast'||a.mode==='stable'||a.mode==='switchany'){
+          const maxRelax=a.mode==='switchany'?3:(a.mode==='switch'?2:1);
+          const {pick}=pickFallbackModelProgressive({
             avoidId:model,
-            preferSmall:a.mode==='fast'||a.mode==='switch',
-            preferStable:a.mode==='stable'||a.mode==='switch'
+            preferSmall:a.mode==='fast'||a.mode==='switch'||a.mode==='switchany',
+            preferStable:a.mode==='stable'||a.mode==='switch'||a.mode==='switchany',
+            maxRelaxLevel:maxRelax
           });
-          if(!pick){ showToast('No alternative model loaded — tap Load 500 first','err'); b.disabled=false; return; }
+          if(!pick){ showToast('No alternative model loaded — tap Load 500 / Load All first','err'); b.disabled=false; return; }
           b.textContent='→ '+pick.id.split('/').pop();
-          if(typeof logActivity==='function') logActivity('info','FIX switch → '+pick.id);
+          if(typeof logActivity==='function') logActivity('info','FIX switch → '+pick.id+(a.mode==='switchany'?' (any free)':''));
           showToast('Switching to '+pick.id);
-          await resendWithModel(pick.id, a.mode==='switch'&&kind==='rate'?3000:0);
+          await resendWithModel(pick.id, (a.mode==='switch'||a.mode==='switchany')&&kind==='rate'?3000:0);
           return;
         }
       }catch(ex){
@@ -3030,11 +3115,12 @@ function buildChatUrl(model){
 
 async function chatCompletionRobust(key, model, messages, systemPrompt, maxTokens, targetDiv, seq){
   // Dynamic attempt plan — capacity/429/timeout never burn time on "lower max_tokens"
-  // Capacity: auto-switch model family (up to 2 failovers) like native Throne resilience intent.
-  const maxModelFailovers=2;
+  // Capacity: auto-switch model family (up to 5 failovers) + wait ladder if pool exhausted.
+  const maxModelFailovers=5;
   let modelFailovers=0;
   let activeModel=model;
   const failedModels=new Set();
+  let didCapacityWaitLadder=false;
 
   function buildTryOrders(tok){
     return [
@@ -3101,25 +3187,20 @@ async function chatCompletionRobust(key, model, messages, systemPrompt, maxToken
       if(typeof logActivity==='function') logActivity('error', e.message||String(e));
       console.warn('[chatCompletionRobust] attempt', i+1, e.message);
 
-      // CAPACITY / 503: blacklist + auto-switch model family (do NOT lower max_tokens)
+      // CAPACITY / 503: blacklist + auto-switch (relax pool) + wait ladder (do NOT lower max_tokens)
       if(isCapacityError(e)){
         noteCapacityFailure(activeModel);
         failedModels.add(String(activeModel).toLowerCase());
         if(typeof logActivity==='function') logActivity('error', 'Capacity/503 — no free GPU for '+activeModel+' (not an app bug).');
+
         if(modelFailovers < maxModelFailovers){
-          let pick=pickFallbackModel({
+          const {pick, relaxLevel}=pickFallbackModelProgressive({
             avoidId:activeModel,
+            excludeIds:failedModels,
             preferSmall:true,
-            preferStable:true
+            preferStable:true,
+            maxRelaxLevel:2
           });
-          // Extra pass: skip any already-failed this turn
-          if(pick && failedModels.has(String(pick.id).toLowerCase())){
-            pick=pickFallbackModel({
-              avoidId:pick.id,
-              preferSmall:true,
-              preferStable:true
-            });
-          }
           if(pick && !failedModels.has(String(pick.id).toLowerCase())){
             modelFailovers++;
             const from=activeModel;
@@ -3127,32 +3208,74 @@ async function chatCompletionRobust(key, model, messages, systemPrompt, maxToken
             try{ selectModelInDropdown(activeModel); }catch(_){}
             setCapacityStatus(
               '⚠️ <strong>At capacity</strong> on <code>'+esc(from)+'</code> (shared GPU queue — not a bug). '+
-              'Auto-switching to <strong>'+esc(activeModel)+'</strong>…',
+              'Auto-switching to <strong>'+esc(activeModel)+'</strong>…'+(relaxLevel>0?' <em>(relaxed pool L'+relaxLevel+')</em>':''),
               true
             );
-            if(typeof logActivity==='function') logActivity('info', 'AUTO capacity failover '+from+' → '+activeModel+' ('+modelFailovers+'/'+maxModelFailovers+')');
+            if(typeof logActivity==='function') logActivity('info', 'AUTO capacity failover '+from+' → '+activeModel+' ('+modelFailovers+'/'+maxModelFailovers+', relax='+relaxLevel+')');
             if(typeof showToast==='function') showToast('Capacity: switching to '+activeModel.split('/').pop());
             if(targetDiv && typeof setThinkingStatus==='function'){
               setThinkingStatus(targetDiv, '🔀 Capacity — switching to '+activeModel+'…', true);
             }
-            // Fresh stream/non-stream attempts on the new model
             tryOrders=buildTryOrders(maxTokens);
             triedFold=false;
             triedLowerTok=false;
-            i=-1; // loop will i++ → 0
+            i=-1;
             continue;
           }
         }
+
+        // Wait ladder when no immediate alternate (or failovers exhausted)
+        if(!didCapacityWaitLadder){
+          didCapacityWaitLadder=true;
+          const poolSize=(typeof allModels!=='undefined'&&allModels)?allModels.length:0;
+          if(poolSize>=1){
+            await waitWithCapacityStatus(20000, 'waiting');
+            // Retry last model once after short wait
+            tryOrders=buildTryOrders(maxTokens);
+            triedFold=false;
+            triedLowerTok=false;
+            i=-1;
+            if(targetDiv && typeof setThinkingStatus==='function'){
+              setThinkingStatus(targetDiv, '⏳ Retrying after 20s wait on '+activeModel+'…', true);
+            }
+            if(typeof logActivity==='function') logActivity('info', 'Capacity wait ladder: 20s then retry '+activeModel);
+            continue;
+          }
+        } else if(didCapacityWaitLadder === true){
+          // Second rung: longer wait + most relaxed pick
+          didCapacityWaitLadder='done';
+          await waitWithCapacityStatus(45000, 'long wait');
+          const {pick}=pickFallbackModelProgressive({
+            avoidId:activeModel,
+            excludeIds:failedModels,
+            preferSmall:true,
+            preferStable:true,
+            maxRelaxLevel:3
+          });
+          if(pick){
+            modelFailovers++;
+            activeModel=pick.id;
+            try{ selectModelInDropdown(activeModel); }catch(_){}
+            if(typeof logActivity==='function') logActivity('info', 'Capacity wait ladder: 45s then relax-3 → '+activeModel);
+            if(typeof showToast==='function') showToast('Retrying with '+activeModel.split('/').pop()+' after wait');
+          }
+          tryOrders=buildTryOrders(maxTokens);
+          triedFold=false;
+          triedLowerTok=false;
+          i=-1;
+          continue;
+        }
+
         const poolSize=(typeof allModels!=='undefined'&&allModels)?allModels.length:0;
         setCapacityStatus(
           poolSize<2
-            ? '⚠️ <strong>At capacity</strong> and no alternate models loaded. Tap <strong>Load 500</strong> so auto-switch has a pool. This is a GPU queue issue — not an app bug. Max tokens will not help.'
-            : '⚠️ <strong>Provider at capacity</strong> for this model family. Auto-switch found no safe alternate. Pick instruct/Hermes manually, or wait 1–5 min. Lowering max tokens will not help.',
+            ? '⚠️ <strong>At capacity</strong> and no alternate models loaded. Tap <strong>Load 500 / Load All</strong> so auto-switch has a pool. GPU queue issue — not an app bug. Max tokens will not help.'
+            : '⚠️ <strong>Provider GPUs busy</strong> for every safe alternate we tried (including wait+retry). Shared queue — not an app bug. Wait 1–5 min, Load All, use error card “Wait 45s”, or Custom URL → local Ollama/LM Studio. Max tokens will not help.',
           true
         );
         throw e;
       }
-      // 429: one polite wait then single retry; then try model switch once
+      // 429: one polite wait then single retry; then try model switch with relaxed pool
       if(isRateLimitError(e)){
         if(!conf._retried429){
           conf._retried429=true;
@@ -3163,8 +3286,15 @@ async function chatCompletionRobust(key, model, messages, systemPrompt, maxToken
           continue;
         }
         if(modelFailovers < maxModelFailovers){
-          noteCapacityFailure(activeModel); // treat sticky 429 like avoid-list
-          const pick=pickFallbackModel({ avoidId:activeModel, preferSmall:true, preferStable:true });
+          noteCapacityFailure(activeModel);
+          failedModels.add(String(activeModel).toLowerCase());
+          const {pick}=pickFallbackModelProgressive({
+            avoidId:activeModel,
+            excludeIds:failedModels,
+            preferSmall:true,
+            preferStable:true,
+            maxRelaxLevel:3
+          });
           if(pick){
             modelFailovers++;
             activeModel=pick.id;
